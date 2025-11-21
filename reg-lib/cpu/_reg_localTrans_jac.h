@@ -11,8 +11,7 @@
  *
  */
 
-#ifndef _REG_TRANS_JAC_H
-#define _REG_TRANS_JAC_H
+#pragma once
 
 #include "_reg_localTrans.h"
 
@@ -21,12 +20,10 @@
  * @param controlPointGridImage Image that contains the transformation
  * parametrisation.
  * @param jacobianImage Image that will be populated with the determinant
- * of the Jacobian matrix of the transformation at every voxel posision.
+ * of the Jacobian matrix of the transformation at every voxel position.
  */
-extern "C++"
 void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
-                               nifti_image *jacobianImage
-                               );
+                               nifti_image *jacobianImage);
 /* *************************************************************** */
 /** @brief Compute the average Jacobian determinant
  * @param controlPointGridImage Image that contains the transformation
@@ -37,12 +34,10 @@ void reg_spline_GetJacobianMap(nifti_image *controlPointGridImage,
  * only the information from the control point if the value is set to true;
  * all voxels are considered if the value is set to false.
  */
-extern "C++"
 double reg_spline_getJacobianPenaltyTerm(nifti_image *controlPointGridImage,
                                          nifti_image *referenceImage,
                                          bool approx,
-                                         bool useHeaderInformation=false
-      );
+                                         bool useHeaderInformation=false);
 /* *************************************************************** */
 /** @brief Compute the gradient at every control point position of the
  * Jacobian determinant based penalty term
@@ -60,14 +55,12 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *controlPointGridImage,
  * from the control point if the value is set to true; all voxels are
  * considered if the value is set to false.
  */
-extern "C++"
 void reg_spline_getJacobianPenaltyTermGradient(nifti_image *controlPointGridImage,
                                                nifti_image *referenceImage,
                                                nifti_image *gradientImage,
                                                float weight,
                                                bool approx,
-                                               bool useHeaderInformation=false
-      );
+                                               bool useHeaderInformation=false);
 /* *************************************************************** */
 /** @brief Compute the Jacobian matrix at every voxel position
  * using a cubic b-spline parametrisation. This function does require
@@ -79,11 +72,9 @@ void reg_spline_getJacobianPenaltyTermGradient(nifti_image *controlPointGridImag
  * @param jacobianImage Array that is filled with the Jacobian matrices
  * for every voxel.
  */
-extern "C++"
 void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                   nifti_image *controlPointGridImage,
-                                  mat33 *jacobianImage
-                                  );
+                                  mat33 *jacobianImage);
 /* *************************************************************** */
 /** @brief Correct the folding in the transformation parametrised through
  * cubic B-Spline
@@ -93,11 +84,9 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
  * @param approx The function can be run be considering only the control
  * point position (approx==false) or every voxel (approx==true)
  */
-extern "C++"
 double reg_spline_correctFolding(nifti_image *controlPointGridImage,
                                  nifti_image *referenceImage,
-                                 bool approx
-                                 );
+                                 bool approx);
 /* *************************************************************** */
 /** @brief Compute the Jacobian determinant at every voxel position
  * from a deformation field. A linear interpolation is
@@ -106,7 +95,6 @@ double reg_spline_correctFolding(nifti_image *controlPointGridImage,
  * @param jacobianImage This image will be fill with the Jacobian
  * determinant of the transformation of every voxel.
  */
-extern "C++"
 void reg_defField_getJacobianMap(nifti_image *deformationField,
                                  nifti_image *jacobianImage);
 /* *************************************************************** */
@@ -117,7 +105,6 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
  * @param jacobianMatrices This array will be fill with the Jacobian
  * matrices of the transformation of every voxel.
  */
-extern "C++"
 void reg_defField_getJacobianMatrix(nifti_image *deformationField,
                                     mat33 *jacobianMatrices);
 /* *************************************************************** */
@@ -130,14 +117,11 @@ void reg_defField_getJacobianMatrix(nifti_image *deformationField,
  * @param jacobianMatrices Array of matrices that will be filled with
  * the Jacobian matrices of the transformation
  */
-extern "C++"
 int reg_defField_GetJacobianMatFromFlowField(mat33* jacobianMatrices,
                                              nifti_image *flowFieldImage);
-extern "C++"
 int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
                                               nifti_image *velocityGridImage,
-                                              nifti_image *referenceImage
-                                              );
+                                              nifti_image *referenceImage);
 /* *************************************************************** */
 /** @brief This function computed a Jacobian determinant map by integrating
  * the velocity grid
@@ -146,14 +130,8 @@ int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
  * @param velocityFieldImage Image that contains a velocity field
  * parametrised using a grid of control points
  */
-extern "C++"
 int reg_defField_GetJacobianDetFromFlowField(nifti_image *jacobianDetImage,
-                                             nifti_image *flowFieldImage
-                                             );
-extern "C++"
+                                             nifti_image *flowFieldImage);
 int reg_spline_GetJacobianDetFromVelocityGrid(nifti_image *jacobianDetImage,
                                               nifti_image *velocityGridImage);
 /* *************************************************************** */
-
-
-#endif

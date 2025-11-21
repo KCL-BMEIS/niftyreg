@@ -49,36 +49,34 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-   fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   return;
+   NR_INFO("Usage:\t" << exec << " -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]");
+   NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-   printf("\t-ref <filename>\n\t\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\n\t\tFilename of the floating image (mandatory)\n\n");
-   printf("* * OPTIONS * *\n");
-   printf("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)\n");
-   printf("\t-res <filename>\n\t\tFilename of the resampled image [none]\n");
-   printf("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]\n");
-   printf("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)\n");
-   printf("\t-pad <int>\n\t\tInterpolation padding value [0]\n");
-   printf("\t-tensor\n\t\tThe last six timepoints of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]\n");
-   printf("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]\n");
-   printf("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]\n");
-   printf("\t-voff\n\t\tTurns verbose off [on]\n");
-#if defined (_OPENMP)
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("Usage:\t" << exec << " -ref <filename> -flo <filename> [OPTIONS]");
+   NR_INFO("\t-ref <filename>\n\t\tFilename of the reference image (mandatory)");
+   NR_INFO("\t-flo <filename>\n\t\tFilename of the floating image (mandatory)\n");
+   NR_INFO("* * OPTIONS * *");
+   NR_INFO("\t-trans <filename>\n\t\tFilename of the file containing the transformation parametrisation (from reg_aladin, reg_f3d or reg_transform)");
+   NR_INFO("\t-res <filename>\n\t\tFilename of the resampled image [none]");
+   NR_INFO("\t-blank <filename>\n\t\tFilename of the resampled blank grid [none]");
+   NR_INFO("\t-inter <int>\n\t\tInterpolation order (0, 1, 3, 4)[3] (0=NN, 1=LIN; 3=CUB, 4=SINC)");
+   NR_INFO("\t-pad <int>\n\t\tInterpolation padding value [0]");
+   NR_INFO("\t-tensor\n\t\tThe last six time points of the floating image are considered to be tensor order as XX, XY, YY, XZ, YZ, ZZ [off]");
+   NR_INFO("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]");
+   NR_INFO("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]");
+   NR_INFO("\t-voff\n\t\tTurns verbose off [on]");
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\n\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\n\t\tPrint current version and exit (%s)\n",NR_VERSION);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
+   NR_INFO("\t--version\n\t\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -91,10 +89,10 @@ int main(int argc, char **argv)
    param->PSF_Algorithm=0;
    bool verbose=true;
 
-#if defined (_OPENMP)
-   // Set the default number of thread
+#ifdef _OPENMP
+   // Set the default number of threads
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -117,7 +115,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
-         printf("%s",xml_resample);
+         NR_COUT << xml_resample << std::endl;
          return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-voff")==0)
@@ -126,10 +124,10 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
-#if defined (_OPENMP)
+#ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
-         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
          ++i;
 #endif
       }
@@ -140,7 +138,7 @@ int main(int argc, char **argv)
                strcmp(argv[i], "--v")==0 ||
                strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",NR_VERSION);
+         NR_COUT << NR_VERSION << std::endl;
          return EXIT_SUCCESS;
       }
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
@@ -239,7 +237,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Unknown parameter: " << argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -247,51 +245,44 @@ int main(int argc, char **argv)
 
    if(!flag->referenceImageFlag || !flag->floatingImageFlag)
    {
-      fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
+      NR_ERROR("The reference and the floating image have both to be defined");
       PetitUsage(argv[0]);
       return EXIT_FAILURE;
    }
 
    /* Read the reference image */
-   nifti_image *referenceImage = reg_io_ReadImageHeader(param->referenceImageName);
-   if(referenceImage == NULL)
+   NiftiImage referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
+   if(referenceImage == nullptr)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
-              param->referenceImageName);
+      NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
       return EXIT_FAILURE;
    }
 
    /* Read the floating image */
-   nifti_image *floatingImage = reg_io_ReadImageFile(param->floatingImageName);
-   if(floatingImage == NULL)
+   NiftiImage floatingImage = reg_io_ReadImageFile(param->floatingImageName);
+   if(floatingImage == nullptr)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
-              param->floatingImageName);
+      NR_ERROR("Error when reading the floating image: " << param->floatingImageName);
       return EXIT_FAILURE;
    }
 
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
    /* *********************************** */
-   if(verbose){
-      printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-      printf("Command line:\n");
-      for(int i=0; i<argc; i++) printf(" %s", argv[i]);
-      printf("\n");
-      printf("Parameters\n");
-      printf("Reference image name: %s\n",referenceImage->fname);
-      printf("\t%ix%ix%i voxels, %i volumes\n",referenceImage->nx,referenceImage->ny,referenceImage->nz,referenceImage->nt);
-      printf("\t%gx%gx%g mm\n",referenceImage->dx,referenceImage->dy,referenceImage->dz);
-      printf("Floating image name: %s\n",floatingImage->fname);
-      printf("\t%ix%ix%i voxels, %i volumes\n",floatingImage->nx,floatingImage->ny,floatingImage->nz,floatingImage->nt);
-      printf("\t%gx%gx%g mm\n",floatingImage->dx,floatingImage->dy,floatingImage->dz);
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n\n");
-   }
+   PrintCmdLine(argc, argv, verbose);
+   NR_VERBOSE_APP("Parameters");
+   NR_VERBOSE_APP("Reference image name: " << referenceImage->fname);
+   NR_VERBOSE_APP("\t" << referenceImage->nx << "x" << referenceImage->ny << "x" << referenceImage->nz << " voxels, " << referenceImage->nt << " volumes");
+   NR_VERBOSE_APP("\t" << referenceImage->dx << "x" << referenceImage->dy << "x" << referenceImage->dz << " mm");
+   NR_VERBOSE_APP("Floating image name: " << floatingImage->fname);
+   NR_VERBOSE_APP("\t" << floatingImage->nx << "x" << floatingImage->ny << "x" << floatingImage->nz << " voxels, " << floatingImage->nt << " volumes");
+   NR_VERBOSE_APP("\t" << floatingImage->dx << "x" << floatingImage->dy << "x" << floatingImage->dz << " mm");
+   NR_VERBOSE_APP("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
-   nifti_image *inputTransformationImage = NULL;
+   NiftiImage inputTransformationImage;
    mat44 inputAffineTransformation;
    // Check if a transformation has been specified
    if(flag->inputTransFlag)
@@ -300,10 +291,9 @@ int main(int argc, char **argv)
       if(reg_isAnImageFileName(param->inputTransName))
       {
          inputTransformationImage=reg_io_ReadImageFile(param->inputTransName);
-         if(inputTransformationImage==NULL)
+         if(inputTransformationImage==nullptr)
          {
-            fprintf(stderr, "[NiftyReg ERROR] Error when reading the provided transformation: %s\n",
-                    param->inputTransName);
+            NR_ERROR("Error when reading the provided transformation: " << param->inputTransName);
             return EXIT_FAILURE;
          }
       }
@@ -317,26 +307,21 @@ int main(int argc, char **argv)
    else
    {
       // No transformation is specified, an identity transformation is used
-      reg_mat44_eye(&inputAffineTransformation);
+      Mat44Eye(&inputAffineTransformation);
    }
 
    // Create a deformation field
    nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
    deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
-   deformationFieldImage->dim[1]=deformationFieldImage->nx=referenceImage->nx;
-   deformationFieldImage->dim[2]=deformationFieldImage->ny=referenceImage->ny;
-   deformationFieldImage->dim[3]=deformationFieldImage->nz=referenceImage->nz;
    deformationFieldImage->dim[4]=deformationFieldImage->nt=1;
    deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
    deformationFieldImage->dim[5]=deformationFieldImage->nu=referenceImage->nz>1?3:2;
    deformationFieldImage->dim[6]=deformationFieldImage->nv=1;
    deformationFieldImage->dim[7]=deformationFieldImage->nw=1;
-   deformationFieldImage->nvox =(size_t)deformationFieldImage->nx*
-         deformationFieldImage->ny*deformationFieldImage->nz*
-         deformationFieldImage->nt*deformationFieldImage->nu;
+   deformationFieldImage->nvox = NiftiImage::calcVoxelNumber(deformationFieldImage, deformationFieldImage->ndim);
    deformationFieldImage->scl_slope=1.f;
    deformationFieldImage->scl_inter=0.f;
-   if(inputTransformationImage!=NULL)
+   if(inputTransformationImage!=nullptr)
    {
       deformationFieldImage->datatype = inputTransformationImage->datatype;
       deformationFieldImage->nbyper = inputTransformationImage->nbyper;
@@ -346,67 +331,77 @@ int main(int argc, char **argv)
       deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
       deformationFieldImage->nbyper = sizeof(float);
    }
-   deformationFieldImage->data = (void *)calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
+   deformationFieldImage->data = calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
 
-   // Initialise the deformation field with an identity transformation
+   // Initialise as a displacement field with an identity transformation
+   deformationFieldImage->intent_code = NIFTI_INTENT_VECTOR;
+   memset(deformationFieldImage->intent_name, 0, 16);
+   strcpy(deformationFieldImage->intent_name, "NREG_TRANS");
+   deformationFieldImage->intent_p1 = DISP_FIELD;
    reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
+   // Convert it then to an deformation field with identity
    reg_getDeformationFromDisplacement(deformationFieldImage);
-   deformationFieldImage->intent_p1=DEF_FIELD;
 
    // Compute the transformation to apply
-   if(inputTransformationImage!=NULL)
+   if(inputTransformationImage!=nullptr)
    {
       switch(static_cast<int>(inputTransformationImage->intent_p1))
       {
       case LIN_SPLINE_GRID:
       case CUB_SPLINE_GRID:
-         reg_spline_getDeformationField(inputTransformationImage,
-                                        deformationFieldImage,
-                                        NULL,
-                                        false,
-                                        true);
-         break;
+          NR_VERBOSE_APP("Input transformation is a cubic spline grid");
+          reg_spline_getDeformationField(inputTransformationImage,
+              deformationFieldImage,
+              nullptr, // no mask
+              true, // composition is used,
+              true); // b-spline are used
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
+          break;
       case DISP_VEL_FIELD:
-         reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is a displacement velocity field");
+          reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is converted to a deformation velocity field");
       case DEF_VEL_FIELD:
          {
-            nifti_image *tempFlowField = nifti_copy_nim_info(deformationFieldImage);
-            tempFlowField->data = (void *)malloc(tempFlowField->nvox*tempFlowField->nbyper);
-            memcpy(tempFlowField->data,deformationFieldImage->data,
-                   tempFlowField->nvox*tempFlowField->nbyper);
-            reg_defField_compose(inputTransformationImage,
-                                 tempFlowField,
-                                 NULL);
-            tempFlowField->intent_p1=inputTransformationImage->intent_p1;
-            tempFlowField->intent_p2=inputTransformationImage->intent_p2;
-            reg_defField_getDeformationFieldFromFlowField(tempFlowField,
-                                                          deformationFieldImage,
-                                                          false);
-            nifti_image_free(tempFlowField);
-         }
-         break;
+          NR_VERBOSE_APP("Input transformation is a deformation velocity field");
+          nifti_image *tempFlowField = nifti_dup(*deformationFieldImage);
+          reg_defField_compose(inputTransformationImage,
+                               tempFlowField,
+                               nullptr);
+          tempFlowField->intent_p1=inputTransformationImage->intent_p1;
+          tempFlowField->intent_p2=inputTransformationImage->intent_p2;
+          reg_defField_getDeformationFieldFromFlowField(tempFlowField,
+                                                        deformationFieldImage,
+                                                        false);
+          nifti_image_free(tempFlowField);
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
+          }
+          break;
       case SPLINE_VEL_GRID:
-         reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
+          NR_VERBOSE_APP("Input transformation is a spine velocity grid");
+          reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
                                                 deformationFieldImage,
                                                 false);
-         break;
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
+          break;
       case DISP_FIELD:
-         reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is a displacement field");
+          reg_getDeformationFromDisplacement(inputTransformationImage);
+          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
       default:
-         reg_defField_compose(inputTransformationImage,
-                              deformationFieldImage,
-                              NULL);
-         break;
+          NR_VERBOSE_APP("Input transformation is a deformation field");
+          reg_defField_compose(inputTransformationImage,
+                               deformationFieldImage,
+                               nullptr);
+          break;
       }
-      nifti_image_free(inputTransformationImage);
-      inputTransformationImage=NULL;
    }
    else
    {
       reg_affine_getDeformationField(&inputAffineTransformation,
                                      deformationFieldImage,
                                      false,
-                                     NULL);
+                                     nullptr);
    }
 
 
@@ -453,56 +448,43 @@ int main(int argc, char **argv)
       warpedImage->nbyper = floatingImage->nbyper;
       warpedImage->nvox = (size_t)warpedImage->dim[1] * warpedImage->dim[2] *
             warpedImage->dim[3] * warpedImage->dim[4] * warpedImage->dim[5];
-      warpedImage->data = (void *)calloc(warpedImage->nvox, warpedImage->nbyper);
+      warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
 
-      if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor==true)
+      if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor)
       {
-#ifndef NDEBUG
-         reg_print_msg_debug("DTI-based resampling\n");
-#endif
+         NR_DEBUG("DTI-based resampling");
          // Compute first the Jacobian matrices
-         mat33 *jacobian = (mat33 *)malloc(deformationFieldImage->nx *
-                                           deformationFieldImage->ny *
-                                           deformationFieldImage->nz *
-                                           sizeof(mat33));
-         reg_defField_getJacobianMatrix(deformationFieldImage,
-                                        jacobian);
+         mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
+         reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
          // resample the DTI image
-         bool timepoints[7];
-         for(int i=0; i<7; ++i) timepoints[i]=true;
-         if(floatingImage->dim[4]==7) timepoints[0]=false;
+         bool timePoints[7];
+         for(int i=0; i<7; ++i) timePoints[i]=true;
+         if(floatingImage->dim[4]==7) timePoints[0]=false;
          reg_resampleImage(floatingImage,
                            warpedImage,
                            deformationFieldImage,
-                           NULL,
+                           nullptr,
                            param->interpolation,
                            std::numeric_limits<float>::quiet_NaN(),
-                           timepoints,
+                           timePoints,
                            jacobian
                            );
       }
       else{
          if(flag->usePSF){
             // Compute first the Jacobian matrices
-            mat33 *jacobian = (mat33 *)malloc(deformationFieldImage->nx *
-                                              deformationFieldImage->ny *
-                                              deformationFieldImage->nz *
-                                              sizeof(mat33));
-            reg_defField_getJacobianMatrix(deformationFieldImage,
-                                           jacobian);
-
+            mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
+            reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
 
             reg_resampleImage_PSF(floatingImage,
                                   warpedImage,
                                   deformationFieldImage,
-                                  NULL,
+                                  nullptr,
                                   param->interpolation,
                                   param->paddingValue,
                                   jacobian,
-                                  (char)round(param->PSF_Algorithm));
-#ifndef NDEBUG
-            reg_print_msg_debug("PSF resampling completed\n");
-#endif
+                                  Round<char>(param->PSF_Algorithm));
+            NR_DEBUG("PSF resampling completed");
             free(jacobian);
          }
          else
@@ -510,7 +492,7 @@ int main(int argc, char **argv)
             reg_resampleImage(floatingImage,
                               warpedImage,
                               deformationFieldImage,
-                              NULL,
+                              nullptr,
                               param->interpolation,
                               param->paddingValue);
          }
@@ -520,8 +502,7 @@ int main(int argc, char **argv)
       strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
       reg_io_WriteImageFile(warpedImage,param->outputResultName);
 
-      if(verbose)
-         printf("[NiftyReg] Resampled image has been saved: %s\n", param->outputResultName);
+      NR_VERBOSE_APP("Resampled image has been saved: " << param->outputResultName);
       nifti_image_free(warpedImage);
    }
 
@@ -544,11 +525,10 @@ int main(int argc, char **argv)
       gridImage->dim[3]=gridImage->nz=floatingImage->nz;
       gridImage->dim[4]=gridImage->nt=1;
       gridImage->dim[5]=gridImage->nu=1;
-      gridImage->nvox=(size_t)gridImage->nx*
-            gridImage->ny*gridImage->nz;
+      gridImage->nvox = NiftiImage::calcVoxelNumber(gridImage, gridImage->ndim);
       gridImage->datatype = NIFTI_TYPE_UINT8;
       gridImage->nbyper = sizeof(unsigned char);
-      gridImage->data = (void *)calloc(gridImage->nvox, gridImage->nbyper);
+      gridImage->data = calloc(gridImage->nvox, gridImage->nbyper);
       unsigned char *gridImageValuePtr = static_cast<unsigned char *>(gridImage->data);
       for(int z=0; z<gridImage->nz; z++)
       {
@@ -602,12 +582,11 @@ int main(int argc, char **argv)
       warpedImage->dim[5]=warpedImage->nu=1;
       warpedImage->datatype =NIFTI_TYPE_UINT8;
       warpedImage->nbyper = sizeof(unsigned char);
-      warpedImage->data = (void *)calloc(warpedImage->nvox,
-                                         warpedImage->nbyper);
+      warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
       reg_resampleImage(gridImage,
                         warpedImage,
                         deformationFieldImage,
-                        NULL,
+                        nullptr,
                         1, // linear interpolation
                         0);
       memset(warpedImage->descrip, 0, 80);
@@ -615,15 +594,12 @@ int main(int argc, char **argv)
       reg_io_WriteImageFile(warpedImage,param->outputBlankName);
       nifti_image_free(warpedImage);
       nifti_image_free(gridImage);
-      if(verbose)
-         printf("[NiftyReg] Resampled grid has been saved: %s\n", param->outputBlankName);
+      NR_VERBOSE_APP("Resampled grid has been saved: " << param->outputBlankName);
    }
 
    //   // Tell the CLI that we finished
    //   closeProgress("reg_resample", "Normal exit");
 
-   nifti_image_free(referenceImage);
-   nifti_image_free(floatingImage);
    nifti_image_free(deformationFieldImage);
 
    free(flag);

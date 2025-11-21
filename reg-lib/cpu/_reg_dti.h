@@ -1,5 +1,5 @@
 /**
- * @file _reg_ssd.h
+ * @file _reg_dti.h
  * @brief File that contains sum squared difference related function
  * @author Marc Modat
  * @date 19/05/2009
@@ -12,75 +12,73 @@
  *
  */
 
-#ifndef _REG_DTI_H
-#define _REG_DTI_H
+#pragma once
 
-//#include "_reg_measure.h"
-#include "_reg_ssd.h" // HERE
+#include "_reg_ssd.h"
 
-/* *************************************************************** */
 /* *************************************************************** */
 /// @brief DTI related measure of similarity class
-class reg_dti : public reg_measure
-{
+class reg_dti: public reg_measure {
 public:
-   /// @brief reg_dti class constructor
-   reg_dti();
-//    /// @brief Initialise the reg_dti object
-   void InitialiseMeasure(nifti_image *refImgPtr,
-                          nifti_image *floImgPtr,
-                          int *maskRefPtr,
-                          nifti_image *warFloImgPtr,
-                          nifti_image *warFloGraPtr,
-                          nifti_image *forVoxBasedGraPtr,
-                          nifti_image *forwardLocalWeightPtr = NULL,
-                          int *maskFloPtr = NULL,
-                          nifti_image *warRefImgPtr = NULL,
-                          nifti_image *warRefGraPtr = NULL,
-                          nifti_image *bckVoxBasedGraPtr = NULL);
-//    /// @brief Returns the value
-   virtual double GetSimilarityMeasureValue();
-//    /// @brief Compute the voxel based gradient for DTI images
-   virtual void GetVoxelBasedSimilarityMeasureGradient(int current_timepoint);
-   /// @brief reg_dti class destructor
-   ~reg_dti() {}
+    /// @brief reg_dti class constructor
+    reg_dti();
+    /// @brief reg_dti class destructor
+    virtual ~reg_dti() {}
+
+    /// @brief Initialise the reg_dti object
+    virtual void InitialiseMeasure(nifti_image *refImg,
+                                   nifti_image *floImg,
+                                   int *refMask,
+                                   nifti_image *warpedImg,
+                                   nifti_image *warpedGrad,
+                                   nifti_image *voxelBasedGrad,
+                                   nifti_image *localWeightSim = nullptr,
+                                   int *floMask = nullptr,
+                                   nifti_image *warpedImgBw = nullptr,
+                                   nifti_image *warpedGradBw = nullptr,
+                                   nifti_image *voxelBasedGradBw = nullptr) override;
+    /// @brief Returns the dti value forwards
+    virtual double GetSimilarityMeasureValueFw() override;
+    /// @brief Returns the dti value backwards
+    virtual double GetSimilarityMeasureValueBw() override;
+    /// @brief Compute the voxel-based gradient for DTI images forwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
+    /// @brief Compute the voxel-based gradient for DTI images backwards
+    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
+
 protected:
-   // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
-   unsigned int dtIndicies[6];
-   float currentValue;
+    // Store the indicies of the DT components in the order XX,XY,YY,XZ,YZ,ZZ
+    unsigned dtIndicies[6]{};
+    float currentValue = 0;
 };
 /* *************************************************************** */
-
-/** @brief Copmutes and returns the SSD between two input image
+/** @brief Computes and returns the SSD between two input image
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  * @return Returns an L2 measure of the distance between the anisotropic components of the diffusion tensors
  */
-extern "C++" template <class DTYPE>
-double reg_getDTIMeasureValue(nifti_image *referenceImage,
-                              nifti_image *warpedImage,
-                              int *mask,
-                              unsigned int * dtIndicies
-                             );
-
+template <class DataType>
+double reg_getDtiMeasureValue(const nifti_image *referenceImage,
+                              const nifti_image *warpedImage,
+                              const int *mask,
+                              const unsigned *dtIndicies);
+/* *************************************************************** */
 /** @brief Compute a voxel based gradient of the sum squared difference.
  * @param referenceImage First input image to use to compute the metric
  * @param warpedImage Second input image to use to compute the metric
- * @param warpedImageGradient Spatial gradient of the input warped image
- * @param dtiGradientImage Output image that will be updated with the
+ * @param warpedGradient Spatial gradient of the input warped image
+ * @param dtiMeasureGradientImage Output image that will be updated with the
  * value of the dti measure gradient
- * @param maxSD Input scalar that contain the difference value between
- * the highest and the lowest intensity.
  * @param mask Array that contains a mask to specify which voxel
- * should be considered. If set to NULL, all voxels are considered
+ * should be considered. If set to nullptr, all voxels are considered
  */
-extern "C++" template <class DTYPE>
-void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
-      nifti_image *warpedImage,
-      nifti_image *warImgGradient,
-      nifti_image *dtiMeasureGradientImage,
-      int *mask,
-      unsigned int * dtIndicies);
-#endif
+template <class DataType>
+void reg_getVoxelBasedDtiMeasureGradient(nifti_image *referenceImage,
+                                         nifti_image *warpedImage,
+                                         nifti_image *warpedGradient,
+                                         nifti_image *dtiMeasureGradientImage,
+                                         int *mask,
+                                         unsigned *dtIndicies);
+/* *************************************************************** */

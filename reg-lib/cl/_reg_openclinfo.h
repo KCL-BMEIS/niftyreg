@@ -1,9 +1,3 @@
-#ifndef _REG_OPENCLINFO_H
-#define _REG_OPENCLINFO_H
+#pragma once
 
-#include <iostream>
-#include "InfoDevice.h"
-
-void showCLInfo(void);
-
-#endif
+void showCLInfo();

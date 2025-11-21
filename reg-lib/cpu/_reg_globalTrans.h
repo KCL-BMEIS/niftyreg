@@ -12,11 +12,10 @@
  *
  */
 
-#ifndef _REG_AFFINETRANS_H
-#define _REG_AFFINETRANS_H
+#pragma once
 
-#include "nifti1_io.h"
 #include "_reg_tools.h"
+
 /* *************************************************************** */
 /// @brief Structure that is used to store the distance between two corresponding voxel
 struct _reg_sorted_point3D
@@ -38,7 +37,7 @@ struct _reg_sorted_point3D
         warped[2] = r[2];
     }
 
-    bool operator <(const _reg_sorted_point3D &sp) const
+    bool operator <(const _reg_sorted_point3D& sp) const
     {
         return (sp.distance < distance);
     }
@@ -62,7 +61,7 @@ struct _reg_sorted_point2D
         warped[0] = r[0];
         warped[1] = r[1];
     }
-    bool operator <(const _reg_sorted_point2D &sp) const
+    bool operator <(const _reg_sorted_point2D& sp) const
     {
         return (sp.distance < distance);
     }
@@ -76,14 +75,13 @@ typedef struct _reg_sorted_point2D _reg_sorted_point2D;
  * @param deformationField Image that contains the deformation field
  * that is being updated
  */
-extern "C++"
 void reg_affine_getDeformationField(mat44 *affine,
                                     nifti_image *deformationField,
                                     bool compose=false,
-                                    int *mask = NULL);
+                                    int *mask = nullptr);
 /* *************************************************************** */
 void optimize_2D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    unsigned definedActiveBlock, int percent_to_keep, int max_iter, double tol,
     mat44* final, bool affine);
 /* *************************************************************** */
 void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
@@ -91,11 +89,10 @@ void estimate_affine_transformation2D(std::vector<_reg_sorted_point2D> &points, 
 void estimate_rigid_transformation2D(std::vector<_reg_sorted_point2D> &points, mat44* transformation);
 /* *************************************************************** */
 void optimize_3D(float* referencePosition, float* warpedPosition,
-    unsigned int definedActiveBlock, int percent_to_keep, int max_iter, double tol,
+    unsigned definedActiveBlock, int percent_to_keep, int max_iter, double tol,
     mat44* final, bool affine);
 /* *************************************************************** */
 void estimate_affine_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
 void estimate_rigid_transformation3D(std::vector<_reg_sorted_point3D> &points, mat44* transformation);
 /* *************************************************************** */
-#endif

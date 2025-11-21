@@ -1,0 +1,52 @@
+name: Coverage
+on: [push, pull_request]
+jobs:
+  Coverage:
+    runs-on: ubuntu-22.04-gpu
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake git lcov
+
+      - name: Install Catch2
+        run:  |
+          git clone https://github.com/catchorg/Catch2.git
+          cd Catch2
+          cmake -Bbuild -H. -DBUILD_TESTING=OFF
+          sudo cmake --build build/ --target install --config Debug
+
+      - name: Configure NiftyReg
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_C_COMPILER=gcc \
+                -DCMAKE_CXX_COMPILER=g++ \
+                -DCMAKE_BUILD_TYPE=Debug \
+                -DBUILD_ALL_DEP=ON \
+                -DUSE_CUDA=ON \
+                -DUSE_OPENCL=OFF \
+                -DUSE_SSE=OFF \
+                -DUSE_OPENMP=OFF \
+                -DBUILD_TESTING=ON \
+                -DWITH_COVERAGE=ON \
+                ..
+
+      - name: Build NiftyReg
+        run: cmake --build build --config Debug
+
+      - name: Run tests
+        working-directory: build
+        run: ctest -V
+
+      - name: Coverage
+        working-directory: build
+        run: make coverage
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          directory: build
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

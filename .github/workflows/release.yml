@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, macos-13, macos-14, windows-2022]
+        platform: [cpu, cuda]
+        include:
+          - sudo: "sudo"
+            build-all-dep: "ON"
+            build-type: "Release"
+            cmake-extra: ""
+            use-sse: "ON"
+          - platform: cpu
+            platform-name: ""
+            use-cuda: "OFF"
+          - platform: cuda
+            platform-name: "-CUDA"
+            use-cuda: "ON"
+          - os: ubuntu-22.04
+            os-name: "Ubuntu"
+            c-compiler: "gcc-12"
+            cxx-compiler: "g++-12"
+          - os: macos-13
+            os-name: "macOS"
+            platform-name: "-Intel"
+            c-compiler: "gcc-14"
+            cxx-compiler: "g++-14"
+            build-all-dep: "OFF"
+          - os: macos-14
+            os-name: "macOS"
+            c-compiler: "gcc-14"
+            cxx-compiler: "g++-14"
+            cmake-extra: "-DCMAKE_C_FLAGS=-D__FLT_EVAL_METHOD__=0"
+            build-all-dep: "OFF"
+            use-sse: "OFF"
+          - os: windows-2022
+            os-name: "Windows"
+            sudo: ""
+            c-compiler: "clang-cl"
+            cxx-compiler: "clang-cl"
+            cmake-extra: "-DCMAKE_CUDA_FLAGS=\"-allow-unsupported-compiler -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH\" -G Ninja"
+        exclude:
+          - os: macos-13
+            platform: cuda
+          - os: macos-14
+            platform: cuda
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup MSVC environment
+        uses: ilammy/msvc-dev-cmd@v1
+        if: matrix.os-name == 'Windows'
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@master
+        if: matrix.platform == 'cuda'
+        with:
+          cuda: '11.8.0'
+          method: network
+          use-github-cache: false
+          use-local-cache: false
+
+      - name: Configure NiftyReg
+        shell: bash
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_C_COMPILER=${{ matrix.c-compiler }} \
+                -DCMAKE_CXX_COMPILER=${{ matrix.cxx-compiler }} \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DBUILD_ALL_DEP=${{ matrix.build-all-dep }} \
+                -DCHECK_GPU=OFF \
+                -DUSE_CUDA=${{ matrix.use-cuda }} \
+                -DUSE_OPENCL=OFF \
+                -DUSE_SSE=${{ matrix.use-sse }} \
+                -DUSE_OPENMP=ON \
+                -DBUILD_TESTING=OFF \
+                ${{ matrix.cmake-extra }} \
+                ..
+
+      - name: Build NiftyReg
+        shell: bash
+        run: cmake --build build --config ${{ matrix.build-type }}
+
+      - name: Prepare the variables
+        id: vars
+        shell: bash
+        run: echo "output-folder=NiftyReg-${{ matrix.os-name }}${{ matrix.platform-name }}-${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Prepare the package
+        if: matrix.os-name == 'Windows'
+        shell: powershell
+        working-directory: build/reg-apps
+        run: |
+          New-Item -ItemType Directory -Force -Path ${{ steps.vars.outputs.output-folder }}
+          Move-Item -Path *.exe -Destination ${{ steps.vars.outputs.output-folder }}
+          Copy-Item -Path "C:/Program Files/LLVM/bin/libomp.dll" -Destination ${{ steps.vars.outputs.output-folder }}/libomp140.x86_64.dll
+          Compress-Archive -Path ${{ steps.vars.outputs.output-folder }} -DestinationPath ../NiftyReg.zip
+
+      - name: Prepare the package
+        if: matrix.os-name == 'Ubuntu'
+        working-directory: build/reg-apps
+        run: |
+          mkdir -p ${{ steps.vars.outputs.output-folder }}
+          find . -maxdepth 1 -type f -executable -exec mv {} ${{ steps.vars.outputs.output-folder }} \;
+          zip -r ../NiftyReg.zip ${{ steps.vars.outputs.output-folder }}
+
+      - name: Prepare the package
+        if: matrix.os-name == 'macOS'
+        working-directory: build/reg-apps
+        run: |
+          mkdir -p ${{ steps.vars.outputs.output-folder }}
+          find . -maxdepth 1 -type f -perm +111 -exec mv {} ${{ steps.vars.outputs.output-folder }} \;
+          zip -r ../NiftyReg.zip ${{ steps.vars.outputs.output-folder }}
+
+      - name: Upload the package
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ github.token }}
+          file: build/NiftyReg.zip
+          asset_name: ${{ steps.vars.outputs.output-folder }}.zip

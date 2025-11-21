@@ -10,489 +10,668 @@
  *
  */
 
-
-#ifndef _REG_F3D2_CPP
-#define _REG_F3D2_CPP
-
 #include "_reg_f3d2.h"
+#include "F3dContent.h"
 
 /* *************************************************************** */
-/* *************************************************************** */
 template <class T>
-reg_f3d2<T>::reg_f3d2(int refTimePoint,int floTimePoint)
-   :reg_f3d_sym<T>::reg_f3d_sym(refTimePoint,floTimePoint)
-{
-   this->executableName=(char *)"NiftyReg F3D2";
-   this->inverseConsistencyWeight=0;
-   this->BCHUpdate=false;
-   this->useGradientCumulativeExp=true;
-   this->BCHUpdateValue=0;
-
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_f3d2 constructor called");
-#endif
+reg_f3d2<T>::reg_f3d2(int refTimePoints, int floTimePoints):
+    reg_f3d<T>::reg_f3d(refTimePoints, floTimePoints) {
+    this->executableName = (char*)"NiftyReg F3D2";
+    inverseConsistencyWeight = 0;
+    bchUpdate = false;
+    useGradientCumulativeExp = true;
+    bchUpdateValue = 0;
+    NR_FUNC_CALLED();
 }
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-reg_f3d2<T>::~reg_f3d2()
-{
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_f3d2 destructor called");
-#endif
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::UseBCHUpdate(int v)
-{
-   this->BCHUpdate = true;
-   this->useGradientCumulativeExp = false;
-   this->BCHUpdateValue=v;
-   return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::UseGradientCumulativeExp()
-{
-   this->BCHUpdate = false;
-   this->useGradientCumulativeExp = true;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::DoNotUseGradientCumulativeExp()
-{
-   this->useGradientCumulativeExp = false;
-}
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
-void reg_f3d2<T>::Initialise()
-{
-   reg_f3d_sym<T>::Initialise();
-
-   // Convert the control point grid into velocity field parametrisation
-   this->controlPointGrid->intent_p1=SPLINE_VEL_GRID;
-   this->backwardControlPointGrid->intent_p1=SPLINE_VEL_GRID;
-   // Set the number of composition to 6 by default
-   this->controlPointGrid->intent_p2=6;
-   this->backwardControlPointGrid->intent_p2=6;
-
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_f3d2::Initialise_f3d() done");
-#endif
+void reg_f3d2<T>::SetFloatingMask(NiftiImage floatingMaskImageIn) {
+    floatingMaskImage = floatingMaskImageIn;
+    NR_FUNC_CALLED();
 }
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::GetDeformationField()
-{
-   // By default the number of steps is automatically updated
-   bool updateStepNumber=true;
-   // The provided step number is used for the final resampling
-   if(this->optimiser==NULL)
-      updateStepNumber=false;
-#ifndef NDEBUG
-   char text[255];
-   sprintf(text, "Velocity integration forward. Step number update=%i",updateStepNumber);
-   reg_print_msg_debug(text);
-#endif
-   // The forward transformation is computed using the scaling-and-squaring approach
-   reg_spline_getDefFieldFromVelocityGrid(this->controlPointGrid,
-                                          this->deformationFieldImage,
-                                          updateStepNumber
-                                          );
-#ifndef NDEBUG
-   sprintf(text, "Velocity integration backward. Step number update=%i",updateStepNumber);
-   reg_print_msg_debug(text);
-#endif
-   // The number of step number is copied over from the forward transformation
-   this->backwardControlPointGrid->intent_p2=this->controlPointGrid->intent_p2;
-   // The backward transformation is computed using the scaling-and-squaring approach
-   reg_spline_getDefFieldFromVelocityGrid(this->backwardControlPointGrid,
-                                          this->backwardDeformationFieldImage,
-                                          false
-                                          );
-   return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::GetInverseConsistencyErrorField(bool forceAll)
-{
-   if(this->inverseConsistencyWeight<=0) return;
-
-   if(forceAll)
-   {
-      reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
-      reg_print_msg_error("Option not supported in F3D2");
-   }
-   else
-   {
-      reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyErrorField()");
-      reg_print_msg_error("Option not supported in F3D2");
-   }
-   reg_exit();
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::GetInverseConsistencyGradient()
-{
-   if(this->inverseConsistencyWeight<=0) return;
-
-   reg_print_fct_error("reg_f3d2<T>::GetInverseConsistencyGradient()");
-   reg_print_msg_error("Option not supported in F3D2");
-   reg_exit();
-
-   return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::GetVoxelBasedGradient()
-{
-   reg_f3d_sym<T>::GetVoxelBasedGradient();
-
-   // Exponentiate the gradients if required
-   this->ExponentiateGradient();
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::ExponentiateGradient()
-{
-   if(!this->useGradientCumulativeExp) return;
-
-   /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
-   // Exponentiate the forward gradient using the backward transformation
-#ifndef NDEBUG
-   reg_print_msg_debug("Update the forward measure gradient using a Dartel like approach");
-#endif
-   // Create all deformation field images needed for resampling
-   nifti_image **tempDef=(nifti_image **)malloc(
-                            (unsigned int)(fabs(this->backwardControlPointGrid->intent_p2)+1) *
-                            sizeof(nifti_image *));
-   for(unsigned int i=0; i<=(unsigned int)fabs(this->backwardControlPointGrid->intent_p2); ++i)
-   {
-      tempDef[i]=nifti_copy_nim_info(this->deformationFieldImage);
-      tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
-   }
-   // Generate all intermediate deformation fields
-   reg_spline_getIntermediateDefFieldFromVelGrid(this->backwardControlPointGrid,
-         tempDef);
-
-   // Remove the affine component
-   nifti_image *affine_disp=NULL;
-   if(this->affineTransformation!=NULL){
-      affine_disp=nifti_copy_nim_info(this->deformationFieldImage);
-      affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
-      mat44 backwardAffineTransformation=nifti_mat44_inverse(*this->affineTransformation);
-      reg_affine_getDeformationField(&backwardAffineTransformation,
-                                     affine_disp);
-      reg_getDisplacementFromDeformation(affine_disp);
-   }
-
-   /* Allocate a temporary gradient image to store the backward gradient */
-   nifti_image *tempGrad=nifti_copy_nim_info(this->voxelBasedMeasureGradient);
-
-   tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
-   for(int i=0; i<(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
-   {
-      if(affine_disp!=NULL)
-         reg_tools_substractImageToImage(tempDef[i],
-                                         affine_disp,
-                                         tempDef[i]);
-      reg_resampleGradient(this->voxelBasedMeasureGradient, // floating
-                           tempGrad, // warped - out
-                           tempDef[i], // deformation field
-                           1, // interpolation type - linear
-                           0.f); // padding value
-      reg_tools_addImageToImage(tempGrad, // in1
-                                this->voxelBasedMeasureGradient, // in2
-                                this->voxelBasedMeasureGradient); // out
-   }
-
-   // Free the temporary deformation fields
-   for(int i=0; i<=(int)fabsf(this->backwardControlPointGrid->intent_p2); ++i)
-   {
-      nifti_image_free(tempDef[i]);
-      tempDef[i]=NULL;
-   }
-   free(tempDef);
-   tempDef=NULL;
-   // Free the temporary gradient image
-   nifti_image_free(tempGrad);
-   tempGrad=NULL;
-   // Free the temporary affine displacement field
-   if(affine_disp!=NULL)
-      nifti_image_free(affine_disp);
-   affine_disp=NULL;
-   // Normalise the forward gradient
-   reg_tools_divideValueToImage(this->voxelBasedMeasureGradient, // in
-                                this->voxelBasedMeasureGradient, // out
-                                powf(2.f,fabsf(this->backwardControlPointGrid->intent_p2))); // value
-
-   /* /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ */
-   /* Exponentiate the backward gradient using the forward transformation */
-#ifndef NDEBUG
-   reg_print_msg_debug("Update the backward measure gradient using a Dartel like approach");
-#endif
-   // Allocate a temporary gradient image to store the backward gradient
-   tempGrad=nifti_copy_nim_info(this->backwardVoxelBasedMeasureGradientImage);
-   tempGrad->data=(void *)malloc(tempGrad->nvox*tempGrad->nbyper);
-   // Create all deformation field images needed for resampling
-   tempDef=(nifti_image **)malloc((unsigned int)(fabs(this->controlPointGrid->intent_p2)+1) * sizeof(nifti_image *));
-   for(unsigned int i=0; i<=(unsigned int)fabs(this->controlPointGrid->intent_p2); ++i)
-   {
-      tempDef[i]=nifti_copy_nim_info(this->backwardDeformationFieldImage);
-      tempDef[i]->data=(void *)malloc(tempDef[i]->nvox*tempDef[i]->nbyper);
-   }
-   // Generate all intermediate deformation fields
-   reg_spline_getIntermediateDefFieldFromVelGrid(this->controlPointGrid,
-         tempDef);
-
-   // Remove the affine component
-   if(this->affineTransformation!=NULL){
-      affine_disp=nifti_copy_nim_info(this->backwardDeformationFieldImage);
-      affine_disp->data=(void *)malloc(affine_disp->nvox*affine_disp->nbyper);
-      reg_affine_getDeformationField(this->affineTransformation,
-                                     affine_disp);
-      reg_getDisplacementFromDeformation(affine_disp);
-   }
-
-   for(int i=0; i<(int)fabsf(this->controlPointGrid->intent_p2); ++i)
-   {
-      if(affine_disp!=NULL)
-         reg_tools_substractImageToImage(tempDef[i],
-                                         affine_disp,
-                                         tempDef[i]);
-      reg_resampleGradient(this->backwardVoxelBasedMeasureGradientImage, // floating
-                           tempGrad, // warped - out
-                           tempDef[i], // deformation field
-                           1, // interpolation type - linear
-                           0.f); // padding value
-      reg_tools_addImageToImage(tempGrad, // in1
-                                this->backwardVoxelBasedMeasureGradientImage, // in2
-                                this->backwardVoxelBasedMeasureGradientImage); // out
-   }
-
-   // Free the temporary deformation field
-   for(int i=0; i<=(int)fabsf(this->controlPointGrid->intent_p2); ++i)
-   {
-      nifti_image_free(tempDef[i]);
-      tempDef[i]=NULL;
-   }
-   free(tempDef);
-   tempDef=NULL;
-   // Free the temporary gradient image
-   nifti_image_free(tempGrad);
-   tempGrad=NULL;
-   // Free the temporary affine displacement field
-   if(affine_disp!=NULL)
-      nifti_image_free(affine_disp);
-   affine_disp=NULL;
-   // Normalise the backward gradient
-   reg_tools_divideValueToImage(this->backwardVoxelBasedMeasureGradientImage, // in
-                                this->backwardVoxelBasedMeasureGradientImage, // out
-                                powf(2.f,fabsf(this->controlPointGrid->intent_p2))); // value
-
-   return;
-}
-/* *************************************************************** */
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::UpdateParameters(float scale)
-{
-   // Restore the last successfull control point grids
-   this->optimiser->RestoreBestDOF();
-
-   /************************/
-   /**** Forward update ****/
-   /************************/
-   // Scale the gradient image
-   nifti_image *forwardScaledGradient=nifti_copy_nim_info(this->transformationGradient);
-   forwardScaledGradient->data=(void *)malloc(forwardScaledGradient->nvox*forwardScaledGradient->nbyper);
-   reg_tools_multiplyValueToImage(this->transformationGradient,
-                                  forwardScaledGradient,
-                                  scale); // *(scale)
-   // The scaled gradient image is added to the current estimate of the transformation using
-   // a simple addition or by computing the BCH update
-   // Note that the gradient has been integrated over the path of transformation previously
-   if(this->BCHUpdate)
-   {
-      // Compute the BCH update
-      reg_print_msg_warn("USING BCH FORWARD - TESTING ONLY");
-#ifndef NDEBUG
-      reg_print_msg_debug("Update the forward control point grid using BCH approximation");
-#endif
-      compute_BCH_update(this->controlPointGrid,
-                         forwardScaledGradient,
-                         this->BCHUpdateValue);
-   }
-   else
-   {
-      // Reset the gradient along the axes if appropriate
-      reg_setGradientToZero(forwardScaledGradient,
-                            !this->optimiser->GetOptimiseX(),
-                            !this->optimiser->GetOptimiseY(),
-                            !this->optimiser->GetOptimiseZ());
-      // Update the velocity field
-      reg_tools_addImageToImage(this->controlPointGrid, // in1
-                                forwardScaledGradient, // in2
-                                this->controlPointGrid); // out
-   }
-   // Clean the temporary nifti_images
-   nifti_image_free(forwardScaledGradient);
-   forwardScaledGradient=NULL;
-
-   /************************/
-   /**** Backward update ***/
-   /************************/
-   // Scale the gradient image
-   nifti_image *backwardScaledGradient=nifti_copy_nim_info(this->backwardTransformationGradient);
-   backwardScaledGradient->data=(void *)malloc(backwardScaledGradient->nvox*backwardScaledGradient->nbyper);
-   reg_tools_multiplyValueToImage(this->backwardTransformationGradient,
-                                  backwardScaledGradient,
-                                  scale); // *(scale)
-   // The scaled gradient image is added to the current estimate of the transformation using
-   // a simple addition or by computing the BCH update
-   // Note that the gradient has been integrated over the path of transformation previously
-   if(this->BCHUpdate)
-   {
-      // Compute the BCH update
-      reg_print_msg_warn("USING BCH BACKWARD - TESTING ONLY");
-#ifndef NDEBUG
-      reg_print_msg_debug("Update the backward control point grid using BCH approximation");
-#endif
-      compute_BCH_update(this->backwardControlPointGrid,
-                         backwardScaledGradient,
-                         this->BCHUpdateValue);
-   }
-   else
-   {
-      // Reset the gradient along the axes if appropriate
-      reg_setGradientToZero(backwardScaledGradient,
-                            !this->optimiser->GetOptimiseX(),
-                            !this->optimiser->GetOptimiseY(),
-                            !this->optimiser->GetOptimiseZ());
-      // Update the velocity field
-      reg_tools_addImageToImage(this->backwardControlPointGrid, // in1
-                                backwardScaledGradient, // in2
-                                this->backwardControlPointGrid); // out
-   }
-   // Clean the temporary nifti_images
-   nifti_image_free(backwardScaledGradient);
-   backwardScaledGradient=NULL;
-
-   /****************************/
-   /******** Symmetrise ********/
-   /****************************/
-
-   // In order to ensure symmetry the forward and backward velocity fields
-   // are averaged in both image spaces: reference and floating
-   /****************************/
-   nifti_image *warpedForwardTrans = nifti_copy_nim_info(this->backwardControlPointGrid);
-   warpedForwardTrans->data=(void *)malloc(warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
-   nifti_image *warpedBackwardTrans = nifti_copy_nim_info(this->controlPointGrid);
-   warpedBackwardTrans->data=(void *)malloc(warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
-
-   // Both parametrisations are converted into displacement
-   reg_getDisplacementFromDeformation(this->controlPointGrid);
-   reg_getDisplacementFromDeformation(this->backwardControlPointGrid);
-
-   // Both parametrisations are copied over
-   memcpy(warpedBackwardTrans->data,this->backwardControlPointGrid->data,warpedBackwardTrans->nvox*warpedBackwardTrans->nbyper);
-   memcpy(warpedForwardTrans->data,this->controlPointGrid->data,warpedForwardTrans->nvox*warpedForwardTrans->nbyper);
-
-   // and substracted (sum and negation)
-   reg_tools_substractImageToImage(this->backwardControlPointGrid, // displacement
-                                   warpedForwardTrans, // displacement
-                                   this->backwardControlPointGrid); // displacement output
-   reg_tools_substractImageToImage(this->controlPointGrid, // displacement
-                                   warpedBackwardTrans, // displacement
-                                   this->controlPointGrid); // displacement output
-   // Division by 2
-   reg_tools_multiplyValueToImage(this->backwardControlPointGrid, // displacement
-                                  this->backwardControlPointGrid, // displacement
-                                  0.5f); // *(0.5)
-   reg_tools_multiplyValueToImage(this->controlPointGrid, // displacement
-                                  this->controlPointGrid, // displacement
-                                  0.5f); // *(0.5)
-   // Clean the temporary allocated velocity fields
-   nifti_image_free(warpedForwardTrans);
-   warpedForwardTrans=NULL;
-   nifti_image_free(warpedBackwardTrans);
-   warpedBackwardTrans=NULL;
-
-   // Convert the velocity field from displacement to deformation
-   reg_getDeformationFromDisplacement(this->controlPointGrid);
-   reg_getDeformationFromDisplacement(this->backwardControlPointGrid);
-
-   return;
-}
-/* *************************************************************** */
 /* *************************************************************** */
 template<class T>
-nifti_image **reg_f3d2<T>::GetWarpedImage()
-{
-   // The initial images are used
-   if(this->inputReference==NULL ||
-         this->inputFloating==NULL ||
-         this->controlPointGrid==NULL ||
-         this->backwardControlPointGrid==NULL)
-   {
-      reg_print_fct_error("reg_f3d2<T>::GetWarpedImage()");
-      reg_print_msg_error("The reference, floating and control point grid images have to be defined");
-      reg_exit();
-   }
-
-   // Set the input images
-   reg_f3d2<T>::currentReference = this->inputReference;
-   reg_f3d2<T>::currentFloating = this->inputFloating;
-   // No mask is used to perform the final resampling
-   reg_f3d2<T>::currentMask = NULL;
-   reg_f3d2<T>::currentFloatingMask = NULL;
-
-   // Allocate the forward and backward warped images
-   reg_f3d2<T>::AllocateWarped();
-   // Allocate the forward and backward dense deformation field
-   reg_f3d2<T>::AllocateDeformationField();
-
-   // Warp the floating images into the reference spaces using a cubic spline interpolation
-   reg_f3d2<T>::WarpFloatingImage(3); // cubic spline interpolation
-
-   // Clear the deformation field
-   reg_f3d2<T>::ClearDeformationField();
-
-   // Allocate and save the forward transformation warped image
-   nifti_image **warpedImage=(nifti_image **)malloc(2*sizeof(nifti_image *));
-   warpedImage[0] = nifti_copy_nim_info(this->warped);
-   warpedImage[0]->cal_min=this->inputFloating->cal_min;
-   warpedImage[0]->cal_max=this->inputFloating->cal_max;
-   warpedImage[0]->scl_slope=this->inputFloating->scl_slope;
-   warpedImage[0]->scl_inter=this->inputFloating->scl_inter;
-   warpedImage[0]->data=(void *)malloc(warpedImage[0]->nvox*warpedImage[0]->nbyper);
-   memcpy(warpedImage[0]->data, this->warped->data, warpedImage[0]->nvox*warpedImage[0]->nbyper);
-
-   // Allocate and save the backward transformation warped image
-   warpedImage[1] = nifti_copy_nim_info(this->backwardWarped);
-   warpedImage[1]->cal_min=this->inputReference->cal_min;
-   warpedImage[1]->cal_max=this->inputReference->cal_max;
-   warpedImage[1]->scl_slope=this->inputReference->scl_slope;
-   warpedImage[1]->scl_inter=this->inputReference->scl_inter;
-   warpedImage[1]->data=(void *)malloc(warpedImage[1]->nvox*warpedImage[1]->nbyper);
-   memcpy(warpedImage[1]->data, this->backwardWarped->data, warpedImage[1]->nvox*warpedImage[1]->nbyper);
-
-   // Clear the warped images
-   reg_f3d2<T>::ClearWarped();
-
-   // Return the two final warped images
-   return warpedImage;
+void reg_f3d2<T>::SetInverseConsistencyWeight(T w) {
+    inverseConsistencyWeight = w;
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::InitContent(NiftiImage& reference, NiftiImage& floating, int *referenceMask, int *floatingMask) {
+    unique_ptr<F3d2ContentCreator> contentCreator{ dynamic_cast<F3d2ContentCreator*>(this->platform->CreateContentCreator(ContentType::F3d2)) };
+    auto&& [con, conBw] = contentCreator->Create(reference, floating, this->controlPointGrid, controlPointGridBw,
+                                                 &this->localWeightSimInput, referenceMask, floatingMask,
+                                                 this->affineTransformation.get(), affineTransformationBw.get(), sizeof(T));
+    this->con.reset(con);
+    this->conBw.reset(conBw);
+    this->compute.reset(this->platform->CreateCompute(*con));
+    this->computeBw.reset(this->platform->CreateCompute(*conBw));
+}
+/* *************************************************************** */
+template <class T>
+T reg_f3d2<T>::InitCurrentLevel(int currentLevel) {
+    // Set the current input images
+    NiftiImage reference, floating;
+    int *referenceMask, *floatingMask;
+    if (currentLevel < 0) {
+        // Settings for GetWarpedImage()
+        // Use CPU for warping since CUDA isn't supporting Cubic interpolation
+        // TODO Remove this when CUDA supports Cubic interpolation
+        this->SetPlatformType(PlatformType::Cpu);
+        reference = NiftiImage(this->inputReference, NiftiImage::Copy::Acquire);
+        floating = NiftiImage(this->inputFloating, NiftiImage::Copy::Acquire);
+        referenceMask = nullptr;
+        floatingMask = nullptr;
+    } else {
+        const int index = this->usePyramid ? currentLevel : 0;
+        reference = NiftiImage(this->referencePyramid[index], NiftiImage::Copy::Acquire);
+        floating = NiftiImage(this->floatingPyramid[index], NiftiImage::Copy::Acquire);
+        referenceMask = this->maskPyramid[index].get();
+        floatingMask = floatingMaskPyramid[index].get();
+    }
+
+    // Define the initial step size for the gradient ascent optimisation
+    T maxStepSize = reference->dx;
+    maxStepSize = reference->dy > maxStepSize ? reference->dy : maxStepSize;
+    maxStepSize = floating->dx > maxStepSize ? floating->dx : maxStepSize;
+    maxStepSize = floating->dy > maxStepSize ? floating->dy : maxStepSize;
+    if (reference->ndim > 2) {
+        maxStepSize = (reference->dz > maxStepSize) ? reference->dz : maxStepSize;
+        maxStepSize = (floating->dz > maxStepSize) ? floating->dz : maxStepSize;
+    }
+
+    // Refine the control point grids if required
+    // Don't if currentLevel < 0, since it's not required for GetWarpedImage()
+    if (this->gridRefinement && currentLevel >= 0) {
+        if (currentLevel == 0) {
+            this->bendingEnergyWeight = this->bendingEnergyWeight / static_cast<T>(powf(16, this->levelNumber - 1));
+            this->linearEnergyWeight = this->linearEnergyWeight / static_cast<T>(powf(3, this->levelNumber - 1));
+        } else {
+            this->bendingEnergyWeight = this->bendingEnergyWeight * 16;
+            this->linearEnergyWeight = this->linearEnergyWeight * 3;
+            reg_spline_refineControlPointGrid(this->controlPointGrid);
+            reg_spline_refineControlPointGrid(controlPointGridBw);
+        }
+    }
+
+    InitContent(reference, floating, referenceMask, floatingMask);
+
+    NR_FUNC_CALLED();
+    return maxStepSize;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::DeinitCurrentLevel(int currentLevel) {
+    reg_f3d<T>::DeinitCurrentLevel(currentLevel);
+    computeBw = nullptr;
+    conBw = nullptr;
+    if (currentLevel >= 0) {
+        if (this->usePyramid) {
+            floatingMaskPyramid[currentLevel] = nullptr;
+        } else if (currentLevel == this->levelToPerform - 1) {
+            floatingMaskPyramid[0] = nullptr;
+        }
+    }
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::CheckParameters() {
+    reg_f3d<T>::CheckParameters();
+
+    // CHECK THE FLOATING MASK DIMENSION IF IT IS DEFINED
+    if (floatingMaskImage && (this->inputFloating->nx != floatingMaskImage->nx ||
+                              this->inputFloating->ny != floatingMaskImage->ny ||
+                              this->inputFloating->nz != floatingMaskImage->nz))
+        NR_FATAL_ERROR("The floating image and its mask have different dimension");
+
+    // NORMALISE THE OBJECTIVE FUNCTION WEIGHTS
+    T penaltySum = (this->bendingEnergyWeight + this->linearEnergyWeight + this->jacobianLogWeight +
+                    inverseConsistencyWeight + this->landmarkRegWeight);
+    if (penaltySum >= 1) {
+        this->similarityWeight = 0;
+        this->bendingEnergyWeight /= penaltySum;
+        this->linearEnergyWeight /= penaltySum;
+        this->jacobianLogWeight /= penaltySum;
+        inverseConsistencyWeight /= penaltySum;
+        this->landmarkRegWeight /= penaltySum;
+    } else this->similarityWeight = 1 - penaltySum;
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetDeformationField() {
+    // By default the number of steps is automatically updated
+    bool updateStepNumber = true;
+    if (!this->optimiser)
+        updateStepNumber = false;
+
+    NR_DEBUG("Velocity integration forward. Step number update=" << updateStepNumber);
+    // The forward transformation is computed using the scaling-and-squaring approach
+    this->compute->GetDefFieldFromVelocityGrid(updateStepNumber);
+
+    NR_DEBUG("Velocity integration backward. Step number update=" << updateStepNumber);
+    // The number of step number is copied over from the forward transformation
+    controlPointGridBw->intent_p2 = this->controlPointGrid->intent_p2;
+    // The backward transformation is computed using the scaling-and-squaring approach
+    computeBw->GetDefFieldFromVelocityGrid(false);
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::WarpFloatingImage(int inter) {
+    reg_f3d<T>::WarpFloatingImage(inter);
+
+    // Resample the reference image
+    if (!this->measure_dti) {
+        computeBw->ResampleImage(inter, this->warpedPaddingValue);
+    } else {
+        // reg_defField_getJacobianMatrix(backwardDeformationFieldImage, backwardJacobianMatrix);
+        /* DTI needs fixing
+        reg_resampleImage(this->reference, // input image
+                          backwardWarped, // warped input image
+                          backwardDeformationFieldImage, // deformation field
+                          floatingMask, // mask
+                          inter, // interpolation type
+                          this->warpedPaddingValue, // padding value
+                          this->measure_dti->GetActiveTimePoints(),
+                          backwardJacobianMatrix);*/
+    }
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d2<T>::ComputeJacobianBasedPenaltyTerm(int type) {
+    if (this->jacobianLogWeight <= 0) return 0;
+
+    double forwardPenaltyTerm = reg_f3d<T>::ComputeJacobianBasedPenaltyTerm(type);
+
+    bool approx = type == 2 ? false : this->jacobianLogApproximation;
+
+    double backwardPenaltyTerm = computeBw->GetJacobianPenaltyTerm(approx);
+
+    unsigned maxit = 5;
+    if (type > 0) maxit = 20;
+    unsigned it = 0;
+    while (backwardPenaltyTerm != backwardPenaltyTerm && it < maxit) {
+        backwardPenaltyTerm = computeBw->CorrectFolding(approx);
+        NR_DEBUG("Folding correction - Backward transformation");
+        it++;
+    }
+    if (type > 0 && it > 0) {
+        if (backwardPenaltyTerm != backwardPenaltyTerm) {
+            this->optimiser->RestoreBestDof();
+            NR_DEBUG("The backward transformation folding correction scheme failed");
+        } else {
+            NR_VERBOSE("Backward transformation folding correction, " << it << " step(s)");
+        }
+    }
+    backwardPenaltyTerm *= this->jacobianLogWeight;
+
+    NR_FUNC_CALLED();
+    return forwardPenaltyTerm + backwardPenaltyTerm;
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d2<T>::ComputeBendingEnergyPenaltyTerm() {
+    if (this->bendingEnergyWeight <= 0) return 0;
+    const double forwardPenaltyTerm = reg_f3d<T>::ComputeBendingEnergyPenaltyTerm();
+    const double backwardPenaltyTerm = this->bendingEnergyWeight * computeBw->ApproxBendingEnergy();
+    NR_FUNC_CALLED();
+    return forwardPenaltyTerm + backwardPenaltyTerm;
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d2<T>::ComputeLinearEnergyPenaltyTerm() {
+    if (this->linearEnergyWeight <= 0) return 0;
+    const double forwardPenaltyTerm = reg_f3d<T>::ComputeLinearEnergyPenaltyTerm();
+    const double backwardPenaltyTerm = this->linearEnergyWeight * computeBw->ApproxLinearEnergy();
+    NR_FUNC_CALLED();
+    return forwardPenaltyTerm + backwardPenaltyTerm;
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d2<T>::ComputeLandmarkDistancePenaltyTerm() {
+    if (this->landmarkRegWeight <= 0) return 0;
+    const double forwardPenaltyTerm = reg_f3d<T>::ComputeLandmarkDistancePenaltyTerm();
+    const double backwardPenaltyTerm = this->landmarkRegWeight * computeBw->GetLandmarkDistance(this->landmarkRegNumber,
+                                                                                                this->landmarkFloating,
+                                                                                                this->landmarkReference);
+    NR_FUNC_CALLED();
+    return forwardPenaltyTerm + backwardPenaltyTerm;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetVoxelBasedGradient() {
+    // The voxel based gradient image is initialised with zeros
+    dynamic_cast<F3dContent&>(*this->con).ZeroVoxelBasedMeasureGradient();
+    conBw->ZeroVoxelBasedMeasureGradient();
+
+    // The intensity gradient is first computed
+    //    if(this->measure_dti){
+    //        reg_getImageGradient(this->floating,
+    //                             this->warpedGradient,
+    //                             this->deformationFieldImage,
+    //                             this->currentMask,
+    //                             this->interpolation,
+    //                             this->warpedPaddingValue,
+    //                             this->measure_dti->GetActiveTimePoints(),
+    //                             this->forwardJacobianMatrix,
+    //                             this->warped);
+
+    //        reg_getImageGradient(this->reference,
+    //                             backwardWarpedGradientImage,
+    //                             backwardDeformationFieldImage,
+    //                             floatingMask,
+    //                             this->interpolation,
+    //                             this->warpedPaddingValue,
+    //                             this->measure_dti->GetActiveTimePoints(),
+    //                             backwardJacobianMatrix,
+    //                             backwardWarped);
+    //   if(this->measure_dti)
+    //      this->measure_dti->GetVoxelBasedSimilarityMeasureGradient();
+    //    }
+    //    else{
+    //    }
+
+    for (int t = 0; t < this->con->Content::GetReference()->nt; ++t) {
+        this->compute->GetImageGradient(this->interpolation, this->warpedPaddingValue, t);
+        computeBw->GetImageGradient(this->interpolation, this->warpedPaddingValue, t);
+
+        // The gradient of the various measures of similarity are computed
+        if (this->measure_nmi)
+            this->measure_nmi->GetVoxelBasedSimilarityMeasureGradient(t);
+
+        if (this->measure_ssd)
+            this->measure_ssd->GetVoxelBasedSimilarityMeasureGradient(t);
+
+        if (this->measure_kld)
+            this->measure_kld->GetVoxelBasedSimilarityMeasureGradient(t);
+
+        if (this->measure_lncc)
+            this->measure_lncc->GetVoxelBasedSimilarityMeasureGradient(t);
+
+        if (this->measure_mind)
+            this->measure_mind->GetVoxelBasedSimilarityMeasureGradient(t);
+
+        if (this->measure_mindssc)
+            this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
+    }
+
+    // Exponentiate the gradients if required
+    ExponentiateGradient();
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetSimilarityMeasureGradient() {
+    reg_f3d<T>::GetSimilarityMeasureGradient();
+
+    // The voxel-based sim-measure-gradient is convolved with a spline kernel
+    // And the backward-node-based NMI gradient is extracted
+    computeBw->ConvolveVoxelBasedMeasureGradient(this->similarityWeight);
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetJacobianBasedGradient() {
+    if (this->jacobianLogWeight <= 0) return;
+    reg_f3d<T>::GetJacobianBasedGradient();
+    computeBw->JacobianPenaltyTermGradient(this->jacobianLogWeight, this->jacobianLogApproximation);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetBendingEnergyGradient() {
+    if (this->bendingEnergyWeight <= 0) return;
+    reg_f3d<T>::GetBendingEnergyGradient();
+    computeBw->ApproxBendingEnergyGradient(this->bendingEnergyWeight);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetLinearEnergyGradient() {
+    if (this->linearEnergyWeight <= 0) return;
+    reg_f3d<T>::GetLinearEnergyGradient();
+    computeBw->ApproxLinearEnergyGradient(this->linearEnergyWeight);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetLandmarkDistanceGradient() {
+    if (this->landmarkRegWeight <= 0) return;
+    reg_f3d<T>::GetLandmarkDistanceGradient();
+    computeBw->LandmarkDistanceGradient(this->landmarkRegNumber,
+                                        this->landmarkFloating,
+                                        this->landmarkReference,
+                                        this->landmarkRegWeight);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::SmoothGradient() {
+    // The gradient is smoothed using a Gaussian kernel if it is required
+    if (this->gradientSmoothingSigma == 0) return;
+    reg_f3d<T>::SmoothGradient();
+    computeBw->SmoothGradient(this->gradientSmoothingSigma);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::GetApproximatedGradient() {
+    reg_f3d<T>::GetApproximatedGradient();
+    computeBw->GetApproximatedGradient(*this);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+T reg_f3d2<T>::NormaliseGradient() {
+    // The forward gradient max length is computed
+    const T forwardMaxGradLength = reg_f3d<T>::NormaliseGradient();
+
+    // The backward gradient max length is computed
+    const T backwardMaxGradLength = (T)computeBw->GetMaximalLength(this->optimiseX,
+                                                                   this->optimiseY,
+                                                                   this->optimiseZ);
+
+    // The largest value between the forward and backward gradient is kept
+    const T maxGradLength = std::max(backwardMaxGradLength, forwardMaxGradLength);
+    NR_DEBUG("Objective function gradient maximal length: " << maxGradLength);
+
+    // The forward gradient is normalised
+    this->compute->NormaliseGradient(maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
+    // The backward gradient is normalised
+    computeBw->NormaliseGradient(maxGradLength, this->optimiseX, this->optimiseY, this->optimiseZ);
+
+    NR_FUNC_CALLED();
+    // Returns the largest gradient distance
+    return maxGradLength;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::GetObjectiveFunctionGradient() {
+    if (!this->useApproxGradient) {
+        // Compute the gradient of the similarity measure
+        if (this->similarityWeight > 0) {
+            WarpFloatingImage(this->interpolation);
+            GetSimilarityMeasureGradient();
+        } else {
+            dynamic_cast<F3dContent&>(*this->con).ZeroTransformationGradient();
+            conBw->ZeroTransformationGradient();
+        }
+    } else GetApproximatedGradient();
+    this->optimiser->IncrementCurrentIterationNumber();
+
+    // Smooth the gradient if require
+    SmoothGradient();
+
+    // Compute the penalty term gradients if required
+    if (!this->useApproxGradient) {
+        GetBendingEnergyGradient();
+        GetJacobianBasedGradient();
+        GetLinearEnergyGradient();
+        GetLandmarkDistanceGradient();
+    }
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::DisplayCurrentLevelParameters(int currentLevel) {
+    reg_f3d<T>::DisplayCurrentLevelParameters(currentLevel);
+    NR_VERBOSE("Current backward control point image");
+    NR_VERBOSE("\t* image dimension: " << controlPointGridBw->nx << " x " << controlPointGridBw->ny << " x " << controlPointGridBw->nz);
+    NR_VERBOSE("\t* image spacing: " << controlPointGridBw->dx << " x " << controlPointGridBw->dy << " x " << controlPointGridBw->dz << " mm");
+
+    if (controlPointGridBw->sform_code > 0)
+        NR_MAT44_DEBUG(controlPointGridBw->sto_xyz, "Backward CPP sform");
+    else NR_MAT44_DEBUG(controlPointGridBw->qto_xyz, "Backward CPP qform");
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::SetOptimiser() {
+    this->optimiser.reset(this->platform->template CreateOptimiser<T>(dynamic_cast<F3dContent&>(*this->con),
+                                                                      *this,
+                                                                      this->maxIterationNumber,
+                                                                      this->useConjGradient,
+                                                                      this->optimiseX,
+                                                                      this->optimiseY,
+                                                                      this->optimiseZ,
+                                                                      conBw.get()));
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::PrintCurrentObjFunctionValue(T currentSize) {
+    reg_f3d<T>::PrintCurrentObjFunctionValue(currentSize);
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::UpdateBestObjFunctionValue() {
+    reg_f3d<T>::UpdateBestObjFunctionValue();
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::PrintInitialObjFunctionValue() {
+    reg_f3d<T>::PrintInitialObjFunctionValue();
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+double reg_f3d2<T>::GetObjectiveFunctionValue() {
+    this->currentWJac = ComputeJacobianBasedPenaltyTerm(1); // 20 iterations
+    this->currentWBE = ComputeBendingEnergyPenaltyTerm();
+    this->currentWLE = ComputeLinearEnergyPenaltyTerm();
+    this->currentWLand = ComputeLandmarkDistancePenaltyTerm();
+
+    // Compute initial similarity measure
+    this->currentWMeasure = 0;
+    if (this->similarityWeight > 0) {
+        WarpFloatingImage(this->interpolation);
+        this->currentWMeasure = this->ComputeSimilarityMeasure();
+    }
+
+    NR_DEBUG("(wMeasure) " << this->currentWMeasure << " | (wBE) " << this->currentWBE << " | (wLE) " << this->currentWLE <<
+             " | (wJac) " << this->currentWJac << " | (wLan) " << this->currentWLand);
+    NR_FUNC_CALLED();
+
+    // Store the global objective function value
+    return this->currentWMeasure - this->currentWBE - this->currentWLE - this->currentWJac;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::InitialiseSimilarity() {
+    F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
+
+    if (this->measure_nmi)
+        this->measureCreator->Initialise(*this->measure_nmi, con, conBw.get());
+
+    if (this->measure_ssd)
+        this->measureCreator->Initialise(*this->measure_ssd, con, conBw.get());
+
+    if (this->measure_kld)
+        this->measureCreator->Initialise(*this->measure_kld, con, conBw.get());
+
+    if (this->measure_lncc)
+        this->measureCreator->Initialise(*this->measure_lncc, con, conBw.get());
+
+    if (this->measure_dti)
+        this->measureCreator->Initialise(*this->measure_dti, con, conBw.get());
+
+    if (this->measure_mind)
+        this->measureCreator->Initialise(*this->measure_mind, con, conBw.get());
+
+    if (this->measure_mindssc)
+        this->measureCreator->Initialise(*this->measure_mindssc, con, conBw.get());
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template<class T>
+NiftiImage reg_f3d2<T>::GetBackwardControlPointPositionImage() {
+    NR_FUNC_CALLED();
+    return controlPointGridBw;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::UseBCHUpdate(int v) {
+    bchUpdate = true;
+    useGradientCumulativeExp = false;
+    bchUpdateValue = v;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::UseGradientCumulativeExp() {
+    bchUpdate = false;
+    useGradientCumulativeExp = true;
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::DoNotUseGradientCumulativeExp() {
+    useGradientCumulativeExp = false;
+}
+/* *************************************************************** */
+template<class T>
+void reg_f3d2<T>::Initialise() {
+    reg_f3d<T>::Initialise();
+
+    if (!this->inputControlPointGrid) {
+        // Define the spacing for the first level
+        float gridSpacing[3] = {this->spacing[0], this->spacing[1], this->spacing[2]};
+        if (this->spacing[0] < 0)
+            gridSpacing[0] *= -(this->inputReference->dx + this->inputFloating->dx) / 2.f;
+        if (this->spacing[1] < 0)
+            gridSpacing[1] *= -(this->inputReference->dy + this->inputFloating->dy) / 2.f;
+        if (this->spacing[2] < 0)
+            gridSpacing[2] *= -(this->inputReference->dz + this->inputFloating->dz) / 2.f;
+        gridSpacing[0] *= powf(2, this->levelNumber - 1);
+        gridSpacing[1] *= powf(2, this->levelNumber - 1);
+        gridSpacing[2] *= powf(2, this->levelNumber - 1);
+
+        // Create the forward and backward control point grids
+        reg_createSymmetricControlPointGrids<T>(this->controlPointGrid,
+                                                controlPointGridBw,
+                                                this->referencePyramid[0],
+                                                this->floatingPyramid[0],
+                                                this->affineTransformation.get(),
+                                                gridSpacing);
+    } else {
+        // The control point grid image is initialised with the provided grid
+        this->controlPointGrid = this->inputControlPointGrid;
+        // The final grid spacing is computed
+        this->spacing[0] = this->controlPointGrid->dx / powf(2, this->levelNumber - 1);
+        this->spacing[1] = this->controlPointGrid->dy / powf(2, this->levelNumber - 1);
+        if (this->controlPointGrid->nz > 1)
+            this->spacing[2] = this->controlPointGrid->dz / powf(2, this->levelNumber - 1);
+        // The backward grid is derived from the forward
+        controlPointGridBw = this->controlPointGrid;
+        reg_getDisplacementFromDeformation(controlPointGridBw);
+        reg_tools_multiplyValueToImage(controlPointGridBw, controlPointGridBw, -1);
+        reg_getDeformationFromDisplacement(controlPointGridBw);
+        for (int i = 0; i < controlPointGridBw->num_ext; ++i) {
+            mat44 tempMatrix = nifti_mat44_inverse(*reinterpret_cast<mat44 *>(controlPointGridBw->ext_list[i].edata));
+            memcpy(controlPointGridBw->ext_list[i].edata, &tempMatrix, sizeof(mat44));
+        }
+    }
+
+    // Set the floating mask image pyramid
+    const unsigned imageCount = this->usePyramid ? this->levelToPerform : 1;
+    const unsigned levelCount = this->usePyramid ? this->levelNumber : 1;
+    floatingMaskPyramid = vector<unique_ptr<int[]>>(imageCount);
+
+    if (floatingMaskImage)
+        reg_createMaskPyramid<T>(floatingMaskImage, floatingMaskPyramid, levelCount, imageCount);
+    else
+        for (unsigned l = 0; l < imageCount; ++l)
+            floatingMaskPyramid[l].reset(new int[this->floatingPyramid[l].nVoxelsPerVolume()]());
+
+    if (inverseConsistencyWeight > 0)
+        NR_VERBOSE("Inverse consistency error penalty term weight: "s + std::to_string(inverseConsistencyWeight));
+
+    // Convert the control point grid into velocity field parametrisation
+    this->controlPointGrid->intent_p1 = SPLINE_VEL_GRID;
+    controlPointGridBw->intent_p1 = SPLINE_VEL_GRID;
+    // Set the number of composition to 6 by default
+    this->controlPointGrid->intent_p2 = controlPointGridBw->intent_p2 = 6;
+
+    if (this->affineTransformation)
+        affineTransformationBw.reset(new mat44(nifti_mat44_inverse(*this->affineTransformation)));
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::ExponentiateGradient() {
+    if (!useGradientCumulativeExp) return;
+
+    // Exponentiate the forward gradient using the backward transformation
+    NR_DEBUG("Update the forward measure gradient using a Dartel like approach");
+    this->compute->ExponentiateGradient(*conBw);
+
+    /* Exponentiate the backward gradient using the forward transformation */
+    NR_DEBUG("Update the backward measure gradient using a Dartel like approach");
+    computeBw->ExponentiateGradient(*this->con);
+
+    NR_FUNC_CALLED();
+}
+/* *************************************************************** */
+template <class T>
+void reg_f3d2<T>::UpdateParameters(float scale) {
+    // Restore the last successful control point grids
+    this->optimiser->RestoreBestDof();
+
+    // The scaled gradient image is added to the current estimate of the transformation using
+    // a simple addition or by computing the BCH update
+    // Note that the gradient has been integrated over the path of transformation previously
+    if (bchUpdate) {
+        // Forward update
+        NR_WARN("USING BCH FORWARD - TESTING ONLY");
+        NR_DEBUG("Update the forward control point grid using BCH approximation");
+        this->compute->BchUpdate(scale, bchUpdateValue);
+
+        // Backward update
+        NR_WARN("USING BCH BACKWARD - TESTING ONLY");
+        NR_DEBUG("Update the backward control point grid using BCH approximation");
+        computeBw->BchUpdate(scale, bchUpdateValue);
+    } else {
+        // Forward update
+        this->compute->UpdateVelocityField(scale,
+                                           this->optimiser->GetOptimiseX(),
+                                           this->optimiser->GetOptimiseY(),
+                                           this->optimiser->GetOptimiseZ());
+        // Backward update
+        computeBw->UpdateVelocityField(scale,
+                                       this->optimiser->GetOptimiseX(),
+                                       this->optimiser->GetOptimiseY(),
+                                       this->optimiser->GetOptimiseZ());
+    }
+
+    // Symmetrise
+    this->compute->SymmetriseVelocityFields(*conBw);
+}
+/* *************************************************************** */
+template<class T>
+vector<NiftiImage> reg_f3d2<T>::GetWarpedImage() {
+    // The initial images are used
+    if (!this->inputReference || !this->inputFloating || !this->controlPointGrid || !controlPointGridBw)
+        NR_FATAL_ERROR("The reference, floating and control point grid images have to be defined");
+
+    InitCurrentLevel(-1);
+
+    WarpFloatingImage(3); // cubic spline interpolation
+
+    F3dContent& con = dynamic_cast<F3dContent&>(*this->con);
+    vector<NiftiImage> warpedImages{ std::move(con.GetWarped()), std::move(conBw->GetWarped()) };
+
+    DeinitCurrentLevel(-1);
+
+    NR_FUNC_CALLED();
+    return warpedImages;
+}
 /* *************************************************************** */
 template class reg_f3d2<float>;
-#endif

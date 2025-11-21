@@ -1,7 +1,7 @@
 /**
  * @file reg_ppcnr.cpp
  * @author Andrew Melbourne
- * @brief Executable for 4D non-rigid and affine registration (Registration to a single timepoint, timeseries mean, local mean or Progressive Principal Component Registration)
+ * @brief Executable for 4D non-rigid and affine registration (Registration to a single time point, timeseries mean, local mean or Progressive Principal Component Registration)
  * @date 17/07/2013
  *
  *  Copyright (c) 2009-2018, University College London
@@ -22,9 +22,7 @@
 #include <time.h>
 #endif
 
-#define PrecisionTYPE float
-#define min(a,b)    ((a) < (b) ? (a): (b))
-#define max(a,b)    ((a) > (b) ? (a): (b))
+using PrecisionType = float;
 
 typedef struct
 {
@@ -42,7 +40,7 @@ typedef struct
    int prinComp;
    int tp;
    const char *outputResultName;
-   char *outputCPPName;
+   std::string outputCPPName;
 } PARAM;
 
 typedef struct
@@ -72,54 +70,52 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-   fprintf(stderr,"PROGRESSIVE PRINCIPAL COMPONENT REGISTRATION (PPCNR).\n");
-   fprintf(stderr,"Fast Free-Form Deformation algorithm for dynamic contrast enhanced (DCE) non-rigid registration.\n");
-   fprintf(stderr,"Usage:\t%s -source <sourceImageName> [OPTIONS].\n",exec);
-   fprintf(stderr,"\t\t\t\t*Note that no target image is needed!\n");
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   return;
+   NR_INFO("PROGRESSIVE PRINCIPAL COMPONENT REGISTRATION (PPCNR)");
+   NR_INFO("Fast Free-Form Deformation algorithm for dynamic contrast enhanced (DCE) non-rigid registration");
+   NR_INFO("Usage:\t" << exec << " -source <sourceImageName> [OPTIONS]");
+   NR_INFO("\t\t\t\t*Note that no target image is needed!");
+   NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("PROGRESSIVE PRINCIPAL COMPONENT REGISTRATION (PPCNR).\n");
-   printf("Fast Free-Form Deformation algorithm for non-rigid DCE-MRI registration.\n");
-   printf("This implementation is a re-factoring of the PPCR algorithm in:\n");
-   printf("Melbourne et al., \"Registration of dynamic contrast-enhanced MRI using a \n");
-   printf(" progressive principal component registration (PPCR)\", Phys Med Biol, 2007.\n");
-   printf("This code has been written by Andrew Melbourne (a.melbourne@cs.ucl.ac.uk)\n");
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s -source <filename> [OPTIONS].\n",exec);
-   printf("\t-source <filename>\tFilename of the source image (mandatory)\n");
-   printf("\t*Note that no target image is needed!\n\n");
-   printf("   Or   -makesource  <outputname> <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to <outputname>).\n");
-   printf("        -makesourcex <outputname> <n> <filenames> \tAs above but exits before registration step'.\n");
-   printf("        -distribute  <filename> <basename>\t\tThis will generate individual 3D volumes from the 4D filename (saved to '<basename>X.nii', 4D only).\n");
-   printf("\n*** Main Options:\n");
-   printf("\t-result <filename> \tFilename of the resampled image [outputResult.nii].\n");
-   printf("\t-pmask  <filename> \tFilename of the PCA mask region.\n");
-   printf("\t-cpp    <filename>\tFilename of final 5D control point grid (non-rigid registration only).\n");
-   printf("     Or -aff    <filename>\tFilename of final concatenated affine transformation (affine registration only).\n");
-   printf("\n*** Other Options:\n");
-   printf("\t-prinComp <int>\t\tNumber of principal component iterations to run [#timepoints/2].\n");
-   printf("\t-maxit    <int>\t\tNumber of registration iterations to run [max(400/prinComp,100)].\n");
-   printf("\t-autolevel \t\tAutomatically increase registration level during PPCR (switched off with -ln or -lp options).\n"); // not with -FLIRT
-   printf("\t-pca0 \t\t\tOutput pca images 1:prinComp without registration step [pcaX.nii].\n"); // i.e. just print out each PCA image.
-   printf("\t-pca1 \t\t\tOutput pca images 1:prinComp for inspection [pcaX.nii].\n");
-   printf("\t-pca2 \t\t\tOutput intermediate results 1:prinComp for inspection [outX.nii].\n");
-   printf("\t-pca3 \t\t\tSave current deformation result [cppX.nii].\n");
-   printf("\t-pca123 \t\tWrite out everything!.\n");
-   printf("\n*** Alternative Registration Options:\n");
-   printf("\t-mean \t\t\tIterative registration to the mean image only (no PPCR).\n"); // registration to the mean is quite inefficient as it uses the ppcr 4D->4D model.
-   printf("\t-locality <int>\t\tIterative registration to the local mean image (pm <int> images - no PPCR).\n");
-   printf("\t-tp       <int>\t\tIterative registration to single timepoint (no PPCR).\n");
-   printf("\t-noinit \t\tTurn off cpp initialisation from previous iteration.\n");
-   //printf("\t-flirt \t\t\tfor PPCNR using Flirt affine registration (not tested)\n");
-   printf("\n*** reg_f3d/reg_aladin options are carried through (use reg_f3d -h or reg_aladin -h to see these options).\n");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("PROGRESSIVE PRINCIPAL COMPONENT REGISTRATION (PPCNR).");
+   NR_INFO("Fast Free-Form Deformation algorithm for non-rigid DCE-MRI registration.");
+   NR_INFO("This implementation is a re-factoring of the PPCR algorithm in:");
+   NR_INFO("Melbourne et al., \"Registration of dynamic contrast-enhanced MRI using a ");
+   NR_INFO(" progressive principal component registration (PPCR)\", Phys Med Biol, 2007.");
+   NR_INFO("This code has been written by Andrew Melbourne (a.melbourne@cs.ucl.ac.uk)");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("Usage:\t" << exec << " -source <filename> [OPTIONS]");
+   NR_INFO("\t-source <filename>\tFilename of the source image (mandatory)");
+   NR_INFO("\t*Note that no target image is needed!\n");
+   NR_INFO("   Or   -makesource  <outputname> <n> <filenames> \tThis will generate a 4D volume from the n filenames (saved to <outputname>).");
+   NR_INFO("        -makesourcex <outputname> <n> <filenames> \tAs above but exits before registration step'.");
+   NR_INFO("        -distribute  <filename> <basename>\t\tThis will generate individual 3D volumes from the 4D filename (saved to '<basename>X.nii', 4D only).");
+   NR_INFO("\n*** Main Options:");
+   NR_INFO("\t-result <filename> \tFilename of the resampled image [outputResult.nii].");
+   NR_INFO("\t-pmask  <filename> \tFilename of the PCA mask region.");
+   NR_INFO("\t-cpp    <filename>\tFilename of final 5D control point grid (non-rigid registration only).");
+   NR_INFO("     Or -aff    <filename>\tFilename of final concatenated affine transformation (affine registration only).");
+   NR_INFO("\n*** Other Options:");
+   NR_INFO("\t-prinComp <int>\t\tNumber of principal component iterations to run [#timepoints/2].");
+   NR_INFO("\t-maxit    <int>\t\tNumber of registration iterations to run [max(400/prinComp,100)].");
+   NR_INFO("\t-autolevel \t\tAutomatically increase registration level during PPCR (switched off with -ln or -lp options)."); // not with -FLIRT
+   NR_INFO("\t-pca0 \t\t\tOutput pca images 1:prinComp without registration step [pcaX.nii]."); // i.e. just print out each PCA image.
+   NR_INFO("\t-pca1 \t\t\tOutput pca images 1:prinComp for inspection [pcaX.nii].");
+   NR_INFO("\t-pca2 \t\t\tOutput intermediate results 1:prinComp for inspection [outX.nii].");
+   NR_INFO("\t-pca3 \t\t\tSave current deformation result [cppX.nii].");
+   NR_INFO("\t-pca123 \t\tWrite out everything!.");
+   NR_INFO("\n*** Alternative Registration Options:");
+   NR_INFO("\t-mean \t\t\tIterative registration to the mean image only (no PPCR)."); // registration to the mean is quite inefficient as it uses the ppcr 4D->4D model.
+   NR_INFO("\t-locality <int>\t\tIterative registration to the local mean image (pm <int> images - no PPCR).");
+   NR_INFO("\t-tp       <int>\t\tIterative registration to single time point (no PPCR).");
+   NR_INFO("\t-noinit \t\tTurn off cpp initialisation from previous iteration.");
+   //NR_INFO("\t-flirt \t\t\tfor PPCNR using Flirt affine registration (not tested)");
+   NR_INFO("\n*** reg_f3d/reg_aladin options are carried through (use reg_f3d -h or reg_aladin -h to see these options).");
    //system("reg_f3d -h");
-
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 
@@ -147,13 +143,10 @@ int main(int argc, char **argv)
    param->tp=0;
    param->maxIteration=-1;
 
-   char regCommandAll[1055]="";
-   char regCommand[1000]="";
-   strcat(regCommand,"-target anchorx.nii -source floatx.nii");
-   char regCommandF[1000]="";
-   strcat(regCommandF,"flirt -ref anchorx.nii -in floatx.nii -out outputResult.nii.gz");
-   char style[10]="";
-   char STYL3[10]="";
+   std::string regCommandAll;
+   std::string regCommand("-target anchorx.nii -source floatx.nii");
+   std::string regCommandF("flirt -ref anchorx.nii -in floatx.nii -out outputResult.nii.gz");
+   std::string style, STYL3;
 
    /* read the input parameters */
    for(int i=1; i<argc; i++)
@@ -170,7 +163,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "-V")==0 || strcmp(argv[i], "-v")==0 ||
             strcmp(argv[i], "--v")==0 || strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",_GIT_HASH);
+         NR_COUT << _GIT_HASH << std::endl;
          return EXIT_SUCCESS;
       }
 #endif
@@ -191,12 +184,12 @@ int main(int argc, char **argv)
          nifti_image_free(source);
          makesource->ndim=makesource->dim[0] = 4;
          makesource->nt = makesource->dim[4] = atoi(argv[++i]);
-         makesource->nvox=makesource->nx*makesource->nz*makesource->ny*makesource->nt;
-         makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
+         makesource->nvox = NiftiImage::calcVoxelNumber(makesource, makesource->ndim);
+         makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(makesource->data);
          for(int ii=0; ii<makesource->nt; ii++) // fill with file data
          {
-            printf("Reading '%s' (%i of %i)\n",argv[i+1],ii+1,makesource->nt);
+            NR_COUT << "Reading '" << argv[i+1] << "' (" << ii+1 << " of " << makesource->nt << ")" << std::endl;
             source = nifti_image_read(argv[++i],true);
             memcpy(&(temp_data[ii*source->nvox*source->nbyper]), source->data, source->nbyper*source->nvox);
             nifti_image_free(source);
@@ -214,15 +207,14 @@ int main(int argc, char **argv)
          nifti_image *makesource = nifti_copy_nim_info(source);
          makesource->ndim=makesource->dim[0] = 3;
          makesource->nt = makesource->dim[4] = 1;
-         makesource->nvox=makesource->nx*makesource->ny*makesource->nz;
-         makesource->data = (void *)malloc(makesource->nvox * makesource->nbyper);
+         makesource->nvox = NiftiImage::calcVoxelNumber(makesource, makesource->ndim);
+         makesource->data = malloc(makesource->nvox * makesource->nbyper);
          char *temp_data = reinterpret_cast<char *>(source->data);
          for(int ii=0; ii<source->nt; ii++) // fill with file data
          {
             memcpy(makesource->data, &(temp_data[ii*makesource->nvox*source->nbyper]), makesource->nbyper*makesource->nvox);
-            char outname[100];
-            sprintf(outname,"%s%i.nii",param->finalResultName,ii);
-            printf("Writing '%s' (%i of %i)\n",outname,ii+1,source->nt);
+            const std::string outname=param->finalResultName + std::to_string(ii) + ".nii"s;
+            NR_COUT << "Writing '" << outname << "' (" << ii+1 << " of " << source->nt << ")" << std::endl;
             nifti_set_filenames(makesource,outname, 0, 0); // might want to set this
             nifti_image_write(makesource);
          }
@@ -237,7 +229,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-target") == 0)
       {
-         printf("Target image is not necessary!");
+         NR_ERROR("Target image is not necessary!");
          PetitUsage(argv[0]);
       }
       else if(strcmp(argv[i], "-aff") == 0)  // use ppcnr affine
@@ -248,7 +240,7 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "-incpp") == 0)  // remove -incpp option
       {
-         printf("-incpp will not be used!");
+         NR_ERROR("-incpp will not be used!");
       }
       else if(strcmp(argv[i], "-result") == 0)
       {
@@ -333,34 +325,24 @@ int main(int argc, char **argv)
       else if(strcmp(argv[i], "-lp") == 0)   // force autolevel select off if lp or ln are present.
       {
          flag->autolevel=0;
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i]);
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i+1]);
+         regCommand += " "s + argv[i] + " "s + argv[i + 1];
          ++i;
       }
       else if(strcmp(argv[i], "-ln") == 0)   // force autolevel select off if lp or ln are present.
       {
          flag->autolevel=0;
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i]);
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i+1]);
+         regCommand += " "s + argv[i] + " "s + argv[i + 1];
          ++i;
       }
       else if(strcmp(argv[i], "-maxit") == 0)  // extract number of registration iterations for display
       {
          param->maxIteration=atoi(argv[i+1]);
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i]);
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i+1]);
+         regCommand += " "s + argv[i] + " "s + argv[i + 1];
          ++i;
       }
       else
       {
-         strcat(regCommand," ");
-         strcat(regCommand,argv[i]);
+         regCommand += " "s + argv[i];
       }
    }
    if(flag->makesourcex)
@@ -374,43 +356,43 @@ int main(int argc, char **argv)
 
    if(!flag->sourceImageFlag)
    {
-      fprintf(stderr,"Error:\tAt least define a source image!\n");
+      NR_ERROR("At least define a source image!");
       Usage(argv[0]);
       return EXIT_FAILURE;
    }
 
    nifti_image *image = nifti_image_read(param->sourceImageName,true);
-   if(image == NULL)
+   if(image == nullptr)
    {
-      fprintf(stderr,"* ERROR Error when reading image: %s\n",param->sourceImageName);
+      NR_ERROR("Error when reading image: " << param->sourceImageName);
       return EXIT_FAILURE;
    }
-   reg_tools_changeDatatype<PrecisionTYPE>(image); // FIX DATA TYPE - DOES THIS WORK?
+   reg_tools_changeDatatype<PrecisionType>(image); // FIX DATA TYPE - DOES THIS WORK?
 
    // --- 2) READ/SET IMAGE MASK (4D VOLUME, [NS, SS]) ---
-   nifti_image *mask=NULL;
+   nifti_image *mask=nullptr;
    if(flag->pmask)
    {
       mask = nifti_image_read(param->pcaMaskName,true);
-      if(mask == NULL)
+      if(mask == nullptr)
       {
-         fprintf(stderr,"* ERROR Error when reading image: %s\n",param->pcaMaskName);
+         NR_ERROR("Error when reading image: " << param->pcaMaskName);
          return EXIT_FAILURE;
       }
-      reg_tools_changeDatatype<PrecisionTYPE>(mask);
+      reg_tools_changeDatatype<PrecisionType>(mask);
    }
    else
    {
       mask = nifti_copy_nim_info(image);
       mask->ndim=mask->dim[0]=3;
       mask->nt=mask->dim[4]=1;
-      mask->nvox=mask->nx*mask->ny*mask->nz;
-      mask->data = (void *)malloc(mask->nvox*mask->nbyper);
-      PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+      mask->nvox = NiftiImage::calcVoxelNumber(mask, mask->ndim);
+      mask->data = malloc(mask->nvox*mask->nbyper);
+      PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(size_t i=0; i<mask->nvox; i++) intensityPtrM[i]=1.0;
    }
-   PrecisionTYPE masksum=0.0;
-   PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+   PrecisionType masksum=0;
+   PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
    for(size_t i=0; i<mask->nvox; i++)
    {
       if(intensityPtrM[i]) masksum++;
@@ -418,84 +400,58 @@ int main(int argc, char **argv)
 
    if(!flag->prinCompFlag && !flag->locality && !flag->meanonly && !flag->tp)
    {
-      param->prinComp=min((int)(image->nt/2),25);// Check the number of components
+      param->prinComp=std::min(image->nt/2,25);// Check the number of components
    }
    if(param->prinComp>=image->nt) param->prinComp=image->nt-1;
    if(!flag->outputResultFlag) param->outputResultName="ppcnrfinal-img.nii";
-//	if(param->maxIteration<0) param->maxIteration=(int)(400/param->prinComp); // number of registraton iterations is automatically set here...
+//	if(param->maxIteration<0) param->maxIteration=(int)(400/param->prinComp); // number of registration iterations is automatically set here...
 //    param->maxIteration=(param->maxIteration<50)?50:param->maxIteration;
    if(param->tp>image->nt) param->tp=image->nt;
    if(flag->aladin)  // decide whether to use affine or free-form
    {
-      strcat(regCommandAll,"reg_aladin ");
-      strcat(style,"aff");
-      strcat(STYL3,"AFF");
+      regCommandAll += "reg_aladin ";
+      style += "aff";
+      STYL3 += "AFF";
    }
    else if(flag->flirt)
    {
-      strcat(style,"aff");
+      style += "aff";
    }
    else
    {
-      strcat(regCommandAll,"reg_f3d ");
-      strcat(style,"cpp");
-      strcat(STYL3,"CPP");
+      regCommandAll += "reg_f3d ";
+      style += "cpp";
+      STYL3 += "CPP";
    }
    if(!flag->outputCPPFlag)
-   {
-      char buffer[40];
-      sprintf(buffer,"ppcnrfinal-%s",style);
-      if(flag->aladin || flag->flirt)
-      {
-         strcat(buffer,".txt");
-      }
-      else
-      {
-         strcat(buffer,".nii");
-      }
-      param->outputCPPName=buffer;
-   }
-   strcat(regCommandAll,regCommand);
-   printf("%s\n",style);
+      param->outputCPPName = "ppcnrfinal-"s + style + (flag->aladin || flag->flirt ? ".txt"s : ".nii"s);
+   regCommandAll += regCommand;
+   NR_COUT << style << std::endl;
 
    /* ****************** */
    /* DISPLAY THE REGISTRATION PARAMETERS */
    /* ****************** */
+   PrintCmdLine(argc, argv, true);
 
-   printf("\n* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Command line:\n %s",argv[0]);
-   for(int i=1; i<argc; i++)
-      printf(" %s",argv[i]);
-   printf("\n\n");
    if(flag->meanonly && !flag->locality)
-   {
-      printf("Iterative registration to the mean only (Algorithm will ignore PCA results)----------------\n");
-   }
+      NR_COUT << "Iterative registration to the mean only (Algorithm will ignore PCA results)----------------" << std::endl;
    else if(flag->meanonly && flag->locality)
-   {
-      printf("Iterative registration to local mean only (pm%i) (Algorithm will ignore PCA results)----------------\n",param->locality);
-   }
+      NR_COUT << "Iterative registration to local mean only (pm" << param->locality << ") (Algorithm will ignore PCA results)----------------" << std::endl;
    else if(flag->tp)
-   {
-      printf("Iterative registration to single timepoint only (%i) (Algorithm will ignore PCA results)----------------\n",param->tp);
-   }
+      NR_COUT << "Iterative registration to single time point only (" << param->tp << ") (Algorithm will ignore PCA results)----------------" << std::endl;
    else
-   {
-      printf("PPCNR Parameters\n----------------\n");
-   }
-   printf("Source image name: %s\n",param->sourceImageName);
-   if(flag->pmask) printf("PCA Mask image name: %s\n",param->pcaMaskName);
-   printf("Number of timepoints: %i \n", image->nt);
-   printf("Number of principal components: %i\n",param->prinComp);
-   printf("Registration max iterations: %i\n",param->maxIteration);
+      NR_COUT << "PPCNR Parameters\n----------------" << std::endl;
+   NR_COUT << "Source image name: " << param->sourceImageName << std::endl;
+   if(flag->pmask) NR_COUT << "PCA Mask image name: " << param->pcaMaskName << std::endl;
+   NR_COUT << "Number of time points: " << image->nt << std::endl;
+   NR_COUT << "Number of principal components: " << param->prinComp << std::endl;
+   NR_COUT << "Registration max iterations: " << param->maxIteration << std::endl;
 
    /* ********************** */
    /* START THE REGISTRATION */
    /* ********************** */
    param->outputImageName="anchor.nii";   // NEED TO GET WORKING AND PUT INTERMEDIATE FILES IN SOURCE DIRECTORY.
-   nifti_image *images=nifti_copy_nim_info(image); // Need to make a new image that has the same info as the original.
-   images->data = (PrecisionTYPE *)calloc(images->nvox, image->nbyper);
-   memcpy(images->data, image->data, image->nvox*image->nbyper);
+   nifti_image *images=nifti_dup(*image); // Need to make a new image that has the same info as the original.
 
    /* ************************************/
    /* FOR NUMBER OF PRINCIPAL COMPONENTS */
@@ -510,29 +466,25 @@ int main(int argc, char **argv)
    levels[2]=-2.5;
    int levelNumber=1;
    if(images->nt<3) levelNumber=3;
-   PrecisionTYPE *Mean = new PrecisionTYPE [image->nt];
-   PrecisionTYPE *Cov = new PrecisionTYPE [image->nt*image->nt];
-   PrecisionTYPE cov;
-//   char pcaname[20];
-//   char outname[20];
+   PrecisionType *Mean = new PrecisionType [image->nt];
+   PrecisionType *Cov = new PrecisionType [image->nt*image->nt];
+   PrecisionType cov;
 
    for(int prinCompNumber=1; prinCompNumber<=param->prinComp; prinCompNumber++)
    {
       param->spacing[0]=levels[(int)(3.0*prinCompNumber/(param->prinComp+1))]; // choose a reducing level number
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-      printf("RUNNING ITERATION %i of %i \n",prinCompNumber, param->prinComp);
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-      printf("Running component %i of %i \n", prinCompNumber, param->prinComp);
+      NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
+      NR_COUT << "RUNNING ITERATION " << prinCompNumber << " of " << param->prinComp << "\n";
+      NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
+      NR_COUT << "Running component " << prinCompNumber << " of " << param->prinComp << "\n";
       if(flag->autolevel)
-      {
-         printf("Running %i levels at %g spacing \n", levelNumber, param->spacing[0]);
-      }
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+         NR_COUT << "Running " << levelNumber << " levels at " << param->spacing[0] << " spacing\n";
+      NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
 
       // Read images and find image means
-      unsigned int voxelNumber = image->nvox/image->nt;
-      PrecisionTYPE *intensityPtr = static_cast<PrecisionTYPE *>(image->data);
-      PrecisionTYPE *intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+      unsigned voxelNumber = image->nvox/image->nt;
+      PrecisionType *intensityPtr = static_cast<PrecisionType *>(image->data);
+      PrecisionType *intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(int t=0; t<image->nt; t++)
       {
          Mean[t]=0.f;
@@ -544,14 +496,14 @@ int main(int argc, char **argv)
       }
 
       // calculate covariance matrix
-      intensityPtr = static_cast<PrecisionTYPE *>(image->data);
-      intensityPtrM = static_cast<PrecisionTYPE *>(mask->data);
+      intensityPtr = static_cast<PrecisionType *>(image->data);
+      intensityPtrM = static_cast<PrecisionType *>(mask->data);
       for(int t=0; t<image->nt; t++)
       {
-         PrecisionTYPE *currentIntensityPtr2 = &intensityPtr[t*voxelNumber];
+         PrecisionType *currentIntensityPtr2 = &intensityPtr[t*voxelNumber];
          for(int t2=t; t2<image->nt; t2++)
          {
-            PrecisionTYPE *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
+            PrecisionType *currentIntensityPtr1 = &intensityPtr[t*voxelNumber];
             cov=0.f;
             for(size_t i=0; i<voxelNumber; i++)
             {
@@ -581,12 +533,12 @@ int main(int argc, char **argv)
       for (i=n-1; i>0; i--)
       {
          l=i-1;
-         h=scale=0.0;
+         h=scale=0;
          if(l>0)
          {
             for(k=0; k<i; k++)
                scale+=std::abs(z[i+n*k]);
-            if (scale==0.0)
+            if (scale==0)
                e[i]=z[i+n*l];
             else
             {
@@ -596,15 +548,15 @@ int main(int argc, char **argv)
                   h+=z[i+n*k]*z[i+n*k];
                }
                f=z[i+n*l];
-               g=(f>=0.0 ? -sqrt(h) : sqrt(h));
+               g=(f>=0 ? -sqrt(h) : sqrt(h));
                e[i]=scale*g;
                h-=f*g;
                z[i+n*l]=f-g;
-               f=0.0;
+               f=0;
                for (j=0; j<i; j++)
                {
                   z[j+n*i]=z[i+n*j]/h;
-                  g=0.0;
+                  g=0;
                   for (k=0; k<j+1; k++)
                      g+=z[j+n*k]*z[i+n*k];
                   for (k=j+1; k<i; k++)
@@ -626,15 +578,15 @@ int main(int argc, char **argv)
             e[i]=z[i+n*l];
          d[i]=h;
       }
-      d[0]=0.0;
-      e[0]=0.0;
+      d[0]=0;
+      e[0]=0;
       for (i=0; i<n; i++)
       {
-         if(d[i]!=0.0)
+         if(d[i]!=0)
          {
             for (j=0; j<i; j++)
             {
-               g=0.0;
+               g=0;
                for (k=0; k<i; k++)
                   g+=z[i+n*k]*z[k+n*j];
                for (k=0; k<i; k++)
@@ -643,30 +595,26 @@ int main(int argc, char **argv)
          }
          d[i]=z[i+n*i];
          z[i+n*i]=1.0;
-         for (j=0; j<i; j++) z[j+n*i]=z[i+n*j]=0.0;
+         for (j=0; j<i; j++) z[j+n*i]=z[i+n*j]=0;
       }
 
-      printf("Image Means=[%g",Mean[0]);
+      NR_COUT << "Image Means=[" << Mean[0];
       for(int i=1; i<image->nt; i++)
-      {
-         printf(",%g",Mean[i]); // not sure it's quite right...
-      }
-      printf("]\n");
+         NR_COUT << "," << Mean[i]; // not sure it's quite right...
+      NR_COUT << "]\n";
       for(int i=0; i<image->nt; i++)
       {
-         printf("Cov=[%g",Cov[i+n*0]);
+         NR_COUT << "Cov=[" << Cov[i+n*0];
          for(int j=1; j<image->nt; j++)
-         {
-            printf(",%g",Cov[i+n*j]);
-         }
-         printf("]\n");
+            NR_COUT << "," << Cov[i+n*j];
+         NR_COUT << "]\n";
       }
 
       // 2. diagonalise
       int m,iter;
       float s,r,p,dd,c,b;
       for (i=1; i<n; i++) e[i-1]=e[i];
-      e[n-1]=0.0;
+      e[n-1]=0;
       for (l=0; l<n; l++)
       {
          iter=0;
@@ -684,7 +632,7 @@ int main(int argc, char **argv)
                r=sqrt(g*g+1.0);
                g=d[m]-d[l]+e[l]/(g+std::abs(r)*g/std::abs(g));
                s=c=1.0;
-               p=0.0;
+               p=0;
                for (i=m-1; i>=l; i--)
                {
                   f=s*e[i];
@@ -693,7 +641,7 @@ int main(int argc, char **argv)
                   if(r<EPS)
                   {
                      d[i+1]-=p;
-                     e[m]=0.0;
+                     e[m]=0;
                      break;
                   }
                   s=f/r;
@@ -712,9 +660,8 @@ int main(int argc, char **argv)
                if(r<EPS && i>=l) continue;
                d[l]-=p;
                e[l]=g;
-               e[m]=0.0;
+               e[m]=0;
             }
-            // printf("Iterations=%i\n",iter);
          }
          while(m!=l);
       } // Seems to be ok for an arbitrary covariance matrix.
@@ -729,7 +676,7 @@ int main(int argc, char **argv)
          {
             d[k]=d[i];
             d[i]=p;
-            if(z != NULL)
+            if(z != nullptr)
                for(int j=0; j<n; j++)
                {
                   p=z[j+n*i];
@@ -738,67 +685,55 @@ int main(int argc, char **argv)
                }
          }
       }
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+      NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
       for(int i=0; i<image->nt; i++)
       {
-         printf("EVMatrix=[%g",z[i+n*0]);
+         NR_COUT << "EVMatrix=[" << z[i+n*0];
          for(int j=1; j<image->nt; j++)
-         {
-            printf(",%g",z[i+image->nt*j]);
-         }
-         printf("]\n");
+            NR_COUT << "," << z[i+image->nt*j];
+         NR_COUT << "]\n";
       }
-      printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-      printf("Eigenvalues=[%g",d[0]);
+      NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
+      NR_COUT << "Eigenvalues=[" << d[0];
       for(int i=0; i<image->nt; i++)
       {
          if(i>0)
-         {
-            printf(",%g",d[i]);
-         }
+            NR_COUT << "," << d[i];
          vsum[prinCompNumber-1]+=d[i];
          dall[i+image->nt*prinCompNumber-1]=d[i];
       }
-      printf("]\n");
+      NR_COUT << "]\n";
       for(j=0; j<prinCompNumber; j++)
       {
-         printf("Variances(%i)=[%g",j+1,100.0*dall[0+n*j]/vsum[j]);
+         NR_COUT << "Variances(" << j+1 << ")=[" << 100.0*dall[0+n*j]/vsum[j];
          for(int i=1; i<image->nt; i++)
-         {
-            printf(",%g",100.0*dall[i+image->nt*j]/vsum[j]);
-         }
-         printf("]\n");
+            NR_COUT << "," << 100.0*dall[i+image->nt*j]/vsum[j];
+         NR_COUT << "]\n";
       }
       if(flag->meanonly)
       {
-         printf("Iterative registration to mean only - eigenvector matrix overwritten.\n");
+         NR_COUT << "Iterative registration to mean only - eigenvector matrix overwritten.\n";
          for(int i=0; i<image->nt; i++)
-         {
             for(int j=0; j<image->nt; j++)
-            {
                z[i+image->nt*j]=1.0/sqrtf(image->nt*prinCompNumber); // is this right?! - if using NMI it's rather moot so I'm not too bothered at the moment...
-            }
-         }
       }
-      if(flag->locality) printf("Iterative registration to local mean only (pm %i images).\n",param->locality);
-      if(flag->tp) printf("Registration to single timepoint (%i).\n",param->tp);
-
+      if(flag->locality) NR_COUT << "Iterative registration to local mean only (pm " << param->locality << " images).\n";
+      if(flag->tp) NR_COUT << "Registration to single time point (" << param->tp << ").\n";
 
       // 4. rebuild images
-      nifti_image *imagep=nifti_copy_nim_info(image); // Need to make a new image that has the same info as the original.
-      imagep->data = (PrecisionTYPE *)calloc(imagep->nvox, image->nbyper);
+      nifti_image *imagep=nifti_dup(*image, false); // Need to make a new image that has the same info as the original.
       float dotty,sum;
       if(flag->locality)  // local mean
       {
-         PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
-         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
+         PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
+         PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
          for(size_t i=0; i<voxelNumber; i++)
          {
             for(int t=0; t<image->nt; t++)
             {
-               dotty=0.0;
+               dotty=0;
                sum=0;
-               for(int tt=max(t-param->locality,0); tt<=min(t+param->locality,image->nt); tt++)
+               for(int tt=std::max(t-param->locality,0); tt<=std::min(t+param->locality,image->nt); tt++)
                {
                   dotty += intensityPtr1[tt*voxelNumber+i];
                   sum++;
@@ -807,10 +742,10 @@ int main(int argc, char **argv)
             }
          }
       }
-      else if(flag->tp)  // single timepoint
+      else if(flag->tp)  // single time point
       {
-         PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
-         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
+         PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
+         PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
          for(size_t i=0; i<voxelNumber; i++)
          {
             for(int t=0; t<image->nt; t++)
@@ -821,13 +756,13 @@ int main(int argc, char **argv)
       }
       else  // ppcr and mean
       {
-         PrecisionTYPE *intensityPtr1 = static_cast<PrecisionTYPE *>(image->data);
-         PrecisionTYPE *intensityPtr2 = static_cast<PrecisionTYPE *>(imagep->data);
+         PrecisionType *intensityPtr1 = static_cast<PrecisionType *>(image->data);
+         PrecisionType *intensityPtr2 = static_cast<PrecisionType *>(imagep->data);
          for(size_t i=0; i<voxelNumber; i++)
          {
             for(int c=0; c<prinCompNumber; c++) // Add up component contributions
             {
-               dotty=0.0;
+               dotty=0;
                for(int t=0; t<image->nt; t++) // 1) Multiply each element by eigenvector and add (I.e. dot product)
                {
                   dotty += intensityPtr1[t*voxelNumber+i] * z[t+image->nt*c];
@@ -839,13 +774,9 @@ int main(int argc, char **argv)
             }
          }
       }
-      char pcaname[20];
-      n=sprintf(pcaname,"pca%i.nii",prinCompNumber);
-      nifti_set_filenames(imagep,pcaname, 0, 0);
+      nifti_set_filenames(imagep, ("pca"s + std::to_string(prinCompNumber) + ".nii"s).c_str(), 0, 0);
       if(flag->pca0 | flag->pca1)
-      {
          nifti_image_write(imagep);
-      }
 
       if(!flag->pca0)
       {
@@ -854,24 +785,23 @@ int main(int argc, char **argv)
          /* ****************************/
          // current: images // these are both open: perpetual source
          // target:  imagep //					   pca target
-         PrecisionTYPE *intensityPtrP = static_cast<PrecisionTYPE *>(imagep->data); // pointer to pca-anchor data
-         PrecisionTYPE *intensityPtrS = static_cast<PrecisionTYPE *>(images->data); // pointer to real source-float data
-         PrecisionTYPE *intensityPtrC = static_cast<PrecisionTYPE *>(image->data); // pointer to updated 'current' data
+         PrecisionType *intensityPtrP = static_cast<PrecisionType *>(imagep->data); // pointer to pca-anchor data
+         PrecisionType *intensityPtrS = static_cast<PrecisionType *>(images->data); // pointer to real source-float data
+         PrecisionType *intensityPtrC = static_cast<PrecisionType *>(image->data); // pointer to updated 'current' data
          for(int imageNumber=0; imageNumber<images->nt; imageNumber++)
          {
             // ROLLING FLOAT AND ANCHOR IMAGES
             nifti_image *stores = nifti_copy_nim_info(images);
             stores->ndim=stores->dim[0]=3;
             stores->nt=stores->dim[4]=1;
-            stores->nvox=stores->nx*stores->ny*stores->nz;
-            stores->data = (void *)calloc(stores->nvox,images->nbyper);
+            stores->nvox = NiftiImage::calcVoxelNumber(stores, stores->ndim);
+            stores->data = calloc(stores->nvox,images->nbyper);
 
-            nifti_image *storet = nifti_copy_nim_info(stores);
-            storet->data = (void *)calloc(storet->nvox, storet->nbyper);
+            nifti_image *storet = nifti_dup(*stores, false);
 
             // COPY THE APPROPRIATE VALUES
-            PrecisionTYPE *intensityPtrPP = static_cast<PrecisionTYPE *>(storet->data); // 3D real source image (needs current cpp image)
-            PrecisionTYPE *intensityPtrSS = static_cast<PrecisionTYPE *>(stores->data); // 3D pca-float data
+            PrecisionType *intensityPtrPP = static_cast<PrecisionType *>(storet->data); // 3D real source image (needs current cpp image)
+            PrecisionType *intensityPtrSS = static_cast<PrecisionType *>(stores->data); // 3D pca-float data
             memcpy(intensityPtrPP, &intensityPtrP[imageNumber*storet->nvox], storet->nvox*storet->nbyper);
             memcpy(intensityPtrSS, &intensityPtrS[imageNumber*stores->nvox], stores->nvox*stores->nbyper);
 
@@ -884,102 +814,68 @@ int main(int argc, char **argv)
             nifti_image_write(storet);
             nifti_image_free(storet);
 
-            char regCommandB[1055]="";
+            std::string regCommandB;
             if(!flag->flirt)
             {
-               sprintf(regCommandB,"%s -%s ",regCommandAll,style);
-               char buffer[20];
-               if(flag->aladin)
-               {
-                  n=sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
-               }
-               else
-               {
-                  sprintf(buffer,"float%s%i.nii", style,imageNumber+1);
-               }
-               strcat(regCommandB,buffer);
-               char buffer2[30];
+               const std::string temp = "float"s + style + std::to_string(imageNumber + 1) + (flag->aladin ? ".txt"s : ".nii"s);
+               regCommandB = regCommandAll + " -"s + style + " "s + temp;
                if(flag->autolevel)
                {
-                  n=sprintf(buffer2," -ln %i",levelNumber);
-                  strcat(regCommandB,buffer2);
-                  char buffer3[20];
-                  if(!flag->aladin) n=sprintf(buffer3," -sx %g",param->spacing[0]);
-                  strcat(regCommandB,buffer3);
+                  regCommandB += " -ln "s + std::to_string(levelNumber);
+                  if(!flag->aladin)
+                     regCommandB += " -sx "s + std::to_string(param->spacing[0]);
                }
                if(prinCompNumber>1 && !flag->noinit)
-               {
-                  char buffer4[8];
-                  n=sprintf(buffer4," -in%s ",style);
-                  strcat(regCommandB,buffer4);
-                  strcat(regCommandB,buffer);
-               }
+                  regCommandB += " -in"s + style + temp;
             }
             else  // flirt -ref -in -out -omat -init
             {
-               n=sprintf(regCommandB,"%s -omat ",regCommandF);
-               char buffer[20];
-               n=sprintf(buffer,"float%s%i.txt", style,imageNumber+1);
-               strcat(regCommandB,buffer);
+               const std::string temp = "float"s + style + std::to_string(imageNumber + 1) + ".txt"s;
+               regCommandB = regCommandF + " -omat "s + temp;
                if(prinCompNumber>1 && !flag->noinit)
-               {
-                  char buffer3[8];
-                  n=sprintf(buffer3," -init ");
-                  strcat(regCommandB,buffer3);
-                  strcat(regCommandB,buffer);
-                  strcat(regCommandB,";gunzip -f outputResult.nii.gz");
-               }
+                  regCommandB += " -init "s + temp + ";gunzip -f outputResult.nii.gz";
             }
 
             // DO REGISTRATION
-            printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-            printf("RUNNING ITERATION %i of %i \n",prinCompNumber, param->prinComp);
-            printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-            printf("Registering image %i of %i \n", imageNumber+1,images->nt);
-            printf("'%s' \n",regCommandB);
+            NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
+            NR_COUT << "RUNNING ITERATION " << prinCompNumber << " of " << param->prinComp << "\n";
+            NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
+            NR_COUT << "Registering image " << imageNumber+1 << " of " << images->nt << "\n";
+            NR_COUT << "'" << regCommandB << "'\n";
             //system(regCommandB);
 
             if(system(regCommandB))
             {
-               fprintf(stderr, "Error while running the following command:\n%s\n",regCommandB);
-               reg_exit(1);
+               NR_ERROR("Error while running the following command: "s + regCommandB);
+               return EXIT_FAILURE;
             }
 
             // READ IN RESULT AND MAKE A NEW CURRENT IMAGE 'image'
             stores = nifti_image_read("outputResult.nii",true); // TODO NAME
-            PrecisionTYPE *intensityPtrCC = static_cast<PrecisionTYPE *>(stores->data); // 3D result image
+            PrecisionType *intensityPtrCC = static_cast<PrecisionType *>(stores->data); // 3D result image
             memcpy(&intensityPtrC[imageNumber*stores->nvox], intensityPtrCC, stores->nvox*stores->nbyper);
             nifti_image_free(stores);
          }
       }
       nifti_image_free(imagep);
-      char outname[20];
-      n=sprintf(outname,"out%i.nii",prinCompNumber);
-      nifti_set_filenames(image,outname, 0, 0);
+      nifti_set_filenames(image, ("out"s + std::to_string(prinCompNumber) + ".nii"s).c_str(), 0, 0);
       if(flag->pca2)
-      {
          nifti_image_write(image);
-      }
       if(flag->pca3)
       {
-         char cppname[20];
-         sprintf(cppname,"cpp%i.nii",prinCompNumber);
+         const std::string cppname = "cpp"s + std::to_string(prinCompNumber) + ".nii"s;
          if(!flag->aladin & !flag->flirt)
          {
-            char buffer[20];
-            sprintf(buffer,"float%s1.nii",style);
-            nifti_image *dof = nifti_image_read(buffer,true);
+            nifti_image *dof = nifti_image_read(("float"s + style + "1.nii"s).c_str(), true);
             nifti_image *dofs = nifti_copy_nim_info(dof);
             dofs->nt = dofs->dim[4] = images->nt;
             dofs->nvox = dof->nvox*images->nt;
-            dofs->data = (PrecisionTYPE *)calloc(dofs->nvox, dof->nbyper);
-            PrecisionTYPE *intensityPtrD = static_cast<PrecisionTYPE *>(dofs->data);
+            dofs->data = (PrecisionType *)calloc(dofs->nvox, dof->nbyper);
+            PrecisionType *intensityPtrD = static_cast<PrecisionType *>(dofs->data);
             for(int t=0; t<images->nt; t++)
             {
-               char buffer[20];
-               sprintf(buffer,"float%s%i.nii",style, t+1);
-               nifti_image *dof = nifti_image_read(buffer,true);
-               PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
+               nifti_image *dof = nifti_image_read(("float"s + style + std::to_string(t + 1) + ".nii"s).c_str(), true);
+               PrecisionType *intensityPtrDD = static_cast<PrecisionType *>(dof->data);
                int r=dof->nvox/3.0;
                for(int i=0; i<3; i++)
                {
@@ -987,7 +883,7 @@ int main(int argc, char **argv)
                }
                nifti_image_free(dof);
             }
-            nifti_set_filenames(dofs,cppname, 0, 0); // TODO NAME 	// write final dof data
+            nifti_set_filenames(dofs,cppname.c_str(), 0, 0); // TODO NAME 	// write final dof data
             nifti_image_write(dofs);
             nifti_image_free(dofs);
          }
@@ -996,20 +892,18 @@ int main(int argc, char **argv)
             std::string final_string = "";
             for(int t=0; t<images->nt; t++)
             {
-               char buffer[20];
-               sprintf(buffer,"float%s%i.txt",style,t+1);
-               std::ifstream ifs(buffer);
+               std::ifstream ifs("float"s + style + std::to_string(t + 1) + ".txt"s);
                std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-               final_string+=str;
+               final_string += str;
             }
             std::ofstream ofs(cppname);
-            ofs<<final_string.c_str();
+            ofs << final_string;
          }
 
       }
    } // End PC's
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Finished Iterations and now writing outputs...\n");
+   NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
+   NR_COUT << "Finished Iterations and now writing outputs...\n";
 
    // WRITE OUT RESULT IMAGE AND RESULT DOF
    // Read in images and put into single object
@@ -1017,46 +911,40 @@ int main(int argc, char **argv)
    {
       if(!flag->aladin & !flag->flirt)
       {
-         char buffer[20];
-         sprintf(buffer,"float%s1.nii",style);
-         nifti_image *dof = nifti_image_read(buffer,true);
+         nifti_image *dof = nifti_image_read(("float"s + style + "1.nii"s).c_str(),true);
          nifti_image *dofs = nifti_copy_nim_info(dof);
          dofs->nt = dofs->dim[4] = images->nt;
          dofs->nvox = dof->nvox*images->nt;
-         dofs->data = (PrecisionTYPE *)calloc(dofs->nvox, dof->nbyper);
-         PrecisionTYPE *intensityPtrD = static_cast<PrecisionTYPE *>(dofs->data);
+         dofs->data = (PrecisionType *)calloc(dofs->nvox, dof->nbyper);
+         PrecisionType *intensityPtrD = static_cast<PrecisionType *>(dofs->data);
          for(int t=0; t<images->nt; t++)
          {
-            char buffer[20];
-            sprintf(buffer,"float%s%i.nii",style, t+1);
-            nifti_image *dof = nifti_image_read(buffer,true);
-            PrecisionTYPE *intensityPtrDD = static_cast<PrecisionTYPE *>(dof->data);
+            const std::string filename = "float"s + style + std::to_string(t + 1) + ".nii"s;
+            nifti_image *dof = nifti_image_read(filename.c_str(),true);
+            PrecisionType *intensityPtrDD = static_cast<PrecisionType *>(dof->data);
             int r=dof->nvox/3.0;
             for(int i=0; i<3; i++)
-            {
                memcpy(&intensityPtrD[i*image->nt*r+t*r], &intensityPtrDD[i*r], dof->nbyper*r);
-            }
             nifti_image_free(dof);
-            remove(buffer); // delete spare floatcpp files
+            remove(filename.c_str()); // delete spare floatcpp files
          }
-         nifti_set_filenames(dofs,param->outputCPPName, 0, 0); // TODO NAME 	// write final dof data
+         nifti_set_filenames(dofs,param->outputCPPName.c_str(), 0, 0); // TODO NAME 	// write final dof data
          nifti_image_write(dofs);
          nifti_image_free(dofs);
       }
       else
       {
-         std::string final_string = "";
+         std::string final_string;
          for(int t=0; t<images->nt; t++)
          {
-            char buffer[20];
-            sprintf(buffer,"float%s%i.txt",style,t+1);
-            std::ifstream ifs(buffer);
+            const std::string filename = "float"s + style + std::to_string(t + 1) + ".txt"s;
+            std::ifstream ifs(filename);
             std::string str((std::istreambuf_iterator<char>(ifs)), std::istreambuf_iterator<char>());
-            final_string+=str;
-            remove(buffer);
+            final_string += str;
+            remove(filename.c_str());
          }
          std::ofstream ofs(param->outputCPPName);
-         ofs<<final_string.c_str();
+         ofs << final_string;
       }
 
       // DELETE
@@ -1075,26 +963,18 @@ int main(int argc, char **argv)
 
    time_t end;
    time( &end );
-   int minutes = (int)floorf(float(end-start)/60.0f);
+   int minutes = Floor<int>(float(end-start)/60.0f);
    int seconds = (int)(end-start - 60*minutes);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
+   NR_COUT << "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n";
    if(flag->locality)
-   {
-      printf("Registration to %i-local mean with %i iterations performed in %i min %i sec\n", param->locality, param->prinComp, minutes, seconds);
-   }
+      NR_COUT << "Registration to " << param->locality << "-local mean with " << param->prinComp << " iterations performed in " << minutes << " min " << seconds << " sec\n";
    if(flag->tp)
-   {
-      printf("Single timepoint registration to image %i performed in %i min %i sec\n", param->tp, minutes, seconds);
-   }
+      NR_COUT << "Single time point registration to image " << param->tp << " performed in " << minutes << " min " << seconds << " sec\n";
    if(flag->meanonly & !flag->locality)
-   {
-      printf("Registration to mean image with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);
-   }
+      NR_COUT << "Registration to mean image with " << param->prinComp << " iterations performed in " << minutes << " min " << seconds << " sec\n";
    if(!flag->locality & !flag->meanonly & !flag->tp)
-   {
-      printf("PPCNR registration with %i iterations performed in %i min %i sec\n", param->prinComp, minutes, seconds);
-   }
-   printf("Have a good day !\n");
+      NR_COUT << "PPCNR registration with " << param->prinComp << " iterations performed in " << minutes << " min " << seconds << " sec\n";
+   NR_COUT << "Have a good day!" << std::endl;
 
    // CHECK CLEAN-UP
    free( flag );

@@ -38,32 +38,32 @@ typedef struct
    bool outputLogDetFlag;
 } FLAG;
 
-template <class DTYPE>
+template <class DataType>
 void reg_jacobian_computeLog(nifti_image *image)
 {
-   DTYPE *imgPtr=static_cast<DTYPE *>(image->data);
+   DataType *imgPtr=static_cast<DataType *>(image->data);
    for(size_t i=0; i<image->nvox;++i){
-      *imgPtr = static_cast<DTYPE>(log(*imgPtr));
+      *imgPtr = static_cast<DataType>(log(*imgPtr));
       ++imgPtr;
    }
    return;
 }
 
-template <class DTYPE>
+template <class DataType>
 void reg_jacobian_convertMat33ToNii(mat33 *array, nifti_image *image)
 {
-   size_t voxelNumber=image->nx*image->ny*image->nz;
-   DTYPE *ptrXX=static_cast<DTYPE *>(image->data);
+   const size_t voxelNumber=NiftiImage::calcVoxelNumber(image, 3);
+   DataType *ptrXX=static_cast<DataType *>(image->data);
    if(image->nz>1)
    {
-      DTYPE *ptrXY=&ptrXX[voxelNumber];
-      DTYPE *ptrXZ=&ptrXY[voxelNumber];
-      DTYPE *ptrYX=&ptrXZ[voxelNumber];
-      DTYPE *ptrYY=&ptrYX[voxelNumber];
-      DTYPE *ptrYZ=&ptrYY[voxelNumber];
-      DTYPE *ptrZX=&ptrYZ[voxelNumber];
-      DTYPE *ptrZY=&ptrZX[voxelNumber];
-      DTYPE *ptrZZ=&ptrZY[voxelNumber];
+      DataType *ptrXY=&ptrXX[voxelNumber];
+      DataType *ptrXZ=&ptrXY[voxelNumber];
+      DataType *ptrYX=&ptrXZ[voxelNumber];
+      DataType *ptrYY=&ptrYX[voxelNumber];
+      DataType *ptrYZ=&ptrYY[voxelNumber];
+      DataType *ptrZX=&ptrYZ[voxelNumber];
+      DataType *ptrZY=&ptrZX[voxelNumber];
+      DataType *ptrZZ=&ptrZY[voxelNumber];
       for(size_t voxel=0; voxel<voxelNumber; ++voxel)
       {
          mat33 matrix=array[voxel];
@@ -80,9 +80,9 @@ void reg_jacobian_convertMat33ToNii(mat33 *array, nifti_image *image)
    }
    else
    {
-      DTYPE *ptrXY=&ptrXX[voxelNumber];
-      DTYPE *ptrYX=&ptrXY[voxelNumber];
-      DTYPE *ptrYY=&ptrYX[voxelNumber];
+      DataType *ptrXY=&ptrXX[voxelNumber];
+      DataType *ptrYX=&ptrXY[voxelNumber];
+      DataType *ptrYY=&ptrYX[voxelNumber];
       for(size_t voxel=0; voxel<voxelNumber; ++voxel)
       {
          mat33 matrix=array[voxel];
@@ -97,36 +97,34 @@ void reg_jacobian_convertMat33ToNii(mat33 *array, nifti_image *image)
 
 void PetitUsage(char *exec)
 {
-   fprintf(stderr,"Usage:\t%s -ref <referenceImage> [OPTIONS].\n",exec);
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   return;
+   NR_INFO("Usage:\t" << exec << " -ref <referenceImage> [OPTIONS]");
+   NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s [OPTIONS].\n",exec);
-   printf("* * INPUT * *\n");
-   printf("\t-trans <filename>\n");
-   printf("\t\tFilename of the file containing the transformation (mandatory).\n");
-   printf("\t-ref <filename>\n");
-   printf("\t\tFilename of the reference image (required if the transformation is a spline parametrisation)\n");
-   printf("\n* * OUTPUT * *\n");
-   printf("\t-jac <filename>\n");
-   printf("\t\tFilename of the Jacobian determinant map.\n");
-   printf("\t-jacM <filename>\n");
-   printf("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti).\n");
-   printf("\t-jacL <filename>\n");
-   printf("\t\tFilename of the Log of the Jacobian determinant map.\n");
-#if defined (_OPENMP)
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("Usage:\t" << exec << " [OPTIONS]");
+   NR_INFO("* * INPUT * *");
+   NR_INFO("\t-trans <filename>");
+   NR_INFO("\t\tFilename of the file containing the transformation (mandatory)");
+   NR_INFO("\t-ref <filename>");
+   NR_INFO("\t\tFilename of the reference image (required if the transformation is a spline parametrisation)");
+   NR_INFO("\n* * OUTPUT * *");
+   NR_INFO("\t-jac <filename>");
+   NR_INFO("\t\tFilename of the Jacobian determinant map");
+   NR_INFO("\t-jacM <filename>");
+   NR_INFO("\t\tFilename of the Jacobian matrix map. (9 or 4 values are stored as a 5D nifti)");
+   NR_INFO("\t-jacL <filename>");
+   NR_INFO("\t\tFilename of the Log of the Jacobian determinant map");
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\n\t\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\n\t\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\n\t\tPrint current version and exit (%s)\n",NR_VERSION);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
+   NR_INFO("\t--version\n\t\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -139,10 +137,10 @@ int main(int argc, char **argv)
    PARAM *param = (PARAM *)calloc(1,sizeof(PARAM));
    FLAG *flag = (FLAG *)calloc(1,sizeof(FLAG));
 
-#if defined (_OPENMP)
-   // Set the default number of thread
+#ifdef _OPENMP
+   // Set the default number of threads
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -165,15 +163,15 @@ int main(int argc, char **argv)
       }
       else if(strcmp(argv[i], "--xml")==0)
       {
-         printf("%s",xml_jacobian);
+         NR_COUT << xml_jacobian << std::endl;
          return EXIT_SUCCESS;
       }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
-#if defined (_OPENMP)
+#ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
-         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
          ++i;
 #endif
       }
@@ -184,7 +182,7 @@ int main(int argc, char **argv)
           strcmp(argv[i], "--v")==0 ||
           strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",NR_VERSION);
+         NR_COUT << NR_VERSION << std::endl;
          return EXIT_SUCCESS;
       }
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
@@ -219,7 +217,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n", argv[i]);
+         NR_ERROR("Parameter unknown: " << argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -228,27 +226,27 @@ int main(int argc, char **argv)
    /* ******************* */
    /* READ TRANSFORMATION */
    /* ******************* */
-   nifti_image *inputTransformation=NULL;
+   NiftiImage inputTransformation;
    if(flag->inputTransFlag)
    {
       // Check of the input transformation is an affine
       if(!reg_isAnImageFileName(param->inputTransName)){
          mat44 *affineTransformation=(mat44 *)malloc(sizeof(mat44));
          reg_tool_ReadAffineFile(affineTransformation,param->inputTransName);
-         printf("%g\n", reg_mat44_det<double>(affineTransformation));
+         NR_COUT << Mat44Det<double>(affineTransformation) << std::endl;
          return EXIT_SUCCESS;
       }
 
       inputTransformation = reg_io_ReadImageFile(param->inputTransName);
-      if(inputTransformation == NULL)
+      if(inputTransformation == nullptr)
       {
-         fprintf(stderr,"** ERROR Error when reading the transformation image: %s\n",param->inputTransName);
+         NR_ERROR("Error when reading the transformation image: " << param->inputTransName);
          return EXIT_FAILURE;
       }
    }
    else
    {
-      fprintf(stderr, "No transformation has been provided.\n");
+      NR_ERROR("No transformation has been provided");
       return EXIT_FAILURE;
    }
 
@@ -256,44 +254,42 @@ int main(int argc, char **argv)
    /* COMPUTE JACOBIAN MAT OR DET */
    /* *************************** */
    // Create a deformation field if needed
-   nifti_image *referenceImage=NULL;
+   NiftiImage referenceImage;
    if(inputTransformation->intent_p1==LIN_SPLINE_GRID ||
          inputTransformation->intent_p1==CUB_SPLINE_GRID ||
          inputTransformation->intent_p1==SPLINE_VEL_GRID){
       if(!flag->refImageFlag){
-         reg_print_msg_error("A reference image has to be specified with a spline parametrisation.");
-         reg_exit();
+         NR_ERROR("A reference image has to be specified with a spline parametrisation.");
+         return EXIT_FAILURE;
       }
       // Read the reference image
-      referenceImage = reg_io_ReadImageHeader(param->refImageName);
-      if(referenceImage == NULL)
+      referenceImage = reg_io_ReadImageFile(param->refImageName, true);
+      if(referenceImage == nullptr)
       {
-         reg_print_msg_error("Error when reading the reference image.");
-         reg_exit();
+         NR_ERROR("Error when reading the reference image.");
+         return EXIT_FAILURE;
       }
    }
 
    if(flag->outputJacDetFlag || flag->outputLogDetFlag){
       // Compute the map of Jacobian determinant
       // Create the Jacobian image
-      nifti_image *jacobianImage=NULL;
-      if(referenceImage!=NULL){
+      nifti_image *jacobianImage=nullptr;
+      if(referenceImage!=nullptr){
          jacobianImage=nifti_copy_nim_info(referenceImage);
-         nifti_image_free(referenceImage);referenceImage=NULL;
       }
       else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=jacobianImage->nz>1?3:2;
       jacobianImage->nu=jacobianImage->dim[5]=1;
       jacobianImage->nt=jacobianImage->dim[4]=1;
-      jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
-            jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
+      jacobianImage->nvox=NiftiImage::calcVoxelNumber(jacobianImage, jacobianImage->ndim);
       jacobianImage->datatype = inputTransformation->datatype;
       jacobianImage->nbyper = inputTransformation->nbyper;
       jacobianImage->cal_min=0;
       jacobianImage->cal_max=0;
       jacobianImage->scl_slope = 1.0f;
       jacobianImage->scl_inter = 0.0f;
-      jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+      jacobianImage->data = calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
       switch((int)inputTransformation->intent_p1){
       case DISP_FIELD:
@@ -327,30 +323,28 @@ int main(int argc, char **argv)
          }
          reg_io_WriteImageFile(jacobianImage,param->outputLogDetName);
       }
-      nifti_image_free(jacobianImage);jacobianImage=NULL;
+      nifti_image_free(jacobianImage);jacobianImage=nullptr;
    }
    if(flag->outputJacMatFlag){
 
-      nifti_image *jacobianImage=NULL;
-      if(referenceImage!=NULL){
+      nifti_image *jacobianImage=nullptr;
+      if(referenceImage!=nullptr){
          jacobianImage=nifti_copy_nim_info(referenceImage);
-         nifti_image_free(referenceImage);referenceImage=NULL;
       }
       else jacobianImage=nifti_copy_nim_info(inputTransformation);
       jacobianImage->ndim=jacobianImage->dim[0]=5;
       jacobianImage->nu=jacobianImage->dim[5]=jacobianImage->nz>1?9:4;
       jacobianImage->nt=jacobianImage->dim[4]=1;
-      jacobianImage->nvox=(size_t)jacobianImage->nx *jacobianImage->ny*
-            jacobianImage->nz*jacobianImage->nt*jacobianImage->nu;
+      jacobianImage->nvox=NiftiImage::calcVoxelNumber(jacobianImage, jacobianImage->ndim);
       jacobianImage->datatype = inputTransformation->datatype;
       jacobianImage->nbyper = inputTransformation->nbyper;
       jacobianImage->cal_min=0;
       jacobianImage->cal_max=0;
       jacobianImage->scl_slope = 1.0f;
       jacobianImage->scl_inter = 0.0f;
-      jacobianImage->data = (void *)calloc(jacobianImage->nvox, jacobianImage->nbyper);
+      jacobianImage->data = calloc(jacobianImage->nvox, jacobianImage->nbyper);
 
-      mat33 *jacobianMatriceArray=(mat33 *)malloc(jacobianImage->nx*jacobianImage->ny*jacobianImage->nz*sizeof(mat33));
+      mat33 *jacobianMatriceArray = (mat33 *)malloc(NiftiImage::calcVoxelNumber(jacobianImage, 3) * sizeof(mat33));
       // Compute the map of Jacobian matrices
       switch((int)inputTransformation->intent_p1){
       case DISP_FIELD:
@@ -379,13 +373,10 @@ int main(int argc, char **argv)
          reg_jacobian_convertMat33ToNii<double>(jacobianMatriceArray,jacobianImage);
          break;
       }
-      free(jacobianMatriceArray);jacobianMatriceArray=NULL;
+      free(jacobianMatriceArray);jacobianMatriceArray=nullptr;
       reg_io_WriteImageFile(jacobianImage,param->outputJacMatName);
-      nifti_image_free(jacobianImage);jacobianImage=NULL;
+      nifti_image_free(jacobianImage);jacobianImage=nullptr;
    }
-
-   // Free the allocated image
-   nifti_image_free(inputTransformation);inputTransformation=NULL;
 
    return EXIT_SUCCESS;
 }

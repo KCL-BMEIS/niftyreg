@@ -1,18 +1,17 @@
-#ifndef CONVOLUTIONKERNEL_H
-#define CONVOLUTIONKERNEL_H
+#pragma once
 
 #include "Kernel.h"
-#include "nifti1_io.h"
+#include "_reg_tools.h"
 
-class ConvolutionKernel : public Kernel {
+class ConvolutionKernel: public Kernel {
 public:
-    static std::string getName() {
+    static std::string GetName() {
         return "ConvolutionKernel";
     }
-    ConvolutionKernel(std::string name) : Kernel(name) {
-    }
-    virtual ~ConvolutionKernel(){}
-    virtual void calculate(nifti_image *image, float *sigma, int kernelType, int *mask = NULL, bool *timePoints = NULL, bool *axis = NULL) = 0;
+    virtual void Calculate(nifti_image *image,
+                           float *sigma,
+                           ConvKernelType kernelType,
+                           int *mask = nullptr,
+                           bool *timePoints = nullptr,
+                           bool *axis = nullptr) = 0;
 };
-
-#endif // CONVOLUTIONKERNEL_H

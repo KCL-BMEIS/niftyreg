@@ -10,253 +10,406 @@
  *
  */
 
-#ifndef _REG_NMI_GPU_CU
-#define _REG_NMI_GPU_CU
-
-#include "_reg_nmi.h"
 #include "_reg_nmi_gpu.h"
-#include "_reg_nmi_kernels.cu"
 
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-reg_nmi_gpu::reg_nmi_gpu():
-	reg_nmi::reg_nmi()
-{
-	this->forwardJointHistogramLog_device=NULL;
-//	this->backwardJointHistogramLog_device=NULL;
-
-#ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu constructor called\n");
-#endif
+/* *************************************************************** */
+reg_nmi_gpu::reg_nmi_gpu(): reg_nmi::reg_nmi() {
+    NR_FUNC_CALLED();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-reg_nmi_gpu::~reg_nmi_gpu()
-{
-	this->ClearHistogram();
-#ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu destructor called\n");
-#endif
+/* *************************************************************** */
+reg_nmi_gpu::~reg_nmi_gpu() {
+    NR_FUNC_CALLED();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_nmi_gpu::ClearHistogram()
-{
-	if(this->forwardJointHistogramLog_device!=NULL){
-		cudaFree(this->forwardJointHistogramLog_device);
-	}
-	this->forwardJointHistogramLog_device=NULL;
-#ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu::ClearHistogram() called\n");
-#endif
-}
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImgPtr,
-                                    nifti_image *floImgPtr,
-                                    int *maskRefPtr,
-                                    int activeVoxNum,
-                                    nifti_image *warFloImgPtr,
-                                    nifti_image *warFloGraPtr,
-									nifti_image *forVoxBasedGraPtr,
-									cudaArray **refDevicePtr,
-									cudaArray **floDevicePtr,
-                                    int **refMskDevicePtr,
-                                    float **warFloDevicePtr,
-                                    float4 **warFloGradDevicePtr,
-                                    float4 **forVoxBasedGraDevicePtr)
-{
-	this->ClearHistogram();
-    reg_nmi::InitialiseMeasure(refImgPtr,
-                               floImgPtr,
-                               maskRefPtr,
-                               warFloImgPtr,
-                               warFloGraPtr,
-							   forVoxBasedGraPtr);
-	// Check if a symmetric measure is required
-	if(this->isSymmetric){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-		fprintf(stderr,"[NiftyReg ERROR] Symmetric scheme is not yet supported on the GPU\n");
-		reg_exit(1);
-	}
-	// Check if the input images have multiple timepoints
-	if(this->referenceTimePoint>1 ||
-       this->floatingImagePointer->nt>1){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-		fprintf(stderr,"[NiftyReg ERROR] This class can only be \n");
-		reg_exit(1);
+/* *************************************************************** */
+void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
+                                    nifti_image *floImg, float *floImgCuda,
+                                    int *refMask, int *refMaskCuda,
+                                    size_t activeVoxNum,
+                                    nifti_image *warpedImg, float *warpedImgCuda,
+                                    nifti_image *warpedGrad, float4 *warpedGradCuda,
+                                    nifti_image *voxelBasedGrad, float4 *voxelBasedGradCuda,
+                                    nifti_image *localWeightSim, float *localWeightSimCuda,
+                                    int *floMask, int *floMaskCuda,
+                                    nifti_image *warpedImgBw, float *warpedImgBwCuda,
+                                    nifti_image *warpedGradBw, float4 *warpedGradBwCuda,
+                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda) {
+    reg_nmi::InitialiseMeasure(refImg, floImg, refMask, warpedImg, warpedGrad, voxelBasedGrad,
+                               localWeightSim, floMask, warpedImgBw, warpedGradBw, voxelBasedGradBw);
+    reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum,
+                                       warpedImg, warpedImgCuda, warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda,
+                                       localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
+                                       warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
+    // The reference and floating images have to be updated on the device
+    Cuda::TransferNiftiToDevice(this->referenceImageCuda, this->referenceImage);
+    Cuda::TransferNiftiToDevice(this->floatingImageCuda, this->floatingImage);
+    // Create the joint histograms
+    this->jointHistogramLogCudaVecs.resize(this->referenceTimePoints);
+    this->jointHistogramProCudaVecs.resize(this->referenceTimePoints);
+    if (this->isSymmetric) {
+        this->jointHistogramLogBwCudaVecs.resize(this->referenceTimePoints);
+        this->jointHistogramProBwCudaVecs.resize(this->referenceTimePoints);
     }
-    // Check that the input image are of type float
-    if(this->referenceImagePointer->datatype!=NIFTI_TYPE_FLOAT32 ||
-       this->warpedFloatingImagePointer->datatype!=NIFTI_TYPE_FLOAT32){
-        fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-        fprintf(stderr,"[NiftyReg ERROR] This class can only be \n");
-        reg_exit(1);
+    for (int i = 0; i < this->referenceTimePoints; i++) {
+        if (this->timePointWeights[i] > 0) {
+            this->jointHistogramLogCudaVecs[i].resize(this->totalBinNumber[i]);
+            this->jointHistogramProCudaVecs[i].resize(this->totalBinNumber[i]);
+            if (this->isSymmetric) {
+                this->jointHistogramLogBwCudaVecs[i].resize(this->totalBinNumber[i]);
+                this->jointHistogramProBwCudaVecs[i].resize(this->totalBinNumber[i]);
+            }
+        }
     }
-	// Bind the required pointers
-	this->referenceDevicePointer = *refDevicePtr;
-	this->floatingDevicePointer = *floDevicePtr;
-    this->referenceMaskDevicePointer = *refMskDevicePtr;
-	this->activeVoxeNumber = activeVoxNum;
-    this->warpedFloatingDevicePointer = *warFloDevicePtr;
-    this->warpedFloatingGradientDevicePointer = *warFloGradDevicePtr;
-    this->forwardVoxelBasedGradientDevicePointer = *forVoxBasedGraDevicePtr;
-	// The reference and floating images have to be updated on the device
-	if(cudaCommon_transferNiftiToArrayOnDevice<float>
-			(&this->referenceDevicePointer, this->referenceImagePointer)){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-		printf("[NiftyReg ERROR] Error when transfering the reference image.\n");
-		reg_exit(1);
-	}
-	if(cudaCommon_transferNiftiToArrayOnDevice<float>
-			(&this->floatingDevicePointer, this->floatingImagePointer)){
-		fprintf(stderr,"[NiftyReg ERROR] reg_nmi_gpu::InitialiseMeasure\n");
-		printf("[NiftyReg ERROR] Error when transfering the floating image.\n");
-		reg_exit(1);
-	}
-	// Allocate the required joint histogram on the GPU
-	cudaMalloc(&this->forwardJointHistogramLog_device,
-			   this->totalBinNumber[0]*sizeof(float));
-
-#ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu::InitialiseMeasure called\n");
-#endif
+    NR_FUNC_CALLED();
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-double reg_nmi_gpu::GetSimilarityMeasureValue()
-{
-	// The NMI computation is performed into the host for now
-	// The relevant images have to be transfered from the device to the host
-	cudaMemcpy(this->warpedFloatingImagePointer->data,
-			   this->warpedFloatingDevicePointer,
-			   this->warpedFloatingImagePointer->nvox *
-			   this->warpedFloatingImagePointer->nbyper,
-			   cudaMemcpyDeviceToHost
-               );
+/* *************************************************************** */
+void reg_getNmiValue_gpu(const nifti_image *referenceImage,
+                         const float *referenceImageCuda,
+                         const float *warpedImageCuda,
+                         const double *timePointWeights,
+                         const int referenceTimePoints,
+                         const unsigned short *referenceBinNumber,
+                         const unsigned short *floatingBinNumber,
+                         const unsigned short *totalBinNumber,
+                         vector<thrust::device_vector<double>>& jointHistogramLogCudaVecs,
+                         vector<thrust::device_vector<double>>& jointHistogramProCudaVecs,
+                         double **entropyValues,
+                         const int *maskCuda,
+                         const size_t activeVoxelNumber,
+                         const bool approximation) {
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
+    const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
 
-    reg_getNMIValue<float>
-            (this->referenceImagePointer,
-			 this->warpedFloatingImagePointer,
-             this->activeTimePoint,
-             this->referenceBinNumber,
-             this->floatingBinNumber,
-             this->totalBinNumber,
-             this->forwardJointHistogramLog,
-             this->forwardJointHistogramPro,
-             this->forwardEntropyValues,
-             this->referenceMaskPointer
-             );
+    // Iterate over all active time points
+    for (int t = 0; t < referenceTimePoints; t++) {
+        if (timePointWeights[t] <= 0) continue;
+        NR_DEBUG("Computing NMI for time point " << t);
+        const auto curTotalBinNumber = totalBinNumber[t];
+        const auto curRefBinNumber = referenceBinNumber[t];
+        const auto curFloBinNumber = floatingBinNumber[t];
+        // Define the current histograms
+        thrust::fill(thrust::device, jointHistogramLogCudaVecs[t].begin(), jointHistogramLogCudaVecs[t].end(), 0.0);
+        thrust::fill(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0);
+        double *jointHistogramLogCuda = jointHistogramLogCudaVecs[t].data().get();
+        double *jointHistogramProCuda = jointHistogramProCudaVecs[t].data().get();
+        // Define the current textures
+        auto referenceImageTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+        auto warpedImageTexturePtr = Cuda::CreateTextureObject(warpedImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+        auto referenceImageTexture = *referenceImageTexturePtr;
+        auto warpedImageTexture = *warpedImageTexturePtr;
+        // Fill the joint histograms
+        if (approximation == false) {
+            // No approximation is used for the Parzen windowing
+            thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+                const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
+                if (refValue != refValue) return;
+                const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
+                if (warValue != warValue) return;
+                for (int r = int(refValue) - 1; r < int(refValue) + 3; r++) {
+                    if (0 <= r && r < curRefBinNumber) {
+                        const double refBasis = GetBasisSplineValue<double>(refValue - r);
+                        for (int w = int(warValue) - 1; w < int(warValue) + 3; w++) {
+                            if (0 <= w && w < curFloBinNumber) {
+                                const double warBasis = GetBasisSplineValue<double>(warValue - w);
+                                atomicAdd(&jointHistogramProCuda[r + w * curRefBinNumber], refBasis * warBasis);
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            // An approximation is used for the Parzen windowing. First intensities are binarised then
+            // the histogram is convolved with a spine kernel function.
+            thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+                const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
+                if (refValue != refValue) return;
+                const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
+                if (warValue != warValue) return;
+                if (0 <= refValue && refValue < curRefBinNumber && 0 <= warValue && warValue < curFloBinNumber)
+                    atomicAdd(&jointHistogramProCuda[int(refValue) + int(warValue) * curRefBinNumber], 1.0);
+            });
+            // Convolve the histogram with a cubic B-spline kernel
+            // Histogram is first smooth along the reference axis
+            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curFloBinNumber, [=]__device__(const unsigned short f) {
+                constexpr double kernel[3]{ GetBasisSplineValue(-1.0), GetBasisSplineValue(0.0), GetBasisSplineValue(-1.0) };
+                for (unsigned short r = 0; r < curRefBinNumber; r++) {
+                    double value = 0;
+                    short index = r - 1;
+                    double *histoPtr = &jointHistogramProCuda[index + curRefBinNumber * f];
 
-    double nmi_value=0.;
-    nmi_value += (this->forwardEntropyValues[0][0] + this->forwardEntropyValues[0][1] ) /
-            this->forwardEntropyValues[0][2];
+                    for (char it = 0; it < 3; it++, index++, histoPtr++)
+                        if (-1 < index && index < curRefBinNumber)
+                            value += *histoPtr * kernel[it];
+                    jointHistogramLogCuda[r + curRefBinNumber * f] = value;
+                }
+            });
+            // Histogram is then smooth along the warped floating axis
+            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curRefBinNumber, [=]__device__(const unsigned short r) {
+                constexpr double kernel[3]{ GetBasisSplineValue(-1.0), GetBasisSplineValue(0.0), GetBasisSplineValue(-1.0) };
+                for (unsigned short f = 0; f < curFloBinNumber; f++) {
+                    double value = 0;
+                    short index = f - 1;
+                    double *histoPtr = &jointHistogramLogCuda[r + curRefBinNumber * index];
 
-#ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu::GetSimilarityMeasureValue called\n");
-#endif
-	return nmi_value;
+                    for (char it = 0; it < 3; it++, index++, histoPtr += curRefBinNumber)
+                        if (-1 < index && index < curFloBinNumber)
+                            value += *histoPtr * kernel[it];
+                    jointHistogramProCuda[r + curRefBinNumber * f] = value;
+                }
+            });
+        }
+        // Normalise the histogram
+        const double activeVoxel = thrust::reduce(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0, thrust::plus<double>());
+        entropyValues[t][3] = activeVoxel;
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), curTotalBinNumber, [=]__device__(const unsigned index) {
+            jointHistogramProCuda[index] /= activeVoxel;
+        });
+        // Marginalise over the reference axis
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curRefBinNumber, [=]__device__(const unsigned short r) {
+            double sum = 0;
+            unsigned short index = r;
+            for (unsigned short f = 0; f < curFloBinNumber; f++, index += curRefBinNumber)
+                sum += jointHistogramProCuda[index];
+            jointHistogramProCuda[curRefBinNumber * curFloBinNumber + r] = sum;
+        });
+        // Marginalise over the warped floating axis
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curFloBinNumber, [=]__device__(const unsigned short f) {
+            double sum = 0;
+            unsigned short index = curRefBinNumber * f;
+            for (unsigned short r = 0; r < curRefBinNumber; r++, index++)
+                sum += jointHistogramProCuda[index];
+            jointHistogramProCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f] = sum;
+        });
+        // Compute the entropy of the reference image
+        thrust::counting_iterator<unsigned short> it(0);
+        entropyValues[t][0] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber, [=]__device__(const unsigned short r) {
+            const double valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + r];
+            if (valPro > 0) {
+                const double valLog = log(valPro);
+                jointHistogramLogCuda[curRefBinNumber * curFloBinNumber + r] = valLog;
+                return -valPro * valLog;
+            } else return 0.0;
+        }, 0.0, thrust::plus<double>());
+        // Compute the entropy of the warped floating image
+        it = thrust::counting_iterator<unsigned short>(0);
+        entropyValues[t][1] = thrust::transform_reduce(thrust::device, it, it + curFloBinNumber, [=]__device__(const unsigned short f) {
+            const double valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f];
+            if (valPro > 0) {
+                const double valLog = log(valPro);
+                jointHistogramLogCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f] = valLog;
+                return -valPro * valLog;
+            } else return 0.0;
+        }, 0.0, thrust::plus<double>());
+        // Compute the joint entropy
+        it = thrust::counting_iterator<unsigned short>(0);
+        entropyValues[t][2] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber * curFloBinNumber, [=]__device__(const unsigned short index) {
+            const double valPro = jointHistogramProCuda[index];
+            if (valPro > 0) {
+                const double valLog = log(valPro);
+                jointHistogramLogCuda[index] = valLog;
+                return -valPro * valLog;
+            } else return 0.0;
+        }, 0.0, thrust::plus<double>());
+    } // iterate over all time point in the reference image
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
+/* *************************************************************** */
+static double GetSimilarityMeasureValue(const nifti_image *referenceImage,
+                                        const float *referenceImageCuda,
+                                        const nifti_image *warpedImage,
+                                        const float *warpedImageCuda,
+                                        const double *timePointWeights,
+                                        const int referenceTimePoints,
+                                        const unsigned short *referenceBinNumber,
+                                        const unsigned short *floatingBinNumber,
+                                        const unsigned short *totalBinNumber,
+                                        vector<thrust::device_vector<double>>& jointHistogramLogCudaVecs,
+                                        vector<thrust::device_vector<double>>& jointHistogramProCudaVecs,
+                                        double **entropyValues,
+                                        const int *referenceMaskCuda,
+                                        const size_t activeVoxelNumber,
+                                        const bool approximation) {
+    reg_getNmiValue_gpu(referenceImage,
+                        referenceImageCuda,
+                        warpedImageCuda,
+                        timePointWeights,
+                        referenceTimePoints,
+                        referenceBinNumber,
+                        floatingBinNumber,
+                        totalBinNumber,
+                        jointHistogramLogCudaVecs,
+                        jointHistogramProCudaVecs,
+                        entropyValues,
+                        referenceMaskCuda,
+                        activeVoxelNumber,
+                        approximation);
+
+    double nmi = 0;
+    for (int t = 0; t < referenceTimePoints; t++) {
+        if (timePointWeights[t] > 0)
+            nmi += timePointWeights[t] * (entropyValues[t][0] + entropyValues[t][1]) / entropyValues[t][2];
+    }
+    return nmi;
+}
+/* *************************************************************** */
+double reg_nmi_gpu::GetSimilarityMeasureValueFw() {
+    return ::GetSimilarityMeasureValue(this->referenceImage,
+                                       this->referenceImageCuda,
+                                       this->warpedImage,
+                                       this->warpedImageCuda,
+                                       this->timePointWeights,
+                                       this->referenceTimePoints,
+                                       this->referenceBinNumber,
+                                       this->floatingBinNumber,
+                                       this->totalBinNumber,
+                                       this->jointHistogramLogCudaVecs,
+                                       this->jointHistogramProCudaVecs,
+                                       this->entropyValues,
+                                       this->referenceMaskCuda,
+                                       this->activeVoxelNumber,
+                                       this->approximatePw);
+}
+/* *************************************************************** */
+double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
+    return ::GetSimilarityMeasureValue(this->floatingImage,
+                                       this->floatingImageCuda,
+                                       this->warpedImageBw,
+                                       this->warpedImageBwCuda,
+                                       this->timePointWeights,
+                                       this->referenceTimePoints,
+                                       this->floatingBinNumber,
+                                       this->referenceBinNumber,
+                                       this->totalBinNumber,
+                                       this->jointHistogramLogBwCudaVecs,
+                                       this->jointHistogramProBwCudaVecs,
+                                       this->entropyValuesBw,
+                                       this->floatingMaskCuda,
+                                       this->activeVoxelNumber,
+                                       this->approximatePw);
+}
+/* *************************************************************** */
+template<bool is3d> struct Derivative { using Type = double3; };
+template<> struct Derivative<false> { using Type = double2; };
+/* *************************************************************** */
 /// Called when we only have one target and one source image
-void reg_getVoxelBasedNMIGradient_gpu(nifti_image *referenceImage,
-									  cudaArray **referenceImageArray_d,
-									  float **warpedImageArray_d,
-									  float4 **warpedGradientArray_d,
-									  float **logJointHistogram_d,
-									  float4 **voxelNMIGradientArray_d,
-									  int **mask_d,
-									  int activeVoxelNumber,
-									  double *entropies,
-									  int refBinning,
-									  int floBinning)
-{
-    // Get the BlockSize - The values have been set in _reg_common_gpu.h - cudaCommon_setCUDACard
-    NiftyReg_CudaBlock100 *NR_BLOCK = NiftyReg_CudaBlock::getInstance(0);
+template<bool is3d>
+void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
+                                      const float *referenceImageCuda,
+                                      const float *warpedImageCuda,
+                                      const float4 *warpedGradientCuda,
+                                      const double *jointHistogramLogCuda,
+                                      float4 *voxelBasedGradientCuda,
+                                      const int *maskCuda,
+                                      const size_t activeVoxelNumber,
+                                      const double *entropies,
+                                      const int refBinNumber,
+                                      const int floBinNumber,
+                                      const int totalBinNumber,
+                                      const double timePointWeight,
+                                      const int currentTimePoint) {
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
+    const int3 imageSize = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
+    const double normalisedJE = entropies[2] * entropies[3];
+    const double nmi = (entropies[0] + entropies[1]) / entropies[2];
+    const int referenceOffset = refBinNumber * floBinNumber;
+    const int floatingOffset = referenceOffset + refBinNumber;
 
-	const int voxelNumber = referenceImage->nx*referenceImage->ny*referenceImage->nz;
-	const int3 imageSize=make_int3(referenceImage->nx,referenceImage->ny,referenceImage->nz);
-    const int binNumber = refBinning*floBinning+refBinning+floBinning;
-	const float normalisedJE=(float)(entropies[2]*entropies[3]);
-    const float NMI = (float)((entropies[0]+entropies[1])/entropies[2]);
+    auto referenceImageTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto warpedImageTexturePtr = Cuda::CreateTextureObject(warpedImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+    auto warpedGradientTexturePtr = Cuda::CreateTextureObject(warpedGradientCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto referenceImageTexture = *referenceImageTexturePtr;
+    auto warpedImageTexture = *warpedImageTexturePtr;
+    auto warpedGradientTexture = *warpedGradientTexturePtr;
 
-    // Bind Symbols
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_VoxelNumber,&voxelNumber,sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ImageSize,&imageSize,sizeof(int3)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstTargetBin,&refBinning,sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_firstResultBin,&floBinning,sizeof(int)));
-	NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NormalisedJE,&normalisedJE,sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_NMI,&NMI,sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaMemcpyToSymbol(c_ActiveVoxelNumber,&activeVoxelNumber,sizeof(int)));
+    thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
+        const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
+        if (refValue != refValue) return;
+        const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
+        if (warValue != warValue) return;
+        const float4 warGradValue = tex1Dfetch<float4>(warpedGradientTexture, index);
 
-    // Texture bindingcurrentFloating
-    //Bind target image array to a 3D texture
-	firstreferenceImageTexture.normalized = true;
-	firstreferenceImageTexture.filterMode = cudaFilterModeLinear;
-	firstreferenceImageTexture.addressMode[0] = cudaAddressModeWrap;
-	firstreferenceImageTexture.addressMode[1] = cudaAddressModeWrap;
-	firstreferenceImageTexture.addressMode[2] = cudaAddressModeWrap;
-    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
-	NR_CUDA_SAFE_CALL(cudaBindTextureToArray(firstreferenceImageTexture, *referenceImageArray_d, channelDesc))
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageTexture, *warpedImageArray_d, voxelNumber*sizeof(float)));
-	NR_CUDA_SAFE_CALL(cudaBindTexture(0, firstwarpedImageGradientTexture, *warpedGradientArray_d, voxelNumber*sizeof(float4)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, histogramTexture, *logJointHistogram_d, binNumber*sizeof(float)));
-    NR_CUDA_SAFE_CALL(cudaBindTexture(0, maskTexture, *mask_d, activeVoxelNumber*sizeof(int)));
-    NR_CUDA_SAFE_CALL(cudaMemset(*voxelNMIGradientArray_d, 0, voxelNumber*sizeof(float4)));
+        // No computation is performed if any of the point is part of the background
+        // The two is added because the image is resample between 2 and bin+2
+        // if 64 bins are used the histogram will have 68 bins et the image will be between 2 and 65
+        typename Derivative<is3d>::Type jointDeriv{}, refDeriv{}, warDeriv{};
+        for (int r = int(refValue) - 1; r < int(refValue) + 3; r++) {
+            if (-1 < r && r < refBinNumber) {
+                for (int w = int(warValue) - 1; w < int(warValue) + 3; w++) {
+                    if (-1 < w && w < floBinNumber) {
+                        const double commonValue = (GetBasisSplineValue<double>(refValue - r) *
+                                                    GetBasisSplineDerivativeValue<double>(warValue - w));
+                        const double jointLog = jointHistogramLogCuda[r + w * refBinNumber];
+                        const double refLog = jointHistogramLogCuda[r + referenceOffset];
+                        const double warLog = jointHistogramLogCuda[w + floatingOffset];
+                        if (warGradValue.x == warGradValue.x) {
+                            const double commonMultGrad = commonValue * warGradValue.x;
+                            jointDeriv.x += commonMultGrad * jointLog;
+                            refDeriv.x += commonMultGrad * refLog;
+                            warDeriv.x += commonMultGrad * warLog;
+                        }
+                        if (warGradValue.y == warGradValue.y) {
+                            const double commonMultGrad = commonValue * warGradValue.y;
+                            jointDeriv.y += commonMultGrad * jointLog;
+                            refDeriv.y += commonMultGrad * refLog;
+                            warDeriv.y += commonMultGrad * warLog;
+                        }
+                        if constexpr (is3d) {
+                            if (warGradValue.z == warGradValue.z) {
+                                const double commonMultGrad = commonValue * warGradValue.z;
+                                jointDeriv.z += commonMultGrad * jointLog;
+                                refDeriv.z += commonMultGrad * refLog;
+                                warDeriv.z += commonMultGrad * warLog;
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-	if(referenceImage->nz>1){
-		const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW3D =
-            (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D));
-        dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW3D,1,1);
-		dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW3D,Grid_reg_getVoxelBasedNMIGradientUsingPW3D,1);
-		reg_getVoxelBasedNMIGradientUsingPW3D_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
-		NR_CUDA_CHECK_KERNEL(G1,B1)
-	}
-	else{
-		const unsigned int Grid_reg_getVoxelBasedNMIGradientUsingPW2D =
-            (unsigned int)ceil(sqrtf((float)activeVoxelNumber/(float)NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D));
-        dim3 B1(NR_BLOCK->Block_reg_getVoxelBasedNMIGradientUsingPW2D,1,1);
-		dim3 G1(Grid_reg_getVoxelBasedNMIGradientUsingPW2D,Grid_reg_getVoxelBasedNMIGradientUsingPW2D,1);
-		reg_getVoxelBasedNMIGradientUsingPW2D_kernel <<< G1, B1 >>> (*voxelNMIGradientArray_d);
-		NR_CUDA_CHECK_KERNEL(G1,B1)
-	}
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstreferenceImageTexture));
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstwarpedImageTexture));
-	NR_CUDA_SAFE_CALL(cudaUnbindTexture(firstwarpedImageGradientTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(histogramTexture));
-    NR_CUDA_SAFE_CALL(cudaUnbindTexture(maskTexture));
+        // (Marc) I removed the normalisation by the voxel number as each gradient has to be normalised in the same way
+        float4 gradValue = voxelBasedGradientCuda[index];
+        gradValue.x += static_cast<float>(timePointWeight * (refDeriv.x + warDeriv.x - nmi * jointDeriv.x) / normalisedJE);
+        gradValue.y += static_cast<float>(timePointWeight * (refDeriv.y + warDeriv.y - nmi * jointDeriv.y) / normalisedJE);
+        if constexpr (is3d)
+            gradValue.z += static_cast<float>(timePointWeight * (refDeriv.z + warDeriv.z - nmi * jointDeriv.z) / normalisedJE);
+        voxelBasedGradientCuda[index] = gradValue;
+    });
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient()
-{
-    // The latest joint histogram is transfered onto the GPU
-    float *temp=(float *)malloc(this->totalBinNumber[0]*sizeof(float));
-    for(unsigned short i=0;i<this->totalBinNumber[0]; ++i)
-		temp[i]=static_cast<float>(this->forwardJointHistogramLog[0][i]);
-    cudaMemcpy(this->forwardJointHistogramLog_device,
-               temp,
-               this->totalBinNumber[0]*sizeof(float),
-               cudaMemcpyHostToDevice);
-    free(temp);
+/* *************************************************************** */
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
+    // Call compute similarity measure to calculate joint histogram
+    this->GetSimilarityMeasureValue();
 
-    // THe gradient of the NMI is computed on the GPU
-    reg_getVoxelBasedNMIGradient_gpu(this->referenceImagePointer,
-									 &this->referenceDevicePointer,
-									 &this->warpedFloatingDevicePointer,
-									 &this->warpedFloatingGradientDevicePointer,
-									 &this->forwardJointHistogramLog_device,
-									 &this->forwardVoxelBasedGradientDevicePointer,
-									 &this->referenceMaskDevicePointer,
-                                     this->activeVoxeNumber,
-									 this->forwardEntropyValues[0],
-									 this->referenceBinNumber[0],
-									 this->floatingBinNumber[0]);
-#ifndef NDEBUG
-		printf("[NiftyReg DEBUG] reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradient called\n");
-#endif
+    auto getVoxelBasedNmiGradient = this->referenceImage->nz > 1 ? reg_getVoxelBasedNmiGradient_gpu<true> : reg_getVoxelBasedNmiGradient_gpu<false>;
+    getVoxelBasedNmiGradient(this->referenceImage,
+                             this->referenceImageCuda,
+                             this->warpedImageCuda,
+                             this->warpedGradientCuda,
+                             this->jointHistogramLogCudaVecs[currentTimePoint].data().get(),
+                             this->voxelBasedGradientCuda,
+                             this->referenceMaskCuda,
+                             this->activeVoxelNumber,
+                             this->entropyValues[currentTimePoint],
+                             this->referenceBinNumber[currentTimePoint],
+                             this->floatingBinNumber[currentTimePoint],
+                             this->totalBinNumber[currentTimePoint],
+                             this->timePointWeights[currentTimePoint],
+                             currentTimePoint);
 }
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-/* \/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/ */
-
-#endif
+/* *************************************************************** */
+void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
+    auto getVoxelBasedNmiGradient = this->floatingImage->nz > 1 ? reg_getVoxelBasedNmiGradient_gpu<true> : reg_getVoxelBasedNmiGradient_gpu<false>;
+    getVoxelBasedNmiGradient(this->floatingImage,
+                             this->floatingImageCuda,
+                             this->warpedImageBwCuda,
+                             this->warpedGradientBwCuda,
+                             this->jointHistogramLogBwCudaVecs[currentTimePoint].data().get(),
+                             this->voxelBasedGradientBwCuda,
+                             this->floatingMaskCuda,
+                             this->activeVoxelNumber,
+                             this->entropyValuesBw[currentTimePoint],
+                             this->floatingBinNumber[currentTimePoint],
+                             this->referenceBinNumber[currentTimePoint],
+                             this->totalBinNumber[currentTimePoint],
+                             this->timePointWeights[currentTimePoint],
+                             currentTimePoint);
+}
+/* *************************************************************** */

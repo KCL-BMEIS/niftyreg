@@ -32,13 +32,19 @@
 *.app
 
 # IDE
+.cache
 .idea
 .vscode
 .vs
 CMakeSettings.json
 
-# Mac trash folder 
+# Mac trash folder
 .DS_Store
 
 # Build
-build
+build*
+out*
+
+# Doxygen
+html
+latex

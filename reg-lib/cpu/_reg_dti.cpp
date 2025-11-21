@@ -13,414 +13,266 @@
 #include "_reg_dti.h"
 
 /* *************************************************************** */
-/* *************************************************************** */
-reg_dti::reg_dti()
-   : reg_measure()
-{
-#ifndef NDEBUG
-   reg_print_msg_debug("reg_dti constructor called");
-#endif
+reg_dti::reg_dti(): reg_measure() {
+    NR_FUNC_CALLED();
 }
-/* *************************************************************** */
 /* *************************************************************** */
 // This function is directly the same as that used for reg_ssd
-void reg_dti::InitialiseMeasure(nifti_image *refImgPtr,
-                                nifti_image *floImgPtr,
-                                int *maskRefPtr,
-                                nifti_image *warFloImgPtr,
-                                nifti_image *warFloGraPtr,
-                                nifti_image *forVoxBasedGraPtr,
-                                nifti_image *forwardLocalWeightPtr,
-                                int *maskFloPtr,
-                                nifti_image *warRefImgPtr,
-                                nifti_image *warRefGraPtr,
-                                nifti_image *bckVoxBasedGraPtr)
-{
-   // Set the pointers using the parent class function
-   reg_measure::InitialiseMeasure(refImgPtr,
-                                  floImgPtr,
-                                  maskRefPtr,
-                                  warFloImgPtr,
-                                  warFloGraPtr,
-                                  forVoxBasedGraPtr,
-                                  forwardLocalWeightPtr,
-                                  maskFloPtr,
-                                  warRefImgPtr,
-                                  warRefGraPtr,
-                                  bckVoxBasedGraPtr);
+void reg_dti::InitialiseMeasure(nifti_image *refImg,
+                                nifti_image *floImg,
+                                int *refMask,
+                                nifti_image *warpedImg,
+                                nifti_image *warpedGrad,
+                                nifti_image *voxelBasedGrad,
+                                nifti_image *localWeightSim,
+                                int *floMask,
+                                nifti_image *warpedImgBw,
+                                nifti_image *warpedGradBw,
+                                nifti_image *voxelBasedGradBw) {
+    // Set the pointers using the parent class function
+    reg_measure::InitialiseMeasure(refImg,
+                                   floImg,
+                                   refMask,
+                                   warpedImg,
+                                   warpedGrad,
+                                   voxelBasedGrad,
+                                   localWeightSim,
+                                   floMask,
+                                   warpedImgBw,
+                                   warpedGradBw,
+                                   voxelBasedGradBw);
 
-   // Check that the input images have the same number of time point
-   if(this->referenceImagePointer->nt != this->floatingImagePointer->nt)
-   {
-      reg_print_fct_error("reg_dti::InitialiseMeasure");
-      reg_print_msg_error("This number of time point should be the same for both input images");
-      reg_exit();
-   }
+    // Check that the input images have the same number of time point
+    if (this->referenceImage->nt != this->floatingImage->nt)
+        NR_FATAL_ERROR("This number of time point should be the same for both input images");
 
-   int j=0;
-   for(int i=0; i<refImgPtr->nt; ++i)
-   {
-      //JM - note, the specific value of timePointWeight is not used for DTI images
-      //any value > 0 indicates the 'time point' is active
-      if(this->timePointWeight[i]>0)
-      {
-         this->dtIndicies[j++]=i;
-#ifndef NDEBUG
-         reg_print_msg_debug("reg_dti::InitialiseMeasure().");
-         char text[255];
-         sprintf(text, "Active time point: %i", i);
-         reg_print_msg_debug(text);
-#endif
-      }
-   }
-   if((refImgPtr->nz>1 && j!=6) && (refImgPtr->nz==1 && j!=3))
-   {
-      reg_print_fct_error("reg_dti::InitialiseMeasure");
-      reg_print_msg_error("Unexpected number of DTI components");
-      reg_exit();
-   }
+    int j = 0;
+    for (int i = 0; i < refImg->nt; ++i) {
+        // JM - note, the specific value of timePointWeights is not used for DTI images
+        // any value > 0 indicates the 'time point' is active
+        if (this->timePointWeights[i] > 0) {
+            this->dtIndicies[j++] = i;
+            NR_DEBUG("Active time point: " << i);
+        }
+    }
+    if ((refImg->nz > 1 && j != 6) && (refImg->nz == 1 && j != 3))
+        NR_FATAL_ERROR("Unexpected number of DTI components");
+
+    NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-template<class DTYPE>
-double reg_getDTIMeasureValue(nifti_image *referenceImage,
-                              nifti_image *warpedImage,
-                              int *mask,
-                              unsigned int * dtIndicies
-                             )
-{
+template<class DataType>
+double reg_getDtiMeasureValue(const nifti_image *referenceImage,
+                              const nifti_image *warpedImage,
+                              const int *mask,
+                              const unsigned *dtIndicies) {
 #ifdef _WIN32
-   long voxel;
-   long voxelNumber = (long)referenceImage->nx*
-                        referenceImage->ny*referenceImage->nz;
+    long voxel;
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
-   size_t voxel;
-   size_t voxelNumber = (size_t)referenceImage->nx*
-                        referenceImage->ny*referenceImage->nz;
+    size_t voxel;
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
+    // As the tensor has 6 unique components that we need to worry about
+    // Read them out for the floating and reference images
+    const DataType *firstWarpedVox = static_cast<DataType*>(warpedImage->data);
+    const DataType *warpedIntensityXX = &firstWarpedVox[voxelNumber * dtIndicies[0]];
+    const DataType *warpedIntensityXY = &firstWarpedVox[voxelNumber * dtIndicies[1]];
+    const DataType *warpedIntensityYY = &firstWarpedVox[voxelNumber * dtIndicies[2]];
+    const DataType *warpedIntensityXZ = &firstWarpedVox[voxelNumber * dtIndicies[3]];
+    const DataType *warpedIntensityYZ = &firstWarpedVox[voxelNumber * dtIndicies[4]];
+    const DataType *warpedIntensityZZ = &firstWarpedVox[voxelNumber * dtIndicies[5]];
 
-   /* As the tensor has 6 unique components that we need to worry about, read them out
-   for the floating and reference images. */
-   DTYPE *firstWarpedVox = static_cast<DTYPE *>(warpedImage->data);
-   DTYPE *warpedIntensityXX = &firstWarpedVox[voxelNumber*dtIndicies[0]];
-   DTYPE *warpedIntensityXY = &firstWarpedVox[voxelNumber*dtIndicies[1]];
-   DTYPE *warpedIntensityYY = &firstWarpedVox[voxelNumber*dtIndicies[2]];
-   DTYPE *warpedIntensityXZ = &firstWarpedVox[voxelNumber*dtIndicies[3]];
-   DTYPE *warpedIntensityYZ = &firstWarpedVox[voxelNumber*dtIndicies[4]];
-   DTYPE *warpedIntensityZZ = &firstWarpedVox[voxelNumber*dtIndicies[5]];
+    const DataType *firstRefVox = static_cast<DataType*>(referenceImage->data);
+    const DataType *referenceIntensityXX = &firstRefVox[voxelNumber * dtIndicies[0]];
+    const DataType *referenceIntensityXY = &firstRefVox[voxelNumber * dtIndicies[1]];
+    const DataType *referenceIntensityYY = &firstRefVox[voxelNumber * dtIndicies[2]];
+    const DataType *referenceIntensityXZ = &firstRefVox[voxelNumber * dtIndicies[3]];
+    const DataType *referenceIntensityYZ = &firstRefVox[voxelNumber * dtIndicies[4]];
+    const DataType *referenceIntensityZZ = &firstRefVox[voxelNumber * dtIndicies[5]];
 
-   DTYPE *firstRefVox = static_cast<DTYPE *>(referenceImage->data);
-   DTYPE *referenceIntensityXX = &firstRefVox[voxelNumber*dtIndicies[0]];
-   DTYPE *referenceIntensityXY = &firstRefVox[voxelNumber*dtIndicies[1]];
-   DTYPE *referenceIntensityYY = &firstRefVox[voxelNumber*dtIndicies[2]];
-   DTYPE *referenceIntensityXZ = &firstRefVox[voxelNumber*dtIndicies[3]];
-   DTYPE *referenceIntensityYZ = &firstRefVox[voxelNumber*dtIndicies[4]];
-   DTYPE *referenceIntensityZZ = &firstRefVox[voxelNumber*dtIndicies[5]];
-
-   double DTI_cost=0.0, n=0.0;
-   const double twoThirds = (2.0/3.0);
-   DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ;
-#if defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+    double dtiCost = 0, n = 0;
+    constexpr double twoThirds = 2.0 / 3.0;
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
    shared(referenceImage, referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ, \
-          warpedIntensityXX,warpedIntensityXY,warpedIntensityXZ, \
-          warpedIntensityYY,warpedIntensityYZ, warpedIntensityZZ, mask,voxelNumber) \
-   private(voxel, rXX, rXY, rYY, rXZ, rYZ, rZZ) \
-reduction(+:DTI_cost) \
-reduction(+:n)
+          warpedIntensityXX, warpedIntensityXY, warpedIntensityXZ, \
+          warpedIntensityYY, warpedIntensityYZ, warpedIntensityZZ, mask, voxelNumber) \
+   reduction(+:dtiCost, n)
 #endif
-   for(voxel=0; voxel<voxelNumber; ++voxel)
-   {
-      // Check if the current voxel belongs to the mask and the intensities are not nans
-      if(mask[voxel]>-1 )
-      {
-         if(referenceIntensityXX[voxel]==referenceIntensityXX[voxel] &&
-               warpedIntensityXX[voxel]==warpedIntensityXX[voxel])
-         {
-            // Calculate the elementwise residual of the diffusion tensor components
-            rXX = referenceIntensityXX[voxel] - warpedIntensityXX[voxel];
-            rXY = referenceIntensityXY[voxel] - warpedIntensityXY[voxel];
-            rYY = referenceIntensityYY[voxel] - warpedIntensityYY[voxel];
-            rXZ = referenceIntensityXZ[voxel] - warpedIntensityXZ[voxel];
-            rYZ = referenceIntensityYZ[voxel] - warpedIntensityYZ[voxel];
-            rZZ = referenceIntensityZZ[voxel] - warpedIntensityZZ[voxel];
-            DTI_cost -= twoThirds * (reg_pow2(rXX) + reg_pow2(rYY) + reg_pow2(rZZ))
-                        + 2.0 * (reg_pow2(rXY) + reg_pow2(rXZ) + reg_pow2(rYZ))
-                        - twoThirds * (rXX*rYY+rXX*rZZ+rYY*rZZ);
-            n++;
-         } // check if values are defined
-      } // check if voxel belongs mask
-   } // loop over voxels
-   return DTI_cost/n;
-}
-template double reg_getDTIMeasureValue<float>(nifti_image *,nifti_image *,int *, unsigned int *);
-template double reg_getDTIMeasureValue<double>(nifti_image *,nifti_image *,int *, unsigned int *);
-/* *************************************************************** */
-double reg_dti::GetSimilarityMeasureValue()
-{
-   // Check that all the specified image are of the same datatype
-   if(this->warpedFloatingImagePointer->datatype != this->referenceImagePointer->datatype)
-   {
-      reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
-      reg_print_msg_error("Both input images are exepected to have the same type");
-      reg_exit();
-   }
-   double DTIMeasureValue;
-   switch(this->referenceImagePointer->datatype)
-   {
-   case NIFTI_TYPE_FLOAT32:
-      DTIMeasureValue = reg_getDTIMeasureValue<float>
-                        (this->referenceImagePointer,
-                         this->warpedFloatingImagePointer,
-                         this->referenceMaskPointer,
-                         this->dtIndicies
-                        );
-      break;
-   case NIFTI_TYPE_FLOAT64:
-      DTIMeasureValue = reg_getDTIMeasureValue<double>
-                        (this->referenceImagePointer,
-                         this->warpedFloatingImagePointer,
-                         this->referenceMaskPointer,
-                         this->dtIndicies
-                        );
-      break;
-   default:
-      reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
-      reg_print_msg_error("Result pixel type unsupported in the DTI computation function");
-      reg_exit();
-   }
-
-   // Backward computation
-   if(this->isSymmetric)
-   {
-      // Check that all the specified image are of the same datatype
-      if(this->warpedReferenceImagePointer->datatype != this->floatingImagePointer->datatype)
-      {
-         reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
-         reg_print_msg_error("Both input images are exepected to have the same type");
-         reg_exit();
-      }
-      switch(this->floatingImagePointer->datatype)
-      {
-      case NIFTI_TYPE_FLOAT32:
-         DTIMeasureValue += reg_getDTIMeasureValue<float>
-                            (this->floatingImagePointer,
-                             this->warpedReferenceImagePointer,
-                             this->floatingMaskPointer,
-                             this->dtIndicies
-                            );
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         DTIMeasureValue += reg_getDTIMeasureValue<double>
-                            (this->floatingImagePointer,
-                             this->warpedReferenceImagePointer,
-                             this->floatingMaskPointer,
-                             this->dtIndicies
-                            );
-         break;
-      default:
-         reg_print_fct_error("reg_dti::GetSimilarityMeasureValue");
-         reg_print_msg_error("Warped pixel type unsupported in the DTI computation function");
-         reg_exit();
-      }
-   }
-   return DTIMeasureValue;
+    for (voxel = 0; voxel < voxelNumber; ++voxel) {
+        // Check if the current voxel belongs to the mask and the intensities are not nans
+        if (mask[voxel] > -1) {
+            if (referenceIntensityXX[voxel] == referenceIntensityXX[voxel] &&
+                warpedIntensityXX[voxel] == warpedIntensityXX[voxel]) {
+                // Calculate the elementwise residual of the diffusion tensor components
+                const DataType rXX = referenceIntensityXX[voxel] - warpedIntensityXX[voxel];
+                const DataType rXY = referenceIntensityXY[voxel] - warpedIntensityXY[voxel];
+                const DataType rYY = referenceIntensityYY[voxel] - warpedIntensityYY[voxel];
+                const DataType rXZ = referenceIntensityXZ[voxel] - warpedIntensityXZ[voxel];
+                const DataType rYZ = referenceIntensityYZ[voxel] - warpedIntensityYZ[voxel];
+                const DataType rZZ = referenceIntensityZZ[voxel] - warpedIntensityZZ[voxel];
+                dtiCost -= twoThirds * (Square(rXX) + Square(rYY) + Square(rZZ))
+                    + 2.0 * (Square(rXY) + Square(rXZ) + Square(rYZ))
+                    - twoThirds * (rXX * rYY + rXX * rZZ + rYY * rZZ);
+                n++;
+            } // check if values are defined
+        } // check if voxel belongs mask
+    } // loop over voxels
+    return dtiCost / n;
 }
 /* *************************************************************** */
+double GetSimilarityMeasureValue(const nifti_image *referenceImage,
+                                 const nifti_image *warpedImage,
+                                 const int *mask,
+                                 const unsigned *dtIndicies) {
+    return std::visit([&](auto&& refImgDataType) {
+        using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
+        return reg_getDtiMeasureValue<RefImgDataType>(referenceImage,
+                                                      warpedImage,
+                                                      mask,
+                                                      dtIndicies);
+    }, NiftiImage::getFloatingDataType(referenceImage));
+}
 /* *************************************************************** */
-template <class DTYPE>
-void reg_getVoxelBasedDTIMeasureGradient(nifti_image *referenceImage,
-      nifti_image *warpedImage,
-      nifti_image *warImgGradient,
-      nifti_image *dtiMeasureGradientImage,
-      int *mask,
-      unsigned int * dtIndicies)
-{
-   // Create pointers to the reference and warped images
+double reg_dti::GetSimilarityMeasureValueFw() {
+    return ::GetSimilarityMeasureValue(this->referenceImage,
+                                       this->warpedImage,
+                                       this->referenceMask,
+                                       this->dtIndicies);
+}
+/* *************************************************************** */
+double reg_dti::GetSimilarityMeasureValueBw() {
+    return ::GetSimilarityMeasureValue(this->floatingImage,
+                                       this->warpedImageBw,
+                                       this->floatingMask,
+                                       this->dtIndicies);
+}
+/* *************************************************************** */
+template <class DataType>
+void reg_getVoxelBasedDtiMeasureGradient(const nifti_image *referenceImage,
+                                         const nifti_image *warpedImage,
+                                         const nifti_image *warpedGradient,
+                                         nifti_image *dtiMeasureGradientImage,
+                                         const int *mask,
+                                         const unsigned *dtIndicies) {
 #ifdef _WIN32
-   long voxel;
-   long voxelNumber = (long)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    long voxel;
+    const long voxelNumber = (long)NiftiImage::calcVoxelNumber(referenceImage, 3);
 #else
-   size_t voxel;
-   size_t voxelNumber = (size_t)referenceImage->nx*referenceImage->ny*referenceImage->nz;
+    size_t voxel;
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 #endif
+    // As the tensor has 6 unique components that we need to worry about
+    // Read them out for the floating and reference images
+    const DataType *firstWarpedVox = static_cast<DataType*>(warpedImage->data);
+    const DataType *warpedIntensityXX = &firstWarpedVox[voxelNumber * dtIndicies[0]];
+    const DataType *warpedIntensityXY = &firstWarpedVox[voxelNumber * dtIndicies[1]];
+    const DataType *warpedIntensityYY = &firstWarpedVox[voxelNumber * dtIndicies[2]];
+    const DataType *warpedIntensityXZ = &firstWarpedVox[voxelNumber * dtIndicies[3]];
+    const DataType *warpedIntensityYZ = &firstWarpedVox[voxelNumber * dtIndicies[4]];
+    const DataType *warpedIntensityZZ = &firstWarpedVox[voxelNumber * dtIndicies[5]];
 
-   /* As the tensor has 6 unique components that we need to worry about, read them out
-   for the floating and reference images. */
-   DTYPE *firstWarpedVox = static_cast<DTYPE *>(warpedImage->data);
-   DTYPE *warpedIntensityXX = &firstWarpedVox[voxelNumber*dtIndicies[0]];
-   DTYPE *warpedIntensityXY = &firstWarpedVox[voxelNumber*dtIndicies[1]];
-   DTYPE *warpedIntensityYY = &firstWarpedVox[voxelNumber*dtIndicies[2]];
-   DTYPE *warpedIntensityXZ = &firstWarpedVox[voxelNumber*dtIndicies[3]];
-   DTYPE *warpedIntensityYZ = &firstWarpedVox[voxelNumber*dtIndicies[4]];
-   DTYPE *warpedIntensityZZ = &firstWarpedVox[voxelNumber*dtIndicies[5]];
+    const DataType *firstRefVox = static_cast<DataType*>(referenceImage->data);
+    const DataType *referenceIntensityXX = &firstRefVox[voxelNumber * dtIndicies[0]];
+    const DataType *referenceIntensityXY = &firstRefVox[voxelNumber * dtIndicies[1]];
+    const DataType *referenceIntensityYY = &firstRefVox[voxelNumber * dtIndicies[2]];
+    const DataType *referenceIntensityXZ = &firstRefVox[voxelNumber * dtIndicies[3]];
+    const DataType *referenceIntensityYZ = &firstRefVox[voxelNumber * dtIndicies[4]];
+    const DataType *referenceIntensityZZ = &firstRefVox[voxelNumber * dtIndicies[5]];
 
-   DTYPE *firstRefVox = static_cast<DTYPE *>(referenceImage->data);
-   DTYPE *referenceIntensityXX = &firstRefVox[voxelNumber*dtIndicies[0]];
-   DTYPE *referenceIntensityXY = &firstRefVox[voxelNumber*dtIndicies[1]];
-   DTYPE *referenceIntensityYY = &firstRefVox[voxelNumber*dtIndicies[2]];
-   DTYPE *referenceIntensityXZ = &firstRefVox[voxelNumber*dtIndicies[3]];
-   DTYPE *referenceIntensityYZ = &firstRefVox[voxelNumber*dtIndicies[4]];
-   DTYPE *referenceIntensityZZ = &firstRefVox[voxelNumber*dtIndicies[5]];
+    // THE FOLLOWING IS WRONG
+    NR_FATAL_ERROR("ERROR IN THE DTI GRADIENT COMPUTATION - TO FIX");
+    const size_t gradientVoxels = (size_t)warpedGradient->nu * voxelNumber;
+    const DataType *firstGradVox = static_cast<DataType*>(warpedGradient->data);
+    const DataType *spatialGradXX = &firstGradVox[gradientVoxels * dtIndicies[0]];
+    const DataType *spatialGradXY = &firstGradVox[gradientVoxels * dtIndicies[1]];
+    const DataType *spatialGradYY = &firstGradVox[gradientVoxels * dtIndicies[2]];
+    const DataType *spatialGradXZ = &firstGradVox[gradientVoxels * dtIndicies[3]];
+    const DataType *spatialGradYZ = &firstGradVox[gradientVoxels * dtIndicies[4]];
+    const DataType *spatialGradZZ = &firstGradVox[gradientVoxels * dtIndicies[5]];
 
-   // THE FOLLOWING IS WRONG
-   reg_print_msg_error("ERROR IN THE DTI GRADIENT COMPUTATION - TO FIX");
-   reg_exit();
-   unsigned int gradientVoxels = warImgGradient->nu*voxelNumber;
-   DTYPE *firstGradVox = static_cast<DTYPE *>(warImgGradient->data);
-   DTYPE *spatialGradXX = &firstGradVox[gradientVoxels*dtIndicies[0]];
-   DTYPE *spatialGradXY = &firstGradVox[gradientVoxels*dtIndicies[1]];
-   DTYPE *spatialGradYY = &firstGradVox[gradientVoxels*dtIndicies[2]];
-   DTYPE *spatialGradXZ = &firstGradVox[gradientVoxels*dtIndicies[3]];
-   DTYPE *spatialGradYZ = &firstGradVox[gradientVoxels*dtIndicies[4]];
-   DTYPE *spatialGradZZ = &firstGradVox[gradientVoxels*dtIndicies[5]];
+    // Create an array to store the computed gradient per time point
+    DataType *dtiMeasureGradPtrX = static_cast<DataType*>(dtiMeasureGradientImage->data);
+    DataType *dtiMeasureGradPtrY = &dtiMeasureGradPtrX[voxelNumber];
+    DataType *dtiMeasureGradPtrZ = &dtiMeasureGradPtrY[voxelNumber];
 
-   // Create an array to store the computed gradient per time point
-   DTYPE *dtiMeasureGradPtrX=static_cast<DTYPE *>(dtiMeasureGradientImage->data);
-   DTYPE *dtiMeasureGradPtrY = &dtiMeasureGradPtrX[voxelNumber];
-   DTYPE *dtiMeasureGradPtrZ = &dtiMeasureGradPtrY[voxelNumber];
+    constexpr double twoThirds = 2.0 / 3.0;
+    constexpr double fourThirds = 4.0 / 3.0;
 
-   const double twoThirds = 2.0/3.0;
-   const double fourThirds = 4.0/3.0;
-
-   DTYPE rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad;
-#if defined (_OPENMP)
-   #pragma omp parallel for default(none) \
+#ifdef _OPENMP
+#pragma omp parallel for default(none) \
    shared(referenceIntensityXX, referenceIntensityXY, referenceIntensityXZ, \
           referenceIntensityYY, referenceIntensityYZ, referenceIntensityZZ,warpedIntensityXX, \
           warpedIntensityXY,warpedIntensityXZ ,warpedIntensityYY,warpedIntensityYZ, warpedIntensityZZ, \
           mask, spatialGradXX, spatialGradXY, spatialGradXZ, spatialGradYY, spatialGradYZ, spatialGradZZ, \
-          dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber) \
-   private(voxel, rXX, rXY, rYY, rXZ, rYZ, rZZ, xxGrad, yyGrad, zzGrad, xyGrad, xzGrad, yzGrad)
+          dtiMeasureGradPtrX, dtiMeasureGradPtrY, dtiMeasureGradPtrZ, voxelNumber)
 #endif
-   for(voxel=0; voxel<voxelNumber; voxel++)
-   {
-      if(mask[voxel]>-1 )
-      {
-         if(referenceIntensityXX[voxel]==referenceIntensityXX[voxel] &&
-               warpedIntensityXX[voxel]==warpedIntensityXX[voxel])
-         {
-            rXX = referenceIntensityXX[voxel] - warpedIntensityXX[voxel];
-            rXY = referenceIntensityXY[voxel] - warpedIntensityXY[voxel];
-            rYY = referenceIntensityYY[voxel] - warpedIntensityYY[voxel];
-            rXZ = referenceIntensityXZ[voxel] - warpedIntensityXZ[voxel];
-            rYZ = referenceIntensityYZ[voxel] - warpedIntensityYZ[voxel];
-            rZZ = referenceIntensityZZ[voxel] - warpedIntensityZZ[voxel];
+    for (voxel = 0; voxel < voxelNumber; voxel++) {
+        if (mask[voxel] > -1) {
+            if (referenceIntensityXX[voxel] == referenceIntensityXX[voxel] &&
+                warpedIntensityXX[voxel] == warpedIntensityXX[voxel]) {
+                const DataType rXX = referenceIntensityXX[voxel] - warpedIntensityXX[voxel];
+                const DataType rXY = referenceIntensityXY[voxel] - warpedIntensityXY[voxel];
+                const DataType rYY = referenceIntensityYY[voxel] - warpedIntensityYY[voxel];
+                const DataType rXZ = referenceIntensityXZ[voxel] - warpedIntensityXZ[voxel];
+                const DataType rYZ = referenceIntensityYZ[voxel] - warpedIntensityYZ[voxel];
+                const DataType rZZ = referenceIntensityZZ[voxel] - warpedIntensityZZ[voxel];
 
-            xxGrad = fourThirds*rXX-twoThirds*(rYY+rZZ);
-            yyGrad = fourThirds*rYY-twoThirds*(rXX+rZZ);
-            zzGrad = fourThirds*rZZ-twoThirds*(rYY+rXX);
-            xyGrad = 4.0*rXY;
-            xzGrad = 4.0*rXZ;
-            yzGrad = 4.0*rYZ;
+                const DataType xxGrad = static_cast<DataType>(fourThirds * rXX - twoThirds * (rYY + rZZ));
+                const DataType yyGrad = static_cast<DataType>(fourThirds * rYY - twoThirds * (rXX + rZZ));
+                const DataType zzGrad = static_cast<DataType>(fourThirds * rZZ - twoThirds * (rYY + rXX));
+                const DataType xyGrad = 4.f * rXY;
+                const DataType xzGrad = 4.f * rXZ;
+                const DataType yzGrad = 4.f * rYZ;
 
-            dtiMeasureGradPtrX[voxel] -= (spatialGradXX[voxel]*xxGrad+spatialGradYY[voxel]*yyGrad+spatialGradZZ[voxel]*zzGrad \
-                                          + spatialGradXY[voxel]*xyGrad + spatialGradXZ[voxel]*xzGrad + spatialGradYZ[voxel]*yzGrad);
+                dtiMeasureGradPtrX[voxel] -= (spatialGradXX[voxel] * xxGrad + spatialGradYY[voxel] * yyGrad + spatialGradZZ[voxel] * zzGrad
+                                              + spatialGradXY[voxel] * xyGrad + spatialGradXZ[voxel] * xzGrad + spatialGradYZ[voxel] * yzGrad);
 
-            dtiMeasureGradPtrY[voxel] -= (spatialGradXX[voxel+voxelNumber]*xxGrad+spatialGradYY[voxel+voxelNumber]*yyGrad+spatialGradZZ[voxel+voxelNumber]*zzGrad \
-                                          + spatialGradXY[voxel+voxelNumber]*xyGrad + spatialGradXZ[voxel+voxelNumber]*xzGrad + spatialGradYZ[voxel+voxelNumber]*yzGrad);
+                dtiMeasureGradPtrY[voxel] -= (spatialGradXX[voxel + voxelNumber] * xxGrad + spatialGradYY[voxel + voxelNumber] * yyGrad + spatialGradZZ[voxel + voxelNumber] * zzGrad
+                                              + spatialGradXY[voxel + voxelNumber] * xyGrad + spatialGradXZ[voxel + voxelNumber] * xzGrad + spatialGradYZ[voxel + voxelNumber] * yzGrad);
 
-            dtiMeasureGradPtrZ[voxel] -= (spatialGradXX[voxel+2*voxelNumber]*xxGrad+spatialGradYY[voxel+2*voxelNumber]*yyGrad \
-                                          + spatialGradZZ[voxel+2*voxelNumber]*zzGrad + spatialGradXY[voxel+2*voxelNumber]*xyGrad  \
-                                          + spatialGradXZ[voxel+2*voxelNumber]*xzGrad + spatialGradYZ[voxel+2*voxelNumber]*yzGrad);
-         }
-      }
-   }
+                dtiMeasureGradPtrZ[voxel] -= (spatialGradXX[voxel + 2 * voxelNumber] * xxGrad + spatialGradYY[voxel + 2 * voxelNumber] * yyGrad
+                                              + spatialGradZZ[voxel + 2 * voxelNumber] * zzGrad + spatialGradXY[voxel + 2 * voxelNumber] * xyGrad
+                                              + spatialGradXZ[voxel + 2 * voxelNumber] * xzGrad + spatialGradYZ[voxel + 2 * voxelNumber] * yzGrad);
+            }
+        }
+    }
 }
 /* *************************************************************** */
-template void reg_getVoxelBasedDTIMeasureGradient<float>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
-template void reg_getVoxelBasedDTIMeasureGradient<double>
-(nifti_image *,nifti_image *,nifti_image *,nifti_image *, int *, unsigned int *);
-/* *************************************************************** */
-void reg_dti::GetVoxelBasedSimilarityMeasureGradient(int current_timepoint)
-{
-   // Check if the specified time point exists and is active
-   reg_measure::GetVoxelBasedSimilarityMeasureGradient(current_timepoint);
-   if(this->timePointWeight[current_timepoint]==0.0)
-      return;
-
-   // Check if all required input images are of the same data type
-   int dtype = this->referenceImagePointer->datatype;
-   if(this->warpedFloatingImagePointer->datatype != dtype ||
-         this->warpedFloatingGradientImagePointer->datatype != dtype ||
-         this->forwardVoxelBasedGradientImagePointer->datatype != dtype
-     )
-   {
-      reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
-      reg_print_msg_error("Input images are exepected to be of the same type");
-      reg_exit();
-   }
-   // Compute the gradient of the ssd for the forward transformation
-   switch(dtype)
-   {
-   case NIFTI_TYPE_FLOAT32:
-      reg_getVoxelBasedDTIMeasureGradient<float>
-      (this->referenceImagePointer,
-       this->warpedFloatingImagePointer,
-       this->warpedFloatingGradientImagePointer,
-       this->forwardVoxelBasedGradientImagePointer,
-       this->referenceMaskPointer,
-       this->dtIndicies
-      );
-      break;
-   case NIFTI_TYPE_FLOAT64:
-      reg_getVoxelBasedDTIMeasureGradient<double>
-      (this->referenceImagePointer,
-       this->warpedFloatingImagePointer,
-       this->warpedFloatingGradientImagePointer,
-       this->forwardVoxelBasedGradientImagePointer,
-       this->referenceMaskPointer,
-       this->dtIndicies
-      );
-      break;
-   default:
-      reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
-      reg_print_msg_error("The input image data type is not supported");
-      reg_exit();
-   }
-   // Compute the gradient of the ssd for the backward transformation
-   if(this->isSymmetric)
-   {
-      dtype = this->floatingImagePointer->datatype;
-      if(this->warpedReferenceImagePointer->datatype != dtype ||
-            this->warpedReferenceGradientImagePointer->datatype != dtype ||
-            this->backwardVoxelBasedGradientImagePointer->datatype != dtype
-        )
-      {
-         reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
-         reg_print_msg_error("Input images are exepected to be of the same type");
-         reg_exit();
-      }
-      // Compute the gradient of the nmi for the backward transformation
-      switch(dtype)
-      {
-      case NIFTI_TYPE_FLOAT32:
-         reg_getVoxelBasedDTIMeasureGradient<float>
-         (this->floatingImagePointer,
-          this->warpedReferenceImagePointer,
-          this->warpedReferenceGradientImagePointer,
-          this->backwardVoxelBasedGradientImagePointer,
-          this->floatingMaskPointer,
-          this->dtIndicies
-         );
-         break;
-      case NIFTI_TYPE_FLOAT64:
-         reg_getVoxelBasedDTIMeasureGradient<double>
-         (this->floatingImagePointer,
-          this->warpedReferenceImagePointer,
-          this->warpedReferenceGradientImagePointer,
-          this->backwardVoxelBasedGradientImagePointer,
-          this->floatingMaskPointer,
-          this->dtIndicies
-         );
-         break;
-      default:
-         reg_print_fct_error("reg_dti::GetVoxelBasedSimilarityMeasureGradient");
-         reg_print_msg_error("The input image data type is not supported");
-         reg_exit();
-      }
-   }
+void GetVoxelBasedSimilarityMeasureGradient(const nifti_image *referenceImage,
+                                            const nifti_image *warpedImage,
+                                            const nifti_image *warpedGradient,
+                                            nifti_image *voxelBasedGradient,
+                                            const int *referenceMask,
+                                            const unsigned *dtIndicies) {
+    std::visit([&](auto&& refImgDataType) {
+        using RefImgDataType = std::decay_t<decltype(refImgDataType)>;
+        reg_getVoxelBasedDtiMeasureGradient<RefImgDataType>(referenceImage,
+                                                            warpedImage,
+                                                            warpedGradient,
+                                                            voxelBasedGradient,
+                                                            referenceMask,
+                                                            dtIndicies);
+    }, NiftiImage::getFloatingDataType(referenceImage));
 }
 /* *************************************************************** */
+void reg_dti::GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) {
+    ::GetVoxelBasedSimilarityMeasureGradient(this->referenceImage,
+                                             this->warpedImage,
+                                             this->warpedGradient,
+                                             this->voxelBasedGradient,
+                                             this->referenceMask,
+                                             this->dtIndicies);
+}
+/* *************************************************************** */
+void reg_dti::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) {
+    ::GetVoxelBasedSimilarityMeasureGradient(this->floatingImage,
+                                             this->warpedImageBw,
+                                             this->warpedGradientBw,
+                                             this->voxelBasedGradientBw,
+                                             this->floatingMask,
+                                             this->dtIndicies);
+}
 /* *************************************************************** */

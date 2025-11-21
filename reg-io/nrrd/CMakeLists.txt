@@ -51,9 +51,7 @@ NrrdIO/simple.c NrrdIO/comment.c NrrdIO/keyvalue.c NrrdIO/endianNrrd.c NrrdIO/pa
 NrrdIO/gzio.c NrrdIO/read.c NrrdIO/write.c NrrdIO/format.c NrrdIO/formatNRRD.c NrrdIO/encoding.c
 NrrdIO/encodingRaw.c NrrdIO/encodingAscii.c NrrdIO/encodingHex.c NrrdIO/encodingGzip.c
 NrrdIO/subset.c NrrdIO/encodingBzip2.c NrrdIO/formatEPS.c NrrdIO/formatPNG.c NrrdIO/formatPNM.c
-NrrdIO/formatText.c NrrdIO/formatVTK.c NrrdIO/biff.h NrrdIO/NrrdIO.h
-NrrdIO/privateAir.h NrrdIO/privateNrrd.h NrrdIO/teem32bit.h NrrdIO/teemDio.h NrrdIO/teemEndian.h
-NrrdIO/teemPng.h NrrdIO/teemQnanhibit.h)
+NrrdIO/formatText.c NrrdIO/formatVTK.c)
 
 add_library(reg_NrrdIO ${nrrdio_SRCS})
 install(TARGETS reg_NrrdIO
@@ -64,11 +62,11 @@ install(TARGETS reg_NrrdIO
 target_link_libraries(reg_NrrdIO z)
 ############################################################
 ############################################################
-add_library(reg_nrrd reg_nrrd.cpp reg_nrrd.h)
-target_link_libraries(reg_nrrd _reg_tools _reg_maths reg_NrrdIO reg_nifti z)
+add_library(reg_nrrd reg_nrrd.cpp)
+target_link_libraries(reg_nrrd _reg_tools reg_NrrdIO)
 install(TARGETS reg_nrrd
         RUNTIME DESTINATION bin COMPONENT Development
         LIBRARY DESTINATION lib COMPONENT Development
         ARCHIVE DESTINATION lib COMPONENT Development
 )
-install(FILES reg_nrrd.h NrrdIO/NrrdIO.h ${CMAKE_BINARY_DIR}/NrrdConfigure.h DESTINATION include COMPONENT Development)
+install(FILES NrrdIO/NrrdIO.h ${CMAKE_BINARY_DIR}/NrrdConfigure.h DESTINATION include COMPONENT Development)

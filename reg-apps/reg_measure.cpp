@@ -47,35 +47,33 @@ typedef struct
 
 void PetitUsage(char *exec)
 {
-   fprintf(stderr,"Usage:\t%s -ref <referenceImageName> -flo <floatingImageName> [OPTIONS].\n",exec);
-   fprintf(stderr,"\tSee the help for more details (-h).\n");
-   return;
+   NR_INFO("Usage:\t" << exec << " -ref <referenceImageName> -flo <floatingImageName> [OPTIONS]");
+   NR_INFO("\tSee the help for more details (-h)");
 }
+
 void Usage(char *exec)
 {
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   printf("Usage:\t%s -ref <filename> -flo <filename> [OPTIONS].\n",exec);
-   printf("\t-ref <filename>\tFilename of the reference image (mandatory)\n");
-   printf("\t-flo <filename>\tFilename of the floating image (mandatory)\n");
-   printf("\t\tNote that the floating image is resampled into the reference\n");
-   printf("\t\timage space using the header informations.\n");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
+   NR_INFO("Usage:\t" << exec << " -ref <filename> -flo <filename> [OPTIONS]");
+   NR_INFO("\t-ref <filename>\tFilename of the reference image (mandatory)");
+   NR_INFO("\t-flo <filename>\tFilename of the floating image (mandatory)");
+   NR_INFO("\t\tNote that the floating image is resampled into the reference");
+   NR_INFO("\t\timage space using the header informations");
 
-   printf("* * OPTIONS * *\n");
-   printf("\t-ncc\t\tReturns the NCC value\n");
-   printf("\t-lncc\t\tReturns the LNCC value\n");
-   printf("\t-nmi\t\tReturns the NMI value (64 bins are used)\n");
-   printf("\t-ssd\t\tReturns the SSD value\n");
-   printf("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default\n");
-#if defined (_OPENMP)
+   NR_INFO("* * OPTIONS * *");
+   NR_INFO("\t-ncc\t\tReturns the NCC value");
+   NR_INFO("\t-lncc\t\tReturns the LNCC value");
+   NR_INFO("\t-nmi\t\tReturns the NMI value (64 bins are used)");
+   NR_INFO("\t-ssd\t\tReturns the SSD value");
+   NR_INFO("\n\t-out\t\tText file output where to store the value(s).\n\t\t\tThe stdout is used by default");
+#ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
-   printf("\t-omp <int>\tNumber of thread to use with OpenMP. [%i/%i]\n",
-          defaultOpenMPValue, omp_get_num_procs());
+   NR_INFO("\t-omp <int>\tNumber of threads to use with OpenMP. [" << defaultOpenMPValue << "/" << omp_get_num_procs() << "]");
 #endif
-   printf("\t--version\tPrint current version and exit (%s)\n",NR_VERSION);
-   printf("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n");
-   return;
+   NR_INFO("\t--version\tPrint current version and exit (" << NR_VERSION << ")");
+   NR_INFO("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 }
 
 int main(int argc, char **argv)
@@ -86,10 +84,10 @@ int main(int argc, char **argv)
    param->interpolation=3; // Cubic spline interpolation used by default
    param->paddingValue=std::numeric_limits<float>::quiet_NaN();
 
-#if defined (_OPENMP)
-   // Set the default number of thread
+#ifdef _OPENMP
+   // Set the default number of threads
    int defaultOpenMPValue=omp_get_num_procs();
-   if(getenv("OMP_NUM_THREADS")!=NULL)
+   if(getenv("OMP_NUM_THREADS")!=nullptr)
       defaultOpenMPValue=atoi(getenv("OMP_NUM_THREADS"));
    omp_set_num_threads(defaultOpenMPValue);
 #endif
@@ -110,17 +108,12 @@ int main(int argc, char **argv)
          Usage(argv[0]);
          return EXIT_SUCCESS;
       }
-//      else if(strcmp(argv[i], "--xml")==0)
-//      {
-//         printf("%s",xml_measure);
-//         return exit_success;
-//      }
       else if(strcmp(argv[i], "-omp")==0 || strcmp(argv[i], "--omp")==0)
       {
-#if defined (_OPENMP)
+#ifdef _OPENMP
          omp_set_num_threads(atoi(argv[++i]));
 #else
-         reg_print_msg_warn("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
+         NR_WARN("NiftyReg has not been compiled with OpenMP, the \'-omp\' flag is ignored");
          ++i;
 #endif
       }
@@ -131,7 +124,7 @@ int main(int argc, char **argv)
             strcmp(argv[i], "--v")==0 ||
             strcmp(argv[i], "--version")==0)
       {
-         printf("%s\n",NR_VERSION);
+         NR_COUT << NR_VERSION << std::endl;
          return EXIT_SUCCESS;
       }
       else if((strcmp(argv[i],"-ref")==0) || (strcmp(argv[i],"-target")==0) ||
@@ -201,7 +194,7 @@ int main(int argc, char **argv)
       }
       else
       {
-         fprintf(stderr,"Err:\tParameter %s unknown.\n",argv[i]);
+         NR_ERROR("Parameter unknown: " << argv[i]);
          PetitUsage(argv[0]);
          return EXIT_FAILURE;
       }
@@ -209,47 +202,45 @@ int main(int argc, char **argv)
 
    if(!flag->refImageFlag || !flag->floImageFlag)
    {
-      fprintf(stderr,"[NiftyReg ERROR] The reference and the floating image have both to be defined.\n");
+      NR_ERROR("The reference and the floating image have both to be defined");
       PetitUsage(argv[0]);
       return EXIT_FAILURE;
    }
 
    /* Read the reference image */
-   nifti_image *refImage = reg_io_ReadImageFile(param->refImageName);
-   if(refImage == NULL)
+   NiftiImage refImage = reg_io_ReadImageFile(param->refImageName);
+   if(!refImage)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference image: %s\n",
-              param->refImageName);
+      NR_ERROR("Error when reading the reference image: " << param->refImageName);
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(refImage);
 
    /* Read the floating image */
-   nifti_image *floImage = reg_io_ReadImageFile(param->floImageName);
-   if(floImage == NULL)
+   NiftiImage floImage = reg_io_ReadImageFile(param->floImageName);
+   if(!floImage)
    {
-      fprintf(stderr,"[NiftyReg ERROR] Error when reading the floating image: %s\n",
-              param->floImageName);
+      NR_ERROR("Error when reading the floating image: " << param->floImageName);
       return EXIT_FAILURE;
    }
    reg_tools_changeDatatype<float>(floImage);
 
    /* Read and create the mask array */
-   int *refMask=NULL;
-   int refMaskVoxNumber=refImage->nx*refImage->ny*refImage->nz;
+   vector<unique_ptr<int[]>> refMasks(1);
+   unique_ptr<int[]>& refMask = refMasks[0];
+   size_t refMaskVoxNumber = refImage.nVoxelsPerVolume();
    if(flag->refMaskImageFlag){
-      nifti_image *refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
-      if(refMaskImage == NULL)
+      NiftiImage refMaskImage = reg_io_ReadImageFile(param->refMaskImageName);
+      if(!refMaskImage)
       {
-         fprintf(stderr,"[NiftyReg ERROR] Error when reading the reference mask image: %s\n",
-                 param->refMaskImageName);
+         NR_ERROR("Error when reading the reference mask image: " << param->refMaskImageName);
          return EXIT_FAILURE;
       }
-      reg_createMaskPyramid<float>(refMaskImage, &refMask, 1, 1, &refMaskVoxNumber);
+      reg_createMaskPyramid<float>(refMaskImage, refMasks, 1, 1);
    }
    else{
-      refMask = (int *)calloc(refMaskVoxNumber,sizeof(int));
-      for(int i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
+      refMask = unique_ptr<int[]>(new int[refMaskVoxNumber]());
+      for(size_t i=0;i<refMaskVoxNumber;++i) refMask[i]=i;
    }
 
    /* Create the warped floating image */
@@ -257,26 +248,24 @@ int main(int argc, char **argv)
    warpedFloImage->ndim=warpedFloImage->dim[0]=floImage->ndim;
    warpedFloImage->nt=warpedFloImage->dim[4]=floImage->nt;
    warpedFloImage->nu=warpedFloImage->dim[5]=floImage->nu;
-   warpedFloImage->nvox=(size_t)warpedFloImage->nx * warpedFloImage->ny *
-         warpedFloImage->nz * warpedFloImage->nt * warpedFloImage->nu;
+   warpedFloImage->nvox=NiftiImage::calcVoxelNumber(warpedFloImage, warpedFloImage->ndim);
    warpedFloImage->cal_min=floImage->cal_min;
    warpedFloImage->cal_max=floImage->cal_max;
    warpedFloImage->scl_inter=floImage->scl_inter;
    warpedFloImage->scl_slope=floImage->scl_slope;
    warpedFloImage->datatype=floImage->datatype;
    warpedFloImage->nbyper=floImage->nbyper;
-   warpedFloImage->data=(void *)malloc(warpedFloImage->nvox*warpedFloImage->nbyper);
+   warpedFloImage->data=malloc(warpedFloImage->nvox*warpedFloImage->nbyper);
 
    /* Create the deformation field */
    nifti_image *defField = nifti_copy_nim_info(refImage);
    defField->ndim=defField->dim[0]=5;
    defField->nt=defField->dim[4]=1;
    defField->nu=defField->dim[5]=refImage->nz>1?3:2;
-   defField->nvox=(size_t)defField->nx * defField->ny *
-         defField->nz * defField->nt * defField->nu;
+   defField->nvox=NiftiImage::calcVoxelNumber(defField, defField->ndim);
    defField->datatype=NIFTI_TYPE_FLOAT32;
    defField->nbyper=sizeof(float);
-   defField->data=(void *)calloc(defField->nvox,defField->nbyper);
+   defField->data=calloc(defField->nvox,defField->nbyper);
    defField->scl_slope=1.f;
    defField->scl_inter=0.f;
    reg_tools_multiplyValueToImage(defField,defField,0.f);
@@ -287,12 +276,12 @@ int main(int argc, char **argv)
    reg_resampleImage(floImage,
                      warpedFloImage,
                      defField,
-                     refMask,
+                     refMask.get(),
                      param->interpolation,
                      param->paddingValue);
    nifti_image_free(defField);
 
-   FILE *outFile=NULL;
+   FILE *outFile=nullptr;
    if(flag->outFileFlag)
       outFile=fopen(param->outFileName, "w");
 
@@ -311,7 +300,7 @@ int main(int argc, char **argv)
          }
       }
       if(refMaskVoxNumber==0)
-         fprintf(stderr, "No active voxel\n");
+         NR_ERROR("No active voxel");
       refMeanValue /= (double)refMaskVoxNumber;
       warMeanValue /= (double)refMaskVoxNumber;
       double refSTDValue =0.;
@@ -319,8 +308,8 @@ int main(int argc, char **argv)
       double measure=0.;
       for(size_t i=0; i<refImage->nvox; ++i){
          if(refMask[i]>-1 && refPtr[i]==refPtr[i] && warPtr[i]==warPtr[i]){
-            refSTDValue += reg_pow2((double)refPtr[i] - refMeanValue);
-            warSTDValue += reg_pow2((double)warPtr[i] - warMeanValue);
+            refSTDValue += Square((double)refPtr[i] - refMeanValue);
+            warSTDValue += Square((double)warPtr[i] - warMeanValue);
             measure += ((double)refPtr[i] - refMeanValue) *
                   ((double)warPtr[i] - warMeanValue);
          }
@@ -329,88 +318,83 @@ int main(int argc, char **argv)
       warSTDValue /= (double)refMaskVoxNumber;
       measure /= sqrt(refSTDValue)*sqrt(warSTDValue)*
             (double)refMaskVoxNumber;
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("NCC: %g\n", measure);
+      else NR_COUT << "NCC: " << measure << std::endl;
    }
    /* Compute the LNCC if required */
    if(flag->returnLNCCFlag){
       reg_lncc *lncc_object=new reg_lncc();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-         lncc_object->SetTimepointWeight(i,1.0);
+         lncc_object->SetTimePointWeight(i,1.0);
       lncc_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr);
       double measure=lncc_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("LNCC: %g\n", measure);
+      else NR_COUT << "LNCC: " << measure << std::endl;
       delete lncc_object;
    }
    /* Compute the NMI if required */
    if(flag->returnNMIFlag){
       reg_nmi *nmi_object=new reg_nmi();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-        nmi_object->SetTimepointWeight(i, 1.0);
+        nmi_object->SetTimePointWeight(i, 1.0);
       nmi_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr);
       double measure=nmi_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("NMI: %g\n", measure);
+      else NR_COUT << "NMI: " << measure << std::endl;
       delete nmi_object;
    }
    /* Compute the SSD if required */
    if(flag->returnSSDFlag){
       reg_ssd *ssd_object=new reg_ssd();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-        ssd_object->SetTimepointWeight(i, 1.0);
+        ssd_object->SetTimePointWeight(i, 1.0);
       ssd_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
-                                    NULL,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr,
+                                    nullptr);
       double measure=ssd_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("SSD: %g\n", measure);
+      else NR_COUT << "SSD: " << measure << std::endl;
       delete ssd_object;
    }
    /* Compute the MIND SSD if required */
    if(flag->returnMINDFlag){
       reg_mind *mind_object=new reg_mind();
       for(int i=0;i<(refImage->nt<warpedFloImage->nt?refImage->nt:warpedFloImage->nt);++i)
-        mind_object->SetTimepointWeight(i, 1.0);
+        mind_object->SetTimePointWeight(i, 1.0);
       mind_object->InitialiseMeasure(refImage,
                                     warpedFloImage,
-                                    refMask,
+                                    refMask.get(),
                                     warpedFloImage,
-                                    NULL,
-                                    NULL);
+                                    nullptr,
+                                    nullptr);
       double measure=mind_object->GetSimilarityMeasureValue();
-      if(outFile!=NULL)
+      if(outFile!=nullptr)
          fprintf(outFile, "%g\n", measure);
-      else printf("MIND: %g\n", measure);
+      else NR_COUT << "MIND: " << measure << std::endl;
       delete mind_object;
    }
 
    // Close the output file if required
-   if(outFile!=NULL)
+   if(outFile!=nullptr)
       fclose(outFile);
-
-   // Free the allocated images
-   nifti_image_free(refImage);
-   nifti_image_free(floImage);
-   free(refMask);
 
    free(flag);
    free(param);

@@ -12,11 +12,9 @@
  *
  */
 
-#ifndef __REG_BLOCKMATCHING_H__
-#define __REG_BLOCKMATCHING_H__
+#pragma once
 
-#include "_reg_maths.h"
-#include <vector>
+#include "Maths.hpp"
 
 #define TOLERANCE 0.001
 #define MAX_ITERATIONS 30
@@ -31,51 +29,36 @@
 #define NUM_BLOCKS_TO_COMPARE_1D 7
 
 /// @brief Structure which contains the block matching parameters
-struct _reg_blockMatchingParam
-{
-   int totalBlockNumber;
-   int *totalBlock;
-   unsigned int blockNumber[3];
-   //Number of block we keep for LTS
-   int percent_to_keep;
+struct _reg_blockMatchingParam {
+    int totalBlockNumber = 0;
+    int *totalBlock = nullptr;
+    unsigned blockNumber[3]{};
+    // Number of block we keep for LTS
+    int percent_to_keep = 0;
 
-   unsigned int dim;
-   float *referencePosition;
-   float *warpedPosition;
+    unsigned dim = 0;
+    float *referencePosition = nullptr;
+    float *warpedPosition = nullptr;
 
-   //Before:
-   //Min between Number of block we keep in total (totalBlockNumber*percent_to_keep) and Number of total block - unuseable blocks
-   //Now:
-   //Number of total block - unuseable blocks
-   int activeBlockNumber;
-   //int *activeBlock;
+    // Before: Min between Number of block we keep in total (totalBlockNumber*percent_to_keep) and Number of total block - unusable blocks
+    // Now: Number of total block - unusable blocks
+    int activeBlockNumber = 0;
+    //int *activeBlock;
 
-   //Number of active block which has a displacement vector (not NaN)
-   int definedActiveBlockNumber;
-   //int *definedActiveBlock;
+    // Number of active block which has a displacement vector (not NaN)
+    int definedActiveBlockNumber = 0;
+    //int *definedActiveBlock;
 
-   int voxelCaptureRange;
+    int voxelCaptureRange = 0;
 
-   int stepSize;
+    int stepSize = 0;
 
-   _reg_blockMatchingParam()
-       : totalBlockNumber(0),
-        totalBlock(0),
-        percent_to_keep(0),
-        dim(0),
-        referencePosition(0),
-        warpedPosition(0),
-        activeBlockNumber(0),
-        voxelCaptureRange(0),
-        stepSize(0)
-   {}
+    _reg_blockMatchingParam() = default;
 
-   ~_reg_blockMatchingParam()
-   {
-      if (referencePosition) free(referencePosition);
-      if (warpedPosition) free(warpedPosition);
-      if (totalBlock) free(totalBlock);
-   }
+    // Perform a deep copy
+    _reg_blockMatchingParam(_reg_blockMatchingParam *);
+
+    ~_reg_blockMatchingParam();
 };
 /* *************************************************************** */
 /** @brief This function initialise a _reg_blockMatchingParam structure
@@ -91,7 +74,6 @@ struct _reg_blockMatchingParam
  * image to consider for the registration
  * @param runningOnGPU Has to be set to true if the registration has to be performed on the GPU
  */
-extern "C++"
 void initialise_block_matching_method(nifti_image * referenceImage,
                                       _reg_blockMatchingParam *params,
                                       int percentToKeep_block,
@@ -107,7 +89,6 @@ void initialise_block_matching_method(nifti_image * referenceImage,
  * relevant information
  * @param mask Mask array where only voxel defined as active are considered
  */
-extern "C++"
 void block_matching_method(nifti_image * referenceImage,
                            nifti_image * warpedImage,
                            _reg_blockMatchingParam *params,
@@ -123,4 +104,3 @@ void block_matching_method(nifti_image * referenceImage,
 void optimize(_reg_blockMatchingParam *params,
               mat44 * transformation_matrix,
               bool affine = true);
-#endif
