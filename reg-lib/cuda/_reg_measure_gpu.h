@@ -8,7 +8,6 @@
 #pragma once
 
 #include "CudaCommon.hpp"
-#include "_reg_lncc.h"
 #include "_reg_dti.h"
 #include "_reg_kld.h"
 
@@ -88,50 +87,6 @@ protected:
     float *warpedImageBwCuda = nullptr;
     float4 *warpedGradientBwCuda = nullptr;
     float4 *voxelBasedGradientBwCuda = nullptr;
-};
-/* *************************************************************** */
-class reg_lncc_gpu: public reg_lncc, public reg_measure_gpu {
-public:
-    /// @brief reg_lncc class constructor
-    reg_lncc_gpu() {
-        NR_FATAL_ERROR("CUDA CANNOT BE USED WITH LNCC YET");
-    }
-    /// @brief reg_lncc class destructor
-    virtual ~reg_lncc_gpu() {}
-
-    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
-    using reg_measure::InitialiseMeasure;
-    virtual void InitialiseMeasure(nifti_image *refImg,
-                                   float *refImgCuda,
-                                   nifti_image *floImg,
-                                   float *floImgCuda,
-                                   int *refMask,
-                                   int *refMaskCuda,
-                                   size_t activeVoxNum,
-                                   nifti_image *warpedImg,
-                                   float *warpedImgCuda,
-                                   nifti_image *warpedGrad,
-                                   float4 *warpedGradCuda,
-                                   nifti_image *voxelBasedGrad,
-                                   float4 *voxelBasedGradCuda,
-                                   nifti_image *localWeightSim = nullptr,
-                                   float *localWeightSimCuda = nullptr,
-                                   int *floMask = nullptr,
-                                   int *floMaskCuda = nullptr,
-                                   nifti_image *warpedImgBw = nullptr,
-                                   float *warpedImgBwCuda = nullptr,
-                                   nifti_image *warpedGradBw = nullptr,
-                                   float4 *warpedGradBwCuda = nullptr,
-                                   nifti_image *voxelBasedGradBw = nullptr,
-                                   float4 *voxelBasedGradBwCuda = nullptr) override {}
-    /// @brief Returns the lncc value forwards
-    virtual double GetSimilarityMeasureValueFw() override { return 0; }
-    /// @brief Returns the lncc value backwards
-    virtual double GetSimilarityMeasureValueBw() override { return 0; }
-    /// @brief Compute the voxel-based lncc gradient forwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override {}
-    /// @brief Compute the voxel-based lncc gradient backwards
-    virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override {}
 };
 /* *************************************************************** */
 class reg_kld_gpu: public reg_kld, public reg_measure_gpu {

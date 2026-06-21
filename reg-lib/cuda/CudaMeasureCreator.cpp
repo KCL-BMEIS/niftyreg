@@ -1,5 +1,6 @@
 #include "CudaMeasureCreator.hpp"
 #include "CudaDefContent.h"
+#include "_reg_lncc_gpu.h"
 #include "_reg_nmi_gpu.h"
 #include "_reg_ssd_gpu.h"
 

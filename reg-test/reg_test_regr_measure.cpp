@@ -8,6 +8,7 @@
  *  Test classes:
  *   - NMI
  *   - SSD
+ *   - LNCC
  */
 
 class MeasureTest {
@@ -64,7 +65,7 @@ public:
 
         // Create the data container for the regression test
         const std::string measureNames[]{ "NMI"s, "SSD"s, "DTI"s, "LNCC"s, "KLD"s, "MIND"s, "MINDSSC"s };
-        constexpr MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd };
+        constexpr MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd, MeasureType::Lncc };
         vector<TestData> testData;
         for (auto&& measure : testMeasures) {
             for (int sym = 0; sym < 2; ++sym) {
