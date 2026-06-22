@@ -251,12 +251,13 @@ static void GetVoxelBasedLnccGradientCuda(const nifti_image *referenceImage,
     ConvolveSingleChannel(referenceImage, correlationBuf, kernelSigma, kernelType);
 
     // Step 4: accumulate the gradient
-    // common = (temp1 * ref - temp2 * war + temp3) * adjustedWeight
-    // grad  -= common * spatialGrad
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber,
         [=] __device__(size_t i) {
             const float temp1 = warpedMeanBuf[i].x;
             if (temp1 != temp1) return;  // NaN → inactive voxel
+
+            const float4 spa = warpedGradCuda[i];
+            if (spa.x != spa.x || spa.y != spa.y || spa.z != spa.z) return;
 
             const double common =
                 (temp1 * refSlice[i]
@@ -264,22 +265,10 @@ static void GetVoxelBasedLnccGradientCuda(const nifti_image *referenceImage,
                  + correlationBuf[i].x) * adjustedWeight;
 
             float4 grad = voxelBasedGradCuda[i];
-            const float4 spa = warpedGradCuda[i];
             grad.x -= static_cast<float>(common * spa.x);
             grad.y -= static_cast<float>(common * spa.y);
             grad.z -= static_cast<float>(common * spa.z);
             voxelBasedGradCuda[i] = grad;
-        });
-
-    // Step 5: zero out any NaN values that may have propagated into the gradient
-    // (e.g. from NaN components in the warped spatial gradient)
-    thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber,
-        [=] __device__(size_t i) {
-            float4 g = voxelBasedGradCuda[i];
-            if (g.x != g.x) g.x = 0.f;
-            if (g.y != g.y) g.y = 0.f;
-            if (g.z != g.z) g.z = 0.f;
-            voxelBasedGradCuda[i] = g;
         });
 }
 /* *************************************************************** */
