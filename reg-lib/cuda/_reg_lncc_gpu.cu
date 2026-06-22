@@ -188,8 +188,10 @@ static void GetVoxelBasedLnccGradientCuda(const nifti_image *referenceImage,
     //   warpedMeanBuf.x → temp1  (= ∂|lncc|/∂E[war])
     //   warpedSdevBuf.x → temp2  (= ∂|lncc|/∂sdev_war)
     //   correlationBuf.x → temp3 (= ∂|lncc|/∂E[ref*war])
-    // Inactive / invalid voxels are set to NaN so the subsequent convolution
-    // treats them as missing data.
+    // Inactive voxels (outside the mask or NaN) are set to NaN so the subsequent
+    // convolution treats them as missing data, whereas active voxels with
+    // degenerate stats are set to zero so they remain part of the convolution
+    // (matching the CPU reference).
     const size_t activeVoxelNumber = thrust::transform_reduce(thrust::device,
         thrust::make_counting_iterator<size_t>(0),
         thrust::make_counting_iterator<size_t>(voxelNumber),
@@ -224,10 +226,13 @@ static void GetVoxelBasedLnccGradientCuda(const nifti_image *referenceImage,
             if (temp1 != temp1 || isinf(temp1) ||
                 temp2 != temp2 || isinf(temp2) ||
                 temp3 != temp3 || isinf(temp3)) {
-                constexpr float nan = std::numeric_limits<float>::quiet_NaN();
-                warpedMeanBuf[i].x  = nan;
-                warpedSdevBuf[i].x  = nan;
-                correlationBuf[i].x = nan;
+                // Active voxel with degenerate stats (e.g. local sdev ~ 0).
+                // Matching the CPU reference, keep it in the subsequent convolution
+                // as zero (so it still contributes to neighbouring voxels and
+                // receives a smoothed gradient) but do not count it as active.
+                warpedMeanBuf[i].x  = 0.f;
+                warpedSdevBuf[i].x  = 0.f;
+                correlationBuf[i].x = 0.f;
                 return size_t(0);
             }
 
