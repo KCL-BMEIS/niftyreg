@@ -29,6 +29,7 @@ reg_f3d<T>::reg_f3d(int refTimePoints, int floTimePoints):
     this->useConjGradient = true;
     this->useApproxGradient = false;
     gridRefinement = true;
+    freshGrid = false;
     currentWJac = 0;
     currentWBE = 0;
     currentWLE = 0;
@@ -161,8 +162,14 @@ template<class T>
 void reg_f3d<T>::Initialise() {
     reg_base<T>::Initialise();
 
-    // Determine the grid spacing and create the grid
-    if (!inputControlPointGrid) {
+    // Determine the grid spacing and create the grid.
+    // A fresh grid is built (rather than reusing the input grid as the coarsest
+    // pyramid level) when no input grid is provided, or when the user explicitly
+    // requested it via -freshgrid. The latter matches Elastix's behaviour, where
+    // each B-spline invocation creates a new grid at the requested spacing instead
+    // of refining from the input grid's spacing - which otherwise compounds across
+    // chained stages.
+    if (!inputControlPointGrid || freshGrid) {
         // Set the spacing along y and z if undefined. Their values are set to match
         // the spacing along the x axis
         if (spacing[1] != spacing[1]) spacing[1] = spacing[0];
@@ -186,9 +193,16 @@ void reg_f3d<T>::Initialise() {
         // to an identity transformation
         reg_createControlPointGrid<T>(controlPointGrid, this->referencePyramid[0], gridSpacing);
 
-        // The control point grid is updated with an identity transformation
-        if (this->affineTransformation)
+        if (inputControlPointGrid) {
+            // Elastix-like warm start: the fresh grid keeps the requested spacing but
+            // is initialised from the deformation stored in the input grid. The input
+            // grid's deformation is sampled at each fresh control point position by
+            // composing it with the identity transformation of the fresh grid.
+            reg_spline_getDeformationField(inputControlPointGrid, controlPointGrid, nullptr, true, true);
+        } else if (this->affineTransformation) {
+            // The control point grid is updated with an identity transformation
             reg_affine_getDeformationField(this->affineTransformation.get(), controlPointGrid);
+        }
     } else {
         // The control point grid image is initialised with the provided grid
         controlPointGrid = inputControlPointGrid;

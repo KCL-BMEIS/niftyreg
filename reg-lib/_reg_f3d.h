@@ -26,6 +26,7 @@ protected:
     bool jacobianLogApproximation;
     T spacing[3];
     bool gridRefinement;
+    bool freshGrid;
     double currentWJac;
     double currentWBE;
     double currentWLE;
@@ -76,6 +77,7 @@ public:
     virtual void DoNotApproximateJacobianLog();
     virtual void SetSpacing(unsigned, T);
     virtual void NoGridRefinement() { gridRefinement = false; }
+    virtual void UseFreshGrid() { freshGrid = true; }
 
     // F3D2 specific options
     virtual NiftiImage GetBackwardControlPointPositionImage() { return {}; }

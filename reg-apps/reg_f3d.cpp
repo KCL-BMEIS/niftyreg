@@ -51,6 +51,10 @@ void Usage(char *exec) {
     NR_INFO("\t-aff <filename>\t\tFilename which contains an affine transformation (Affine*Reference=Floating)");
     NR_INFO("\t-incpp <filename>\tFilename of the control point grid input");
     NR_INFO("\t\t\t\tThe coarse spacing is defined by this file.");
+    NR_INFO("\t-freshgrid\t\tCreate a fresh control point grid at the requested spacing (-sx/-sy/-sz)");
+    NR_INFO("\t\t\t\tinstead of refining the -incpp grid. The input grid's deformation is");
+    NR_INFO("\t\t\t\tcarried forward as a warm start (Elastix-like). Prevents the grid spacing");
+    NR_INFO("\t\t\t\tfrom compounding when chaining stages via -incpp.");
     NR_INFO("");
     NR_INFO("*** Output options:");
     NR_INFO("\t-cpp <filename>\t\tFilename of control point grid [outputCPP.nii]");
@@ -596,6 +600,8 @@ int main(int argc, char **argv) {
             reg->SetPerturbationNumber((size_t)atoi(argv[++i]));
         } else if (strcmp(argv[i], "-nogr") == 0) {
             reg->NoGridRefinement();
+        } else if (strcmp(argv[i], "-freshgrid") == 0 || strcmp(argv[i], "--freshgrid") == 0) {
+            reg->UseFreshGrid();
         } else if (strcmp(argv[i], "-nogce") == 0 || strcmp(argv[i], "--nogce") == 0) {
             reg->DoNotUseGradientCumulativeExp();
         } else if (strcmp(argv[i], "-bch") == 0 || strcmp(argv[i], "--bch") == 0) {
