@@ -175,7 +175,7 @@ TEST_CASE_METHOD(BMTest, "Block Matching", "[unit]") {
                         NR_COUT << "[" << b << "/" << blockMatchingParams->activeBlockNumber << ":" << d << "] ";
                         NR_COUT << diffPos << std::endl;
                     }
-                    REQUIRE(diff < EPS);
+                    REQUIRE(diff == 0);
                 }
             }
         }

@@ -272,7 +272,7 @@ TEST_CASE_METHOD(VoxelCentricToNodeCentricTest, "Voxel Centric to Node Centric",
                     NR_COUT << " | Result=" << transGradVal;
                     NR_COUT << " | Expected=" << expTransGradVal << std::endl;
                 }
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
         }
     }

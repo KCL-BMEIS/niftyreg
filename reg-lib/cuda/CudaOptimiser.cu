@@ -238,12 +238,12 @@ void GetConjugateGradient(float4 *gradientCuda,
 
     double gam;
     thrust::counting_iterator<int> it(0);
-    const double2 gg = thrust::transform_reduce(thrust::device, it, it + nVoxels, [=]__device__(const int index) {
+    const double2 gg = thrust::transform_reduce(thrust::device, it, it + nVoxels, [=]__device__(const int index) -> double2 {
         return calcGam(gradientTexture, conjugateGTexture, conjugateHTexture, index);
     }, make_double2(0, 0), thrust::plus<double2>());
     if (isSymmetric) {
         it = thrust::counting_iterator<int>(0);
-        const double2 ggBw = thrust::transform_reduce(thrust::device, it, it + nVoxelsBw, [=]__device__(const int index) {
+        const double2 ggBw = thrust::transform_reduce(thrust::device, it, it + nVoxelsBw, [=]__device__(const int index) -> double2 {
             return calcGam(gradientBwTexture, conjugateGBwTexture, conjugateHBwTexture, index);
         }, make_double2(0, 0), thrust::plus<double2>());
         gam = (gg.x + ggBw.x) / (gg.y + ggBw.y);

@@ -37,7 +37,7 @@ void CudaContext::PickCard(unsigned deviceId = 999) {
     if (deviceId < numDevices) {
         cudaIdx = deviceId;
         NR_CUDA_SAFE_CALL(cudaSetDevice(cudaIdx));
-        NR_CUDA_SAFE_CALL(cuCtxCreate(&cudaContext, CU_CTX_SCHED_SPIN, cudaIdx));
+        NR_CUDA_SAFE_CALL(Cuda::CtxCreate(&cudaContext, CU_CTX_SCHED_SPIN, cudaIdx));
 
         cudaGetDeviceProperties(&deviceProp, cudaIdx);
         if (deviceProp.major > 1) {
@@ -57,7 +57,7 @@ void CudaContext::PickCard(unsigned deviceId = 999) {
     unsigned currentDevice = 0;
     while (currentDevice < numDevices) {
         cudaGetDeviceProperties(&deviceProp, currentDevice);
-        int gflops = deviceProp.multiProcessorCount * deviceProp.clockRate;
+        int gflops = deviceProp.multiProcessorCount * Cuda::GetDeviceClockRate(currentDevice);
         if (gflops > maxGflops) {
             maxGflops = gflops;
             maxGflopsDevice = currentDevice;
@@ -65,7 +65,7 @@ void CudaContext::PickCard(unsigned deviceId = 999) {
         ++currentDevice;
     }
     NR_CUDA_SAFE_CALL(cudaSetDevice(maxGflopsDevice));
-    NR_CUDA_SAFE_CALL(cuCtxCreate(&cudaContext, CU_CTX_SCHED_SPIN, maxGflopsDevice));
+    NR_CUDA_SAFE_CALL(Cuda::CtxCreate(&cudaContext, CU_CTX_SCHED_SPIN, maxGflopsDevice));
     NR_CUDA_SAFE_CALL(cudaGetDeviceProperties(&deviceProp, maxGflopsDevice));
 
     if (deviceProp.major < 1) {
@@ -83,7 +83,7 @@ void CudaContext::PickCard(unsigned deviceId = 999) {
         NR_DEBUG("The CUDA compute capability is " << deviceProp.major << "." << deviceProp.minor);
         NR_DEBUG("The shared memory size in bytes: " << deviceProp.sharedMemPerBlock);
         NR_DEBUG("The CUDA version is " << CUDART_VERSION);
-        NR_DEBUG("The card clock rate is " << deviceProp.clockRate / 1000 << " MHz");
+        NR_DEBUG("The card clock rate is " << Cuda::GetDeviceClockRate(maxGflopsDevice) / 1000 << " MHz");
         NR_DEBUG("The card has " << deviceProp.multiProcessorCount << " multiprocessors");
         cudaIdx = maxGflopsDevice;
         cudaGetDeviceProperties(&deviceProp, cudaIdx);

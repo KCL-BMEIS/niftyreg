@@ -63,6 +63,13 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
 endif(MSVC)
 #-----------------------------------------------------------------------------
+# Silence GCC's informational -Wpsabi note about the std::pair<double,double>
+# parameter-passing ABI change in GCC 10.1, emitted by the vendored RNifti header.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-psabi")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-psabi")
+endif()
+#-----------------------------------------------------------------------------
 if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
   add_definitions(-fPIC)
 endif(NOT ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -73,7 +80,13 @@ option(BUILD_TESTING "To build the unit tests" OFF)
 option(USE_CUDA "To use the CUDA platform" OFF)
 option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use OpenMP for multi-CPU processing" ON)
-option(USE_SSE "To enable SSE computation in some case" ON)
+# SSE is an x86-only instruction set, so default it off on other architectures (e.g. ARM/aarch64)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(^|[^a-zA-Z])([xX]86|[xX]86_64|[aA][mM][dD]64|i[3-6]86)$")
+  set(NR_SSE_DEFAULT ON)
+else()
+  set(NR_SSE_DEFAULT OFF)
+endif()
+option(USE_SSE "To enable SSE computation in some case" ${NR_SSE_DEFAULT})
 option(CHECK_GPU "To check if a GPU is available" ON)
 #-----------------------------------------------------------------------------
 option(USE_NRRD "To use the NRRD file format" OFF)
@@ -169,11 +182,44 @@ if(USE_CUDA)
     message(SEND_ERROR "CUDA not found. The USE_CUDA flag is turned OFF")
   else(NOT CMAKE_CUDA_COMPILER)
     include_directories(SYSTEM ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+    # CUDA 13 relocated the bundled CCCL headers (Thrust, CUB, libcu++) into an
+    # "include/cccl" subdirectory which is not part of the default toolkit include
+    # path, so add it explicitly when present to keep <thrust/...> includes working.
+    foreach(_cuda_inc_dir ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES})
+      if(EXISTS "${_cuda_inc_dir}/cccl/thrust")
+        include_directories(SYSTEM "${_cuda_inc_dir}/cccl")
+      endif()
+    endforeach()
     include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
     add_definitions(-DUSE_CUDA)
+    # FMA (fused multiply-add) contraction is faster but makes GPU results diverge from the
+    # CPU by 1-2 ULP, which breaks the bit-exact CPU-vs-CUDA regression tests. Default it OFF
+    # when building the tests (so CPU and GPU agree exactly) and ON otherwise (performance).
+    # Both the device (--fmad) and the host (-ffp-contract) must match for bit-exact results.
+    if(BUILD_TESTING)
+      set(NR_CUDA_FMA_DEFAULT OFF)
+    else()
+      set(NR_CUDA_FMA_DEFAULT ON)
+    endif()
+    option(USE_CUDA_FMA "Enable FMA contraction in host and device maths (faster, but CPU and GPU results differ by ULPs)" ${NR_CUDA_FMA_DEFAULT})
+    if(NOT USE_CUDA_FMA)
+      set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --fmad=false")
+      if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffp-contract=off")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+      endif()
+      message(STATUS "CUDA FMA contraction disabled (USE_CUDA_FMA=OFF): CPU and GPU results match bit-exactly")
+    else()
+      message(STATUS "CUDA FMA contraction enabled (USE_CUDA_FMA=ON): preferring performance over CPU/GPU bit-exactness")
+    endif()
   endif(NOT CMAKE_CUDA_COMPILER)
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
+if(USE_SSE AND NOT NR_SSE_DEFAULT)
+  # SSE is not available on this architecture (e.g. ARM/aarch64) - force it off
+  message(STATUS "SSE is not supported on ${CMAKE_SYSTEM_PROCESSOR}, forcing USE_SSE to OFF")
+  set(USE_SSE OFF CACHE BOOL "To enable SSE computation in some case" FORCE)
+endif()
 if(USE_SSE)
   if(NOT MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse3")
