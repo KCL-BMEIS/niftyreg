@@ -164,7 +164,7 @@ TEST_CASE_METHOD(KernelConvolutionTest, "Regression Kernel Convolution", "[regre
                 const float diff = fabs(cpuVal - cudaVal);
                 if (diff > EPS)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
         }
     }

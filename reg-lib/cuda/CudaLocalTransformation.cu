@@ -140,18 +140,18 @@ double ApproxBendingEnergy(const nifti_image *controlPointImage, const float4 *c
         set_second_order_bspline_basis_values(basis.xx, basis.yy, basis.xy);
 
     thrust::counting_iterator index(0);
-    return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const int index) {
+    return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const int index) -> double {
         const auto secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDims, basis);
         if constexpr (is3d)
-            return (Square(secondDerivative.xx.x) + Square(secondDerivative.xx.y) + Square(secondDerivative.xx.z) +
-                    Square(secondDerivative.yy.x) + Square(secondDerivative.yy.y) + Square(secondDerivative.yy.z) +
-                    Square(secondDerivative.zz.x) + Square(secondDerivative.zz.y) + Square(secondDerivative.zz.z) +
-                    2.f * (Square(secondDerivative.xy.x) + Square(secondDerivative.xy.y) + Square(secondDerivative.xy.z) +
-                           Square(secondDerivative.yz.x) + Square(secondDerivative.yz.y) + Square(secondDerivative.yz.z) +
-                           Square(secondDerivative.xz.x) + Square(secondDerivative.xz.y) + Square(secondDerivative.xz.z)));
+            return (Square(secondDerivative.xx.x) + Square(secondDerivative.yy.x) + Square(secondDerivative.zz.x) +
+                    2.0 * (Square(secondDerivative.xy.x) + Square(secondDerivative.yz.x) + Square(secondDerivative.xz.x)) +
+                    Square(secondDerivative.xx.y) + Square(secondDerivative.yy.y) + Square(secondDerivative.zz.y) +
+                    2.0 * (Square(secondDerivative.xy.y) + Square(secondDerivative.yz.y) + Square(secondDerivative.xz.y)) +
+                    Square(secondDerivative.xx.z) + Square(secondDerivative.yy.z) + Square(secondDerivative.zz.z) +
+                    2.0 * (Square(secondDerivative.xy.z) + Square(secondDerivative.yz.z) + Square(secondDerivative.xz.z)));
         else
-            return (Square(secondDerivative.xx.x) + Square(secondDerivative.xx.y) + Square(secondDerivative.yy.x) +
-                    Square(secondDerivative.yy.y) + 2.f * (Square(secondDerivative.xy.x) + Square(secondDerivative.xy.y)));
+            return (Square(secondDerivative.xx.x) + Square(secondDerivative.yy.x) + 2.0 * secondDerivative.xy.x * secondDerivative.xy.x +
+                    Square(secondDerivative.xx.y) + Square(secondDerivative.yy.y) + 2.0 * secondDerivative.xy.y * secondDerivative.xy.y);
     }, 0.0, thrust::plus<double>()) / static_cast<double>(controlPointImage->nvox);
 }
 template double ApproxBendingEnergy<false>(const nifti_image*, const float4*);
@@ -880,7 +880,7 @@ double ApproxLinearEnergy(const nifti_image *controlPointGrid,
 
     constexpr int matSize = is3d ? 3 : 2;
     thrust::counting_iterator index(0);
-    return thrust::transform_reduce(thrust::device, index, index + voxelNumber, [=]__device__(const int index) {
+    return thrust::transform_reduce(thrust::device, index, index + voxelNumber, [=]__device__(const int index) -> double {
         const mat33 matrix = CreateDisplacementMatrix<is3d>(index, controlPointTexture, cppDims, basis, reorientation);
         double currentValue = 0;
         for (int b = 0; b < matSize; b++)

@@ -46,6 +46,10 @@ if(BUILD_INTERNAL_PNG OR BUILD_ALL_DEP)
     )
     # Build the library
     add_library(png STATIC ${png_srcs})
+    # This bundled libpng copy does not ship the arm/ NEON intrinsics sources, so
+    # on ARM (e.g. aarch64) the default PNG_ARM_NEON_OPT=2 would reference NEON
+    # symbols that are never compiled, breaking the link. Disable the optimisation.
+    target_compile_definitions(png PRIVATE PNG_ARM_NEON_OPT=0)
     target_link_libraries(png z)
     install(TARGETS png
         LIBRARY DESTINATION lib COMPONENT Development

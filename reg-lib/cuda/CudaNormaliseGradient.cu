@@ -7,7 +7,7 @@ float GetMaximalLength(const float4 *imageCuda, const size_t nVoxels) {
     auto imageTexturePtr = Cuda::CreateTextureObject(imageCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto imageTexture = *imageTexturePtr;
     thrust::counting_iterator<unsigned> index(0);
-    return thrust::transform_reduce(thrust::device, index, index + nVoxels, [=]__device__(const unsigned index) {
+    return thrust::transform_reduce(thrust::device, index, index + nVoxels, [=]__device__(const unsigned index) -> float {
         const float4 val = tex1Dfetch<float4>(imageTexture, index);
         return sqrtf((optimiseX ? Square(val.x) : 0) +
                      (optimiseY ? Square(val.y) : 0) +

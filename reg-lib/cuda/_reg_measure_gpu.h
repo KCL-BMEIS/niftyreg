@@ -99,6 +99,8 @@ public:
     /// @brief reg_lncc class destructor
     virtual ~reg_lncc_gpu() {}
 
+    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
+    using reg_measure::InitialiseMeasure;
     virtual void InitialiseMeasure(nifti_image *refImg,
                                    float *refImgCuda,
                                    nifti_image *floImg,
@@ -141,6 +143,8 @@ public:
     /// @brief reg_kld_gpu class destructor
     virtual ~reg_kld_gpu() {}
 
+    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
+    using reg_measure::InitialiseMeasure;
     virtual void InitialiseMeasure(nifti_image *refImg,
                                    float *refImgCuda,
                                    nifti_image *floImg,
@@ -183,6 +187,8 @@ public:
     /// @brief reg_dti_gpu class destructor
     virtual ~reg_dti_gpu() {}
 
+    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
+    using reg_measure::InitialiseMeasure;
     virtual void InitialiseMeasure(nifti_image *refImg,
                                    float *refImgCuda,
                                    nifti_image *floImg,

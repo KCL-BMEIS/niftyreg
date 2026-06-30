@@ -66,6 +66,24 @@ inline void CheckKernel(const std::string& file, const int line, const std::stri
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda::Internal
+/* *************************************************************** */
+// CUDA 13 changed the cuCtxCreate signature (now cuCtxCreate_v4), adding a
+// leading CUctxCreateParams* argument. Wrap it to keep a single call site.
+inline CUresult CtxCreate(CUcontext *pctx, const unsigned flags, const CUdevice dev) {
+#if defined(CUDA_VERSION) && CUDA_VERSION >= 13000
+    return cuCtxCreate(pctx, nullptr, flags, dev);
+#else
+    return cuCtxCreate(pctx, flags, dev);
+#endif
+}
+/* *************************************************************** */
+// cudaDeviceProp::clockRate was removed in CUDA 13; query it via the attribute API.
+inline int GetDeviceClockRate(const int device) {
+    int clockRate = 0;
+    cudaDeviceGetAttribute(&clockRate, cudaDevAttrClockRate, device);
+    return clockRate;
+}
+/* *************************************************************** */
 #define NR_CUDA_SAFE_CALL(call)             { call; NiftyReg::Cuda::Internal::SafeCall(__FILE__, __LINE__, NR_FUNCTION); }
 #define NR_CUDA_CHECK_KERNEL(grid, block)   NiftyReg::Cuda::Internal::CheckKernel(__FILE__, __LINE__, NR_FUNCTION, grid, block)
 /* *************************************************************** */
