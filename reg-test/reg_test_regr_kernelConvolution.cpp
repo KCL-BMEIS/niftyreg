@@ -164,7 +164,12 @@ TEST_CASE_METHOD(KernelConvolutionTest, "Regression Kernel Convolution", "[regre
                 const float diff = fabs(cpuVal - cudaVal);
                 if (diff > EPS)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                REQUIRE(diff == 0);
+                // Not required to match bit-exactly: the CPU path sums kernel taps via SSE
+                // (4-wide, horizontal-add reduction) while CUDA accumulates sequentially in
+                // double precision. Floating-point addition isn't associative, so the two
+                // orderings can differ by up to ~1 ULP once a window spans enough taps to
+                // engage the SIMD reduction (mostly seen along the 3rd/z axis here).
+                REQUIRE(diff < EPS);
             }
         }
     }
