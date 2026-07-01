@@ -300,17 +300,24 @@ UniqueTextureObjectPtr CreateTextureObject(const DataType *devPtr,
                                            const cudaChannelFormatKind channelFormat,
                                            const unsigned channelCount) {
     // Specify texture
+    // Most callers pass a 4-byte-per-channel type (float/int), sometimes reinterpreting a
+    // wider type (e.g. float4*) as several 1-channel float texels for pointer-arithmetic
+    // convenience, so channel width can't be derived from sizeof(DataType)/channelCount in
+    // general. The one genuine exception is a single-byte type (e.g. bool) used as-is with
+    // channelCount == 1: hardcoding 32 bits there makes cudaCreateTextureObject reinterpret
+    // the wrong bytes on tex1Dfetch<T>, since the channel is 8 bits wide, not 32.
+    const int channelBits = (channelCount == 1 && sizeof(DataType) == 1) ? 8 : 32;
     cudaResourceDesc resDesc{};
     resDesc.resType = cudaResourceTypeLinear;
     resDesc.res.linear.devPtr = const_cast<DataType*>(devPtr);
     resDesc.res.linear.desc.f = channelFormat;
-    resDesc.res.linear.desc.x = 32;
+    resDesc.res.linear.desc.x = channelBits;
     if (channelCount > 1)
-        resDesc.res.linear.desc.y = 32;
+        resDesc.res.linear.desc.y = channelBits;
     if (channelCount > 2)
-        resDesc.res.linear.desc.z = 32;
+        resDesc.res.linear.desc.z = channelBits;
     if (channelCount > 3)
-        resDesc.res.linear.desc.w = 32;
+        resDesc.res.linear.desc.w = channelBits;
     resDesc.res.linear.sizeInBytes = count * sizeof(DataType);
 
     // Specify texture object parameters
