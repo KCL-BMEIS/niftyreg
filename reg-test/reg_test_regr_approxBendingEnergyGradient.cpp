@@ -144,7 +144,7 @@ TEST_CASE_METHOD(ApproxBendingEnergyGradientTest, "Regression Approximate Bendin
                 const auto diff = abs(cpuVal - cudaVal);
                 if (diff > 0)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
         }
     }

@@ -139,7 +139,7 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
     }
 
     // Find number of valid voxels and correct weight
-    const auto validVoxelNumber = thrust::count_if(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) {
+    const auto validVoxelNumber = thrust::count_if(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) -> bool {
         const float refValue = tex1Dfetch<float>(referenceTexture, index);
         if (refValue != refValue) return false;
         const float warValue = tex1Dfetch<float>(warpedTexture, index);

@@ -217,7 +217,7 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Deformation Field from B-spline Grid"
                     NR_COUT << " | Result=" << resVal;
                     NR_COUT << " | Expected=" << expVal << std::endl;
                 }
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
         }
     }

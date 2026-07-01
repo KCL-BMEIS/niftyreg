@@ -26,6 +26,8 @@ public:
     virtual ~reg_ssd_gpu();
 
     /// @brief Initialise the reg_ssd object
+    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
+    using reg_measure::InitialiseMeasure;
     virtual void InitialiseMeasure(nifti_image *refImg,
                                    float *refImgCuda,
                                    nifti_image *floImg,

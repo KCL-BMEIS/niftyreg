@@ -25,6 +25,8 @@ public:
     virtual ~reg_nmi_gpu();
 
     /// @brief Initialise the reg_nmi_gpu object
+    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
+    using reg_measure::InitialiseMeasure;
     virtual void InitialiseMeasure(nifti_image *refImg,
                                    float *refImgCuda,
                                    nifti_image *floImg,
@@ -67,6 +69,8 @@ protected:
 /// @brief NMI measure of similarity class
 class reg_multichannel_nmi_gpu: public reg_multichannel_nmi, public reg_measure_gpu {
 public:
+    // Bring the CPU base overload into scope; the GPU override below intentionally adds a second overload
+    using reg_measure::InitialiseMeasure;
     void InitialiseMeasure(nifti_image *refImg,
                            float *refImgCuda,
                            nifti_image *floImg,

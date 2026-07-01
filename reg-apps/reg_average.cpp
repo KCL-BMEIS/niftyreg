@@ -506,7 +506,8 @@ int main(int argc, char **argv)
       while(fscanf(cmd_file," %511s", buffer)==1){
          int length = strchr(buffer, '\0')-buffer+1;
          if(strcmp(buffer, "-omp")==0){
-            fscanf(cmd_file," %511s", buffer);
+            if(fscanf(cmd_file," %511s", buffer)!=1)
+               NR_FATAL_ERROR("The -omp flag in the command file must be followed by the number of threads");
 #ifdef _OPENMP
             omp_set_num_threads(atoi(buffer));
             NR_DEBUG("OpenMP core number set to: " << buffer);

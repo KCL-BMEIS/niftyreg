@@ -181,7 +181,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         });
         // Compute the entropy of the reference image
         thrust::counting_iterator<unsigned short> it(0);
-        entropyValues[t][0] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber, [=]__device__(const unsigned short r) {
+        entropyValues[t][0] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber, [=]__device__(const unsigned short r) -> double {
             const double valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + r];
             if (valPro > 0) {
                 const double valLog = log(valPro);
@@ -191,7 +191,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         }, 0.0, thrust::plus<double>());
         // Compute the entropy of the warped floating image
         it = thrust::counting_iterator<unsigned short>(0);
-        entropyValues[t][1] = thrust::transform_reduce(thrust::device, it, it + curFloBinNumber, [=]__device__(const unsigned short f) {
+        entropyValues[t][1] = thrust::transform_reduce(thrust::device, it, it + curFloBinNumber, [=]__device__(const unsigned short f) -> double {
             const double valPro = jointHistogramProCuda[curRefBinNumber * curFloBinNumber + curRefBinNumber + f];
             if (valPro > 0) {
                 const double valLog = log(valPro);
@@ -201,7 +201,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         }, 0.0, thrust::plus<double>());
         // Compute the joint entropy
         it = thrust::counting_iterator<unsigned short>(0);
-        entropyValues[t][2] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber * curFloBinNumber, [=]__device__(const unsigned short index) {
+        entropyValues[t][2] = thrust::transform_reduce(thrust::device, it, it + curRefBinNumber * curFloBinNumber, [=]__device__(const unsigned short index) -> double {
             const double valPro = jointHistogramProCuda[index];
             if (valPro > 0) {
                 const double valLog = log(valPro);
