@@ -38,7 +38,7 @@ static void ConvolveSingleChannel(const nifti_image *img, float4 *buf, float sig
 // After this call:
 //   meanBuf.x   = E[ref]      sdevBuf.x   = sdev_ref
 //   warpedMeanBuf.x = E[war]  warpedSdevBuf.x = sdev_war
-static void UpdateLocalStatImagesCuda(const nifti_image *referenceImage,
+void UpdateLocalStatImagesCuda(const nifti_image *referenceImage,
                                       const float *referenceImageCuda,
                                       const float *warpedImageCuda,
                                       const int *maskCuda,
@@ -94,7 +94,7 @@ static void UpdateLocalStatImagesCuda(const nifti_image *referenceImage,
 // Requires meanBuf/sdevBuf/warpedMeanBuf/warpedSdevBuf to be pre-filled
 // by UpdateLocalStatImagesCuda.  correlationBuf is used as a scratch buffer.
 // Returns sum(|lncc|) / activeCount.
-static double GetLnccValueCuda(const nifti_image *referenceImage,
+double GetLnccValueCuda(const nifti_image *referenceImage,
                                const float *referenceImageCuda,
                                const float *warpedImageCuda,
                                const int *maskCuda,
@@ -152,7 +152,7 @@ static double GetLnccValueCuda(const nifti_image *referenceImage,
 // Requires meanBuf/sdevBuf (from UpdateLocalStatImagesCuda) to be valid.
 // warpedMeanBuf, warpedSdevBuf, and correlationBuf are used as scratch and
 // will be overwritten.
-static void GetVoxelBasedLnccGradientCuda(const nifti_image *referenceImage,
+void GetVoxelBasedLnccGradientCuda(const nifti_image *referenceImage,
                                           const float *referenceImageCuda,
                                           const float *warpedImageCuda,
                                           const int *maskCuda,
