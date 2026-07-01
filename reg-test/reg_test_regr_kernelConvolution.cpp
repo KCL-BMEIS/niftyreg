@@ -164,12 +164,20 @@ TEST_CASE_METHOD(KernelConvolutionTest, "Regression Kernel Convolution", "[regre
                 const float diff = fabs(cpuVal - cudaVal);
                 if (diff > EPS)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                // Not required to match bit-exactly: the CPU path sums kernel taps via SSE
+#if defined(USE_SSE) || defined(USE_CUDA_FMA)
+                // Not required to match bit-exactly here: the CPU path sums kernel taps via SSE
                 // (4-wide, horizontal-add reduction) while CUDA accumulates sequentially in
                 // double precision. Floating-point addition isn't associative, so the two
                 // orderings can differ by up to ~1 ULP once a window spans enough taps to
-                // engage the SIMD reduction (mostly seen along the 3rd/z axis here).
+                // engage the SIMD reduction (mostly seen along the 3rd/z axis here). FMA
+                // contraction (USE_CUDA_FMA) likewise makes the GPU diverge from the CPU.
                 REQUIRE(diff < EPS);
+#else
+                // With SSE disabled, the CPU scalar path performs the same sequential
+                // double-precision accumulation as CUDA, and with FMA contraction disabled
+                // (USE_CUDA_FMA=OFF) the two must agree bit-for-bit.
+                REQUIRE(diff == 0);
+#endif
             }
         }
     }
