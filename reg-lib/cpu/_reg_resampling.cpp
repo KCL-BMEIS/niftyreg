@@ -456,9 +456,8 @@ void ResampleImage3D(const nifti_image *floatingImage,
                         intensity += yTempNewValue * zBasis[c];
                     }
                 }
+                warpedIntensity[index] = NiftiImage::clampData<FloatingType>(floatingImage, intensity);
             }
-
-            warpedIntensity[index] = NiftiImage::clampData<FloatingType>(floatingImage, intensity);
         }
     }
 }

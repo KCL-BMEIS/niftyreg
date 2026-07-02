@@ -5,6 +5,7 @@
 #include <random>
 #include <iomanip>
 #include <numeric>
+#include <cmath>
 #include <catch2/catch_test_macros.hpp>
 #include "_reg_lncc.h"
 #include "_reg_localTrans.h"
@@ -13,6 +14,29 @@
 #include "Platform.h"
 #include "ResampleImageKernel.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef SINC_KERNEL_RADIUS
+#define SINC_KERNEL_RADIUS 3
+#endif
+#ifndef SINC_KERNEL_SIZE
+#define SINC_KERNEL_SIZE (SINC_KERNEL_RADIUS * 2)
+#endif
+
+inline void InterpNearestNeighKernel(double relative, double *basis) {
+    if (relative < 0) relative = 0; // reg_rounding error
+    basis[0] = basis[1] = 0;
+    if (relative >= 0.5)
+        basis[1] = 1;
+    else basis[0] = 1;
+}
+
+inline void InterpLinearKernel(double relative, double *basis) {
+    if (relative < 0) relative = 0; // reg_rounding error
+    basis[1] = relative;
+    basis[0] = 1.0 - relative;
+}
 
 template<typename T>
 void InterpCubicSplineKernel(T relative, T (&basis)[4]) {
@@ -33,6 +57,31 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
     derivative[1] = (9.f * relative - 10.f) * relative / 2.f;
     derivative[2] = (8.f * relative - 9.f * relative2 + 1.f) / 2.f;
     derivative[3] = (3.f * relative - 2.f) * relative / 2.f;
+}
+
+
+inline void InterpWindowedSincKernel(double relative, double *basis) {
+    if (relative < 0) relative = 0; // reg_rounding error
+    int j = 0;
+    double sum = 0.;
+    for (int i = -SINC_KERNEL_RADIUS; i < SINC_KERNEL_RADIUS; ++i) {
+        double x = relative - static_cast<double>(i);
+        if (x == 0)
+            basis[j] = 1.0;
+        else if (fabs(x) >= static_cast<double>(SINC_KERNEL_RADIUS))
+            basis[j] = 0;
+        else {
+            double pi_x = M_PI * x;
+            basis[j] = static_cast<double>(SINC_KERNEL_RADIUS) *
+                sin(pi_x) *
+                sin(pi_x / static_cast<double>(SINC_KERNEL_RADIUS)) /
+                (pi_x * pi_x);
+        }
+        sum += basis[j];
+        j++;
+    }
+    for (int i = 0; i < SINC_KERNEL_SIZE; ++i)
+        basis[i] /= sum;
 }
 
 NiftiImage CreateControlPointGrid(const NiftiImage& reference) {

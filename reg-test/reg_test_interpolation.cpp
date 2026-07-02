@@ -4,19 +4,22 @@
 #include "reg_test_common.h"
 
 /*
-    This test file contains the following unit tests:
-    test function: image resampling
-    In 2D and 3D
+    This test file checks the interpolation *kernels* (the point-wise interpolation
+    weights), not the resampling operation. Each case resamples a single voxel through a
+    constant one-point deformation field and compares against an analytically computed
+    value, in 2D and 3D, for:
     Nearest neighbour
     Linear
     Cubic spline
+    The resampling *operation* over a full grid (boundaries, padding, masks, multiple
+    time points, addressing/coverage) is covered by reg_test_resampleImage.
 */
 
 
 typedef std::tuple<std::string, NiftiImage, NiftiImage, int, float*> TestData;
 typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
 
-TEST_CASE("Interpolation", "[unit]") {
+TEST_CASE("Interpolation kernels", "[unit]") {
     // Create a reference 2D image
     vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
     NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
