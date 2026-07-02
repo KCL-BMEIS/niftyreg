@@ -74,20 +74,23 @@ void ResampleImage(const nifti_image *floatingImage,
         NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
 
     const size_t floVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
+    const size_t warpedVoxelNumber = NiftiImage::calcVoxelNumber(warpedImage, 3);
     const size_t defVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+    const int timePointCount = warpedImage->nt * warpedImage->nu;
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
     auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, defVoxelNumber, cudaChannelFormatKindFloat, 4);
     auto deformationFieldTexture = *deformationFieldTexturePtr;
+    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda, floVoxelNumber * timePointCount, cudaChannelFormatKindFloat, 1);
+    auto floatingTexture = *floatingTexturePtr;
     // Get the real to voxel matrix
     const mat44& floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
 
-    for (int t = 0; t < warpedImage->nt * warpedImage->nu; t++) {
+    for (int t = 0; t < timePointCount; t++) {
         NR_DEBUG((is3d ? "3" : "2") << "D resampling of volume number " << t);
-        auto curWarpedCuda = warpedImageCuda + t * floVoxelNumber;
-        auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda + t * floVoxelNumber, floVoxelNumber, cudaChannelFormatKindFloat, 1);
-        auto floatingTexture = *floatingTexturePtr;
+        auto curWarpedCuda = warpedImageCuda + t * warpedVoxelNumber;
+        const int floOffset = t * static_cast<int>(floVoxelNumber);
         thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [
-            curWarpedCuda, floatingTexture, deformationFieldTexture, floatingMatrix, floatingDim, paddingValue
+            curWarpedCuda, floatingTexture, floOffset, deformationFieldTexture, floatingMatrix, floatingDim, paddingValue
         ]__device__(const int index) {
             // Get the real world deformation in the floating space
             const float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, index);
@@ -110,7 +113,7 @@ void ResampleImage(const nifti_image *floatingImage,
                         for (char a = 0; a < 2; a++, index++) {
                             const int x = previous.x + a;
                             if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z) {
-                                tempX += tex1Dfetch<float>(floatingTexture, index) * xBasis[a];
+                                tempX += tex1Dfetch<float>(floatingTexture, floOffset + index) * xBasis[a];
                             } else {
                                 // Padding value
                                 tempX += paddingValue * xBasis[a];
@@ -129,7 +132,7 @@ void ResampleImage(const nifti_image *floatingImage,
                     for (char a = 0; a < 2; a++, index++) {
                         const int x = previous.x + a;
                         if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y) {
-                            tempX += tex1Dfetch<float>(floatingTexture, index) * xBasis[a];
+                            tempX += tex1Dfetch<float>(floatingTexture, floOffset + index) * xBasis[a];
                         } else {
                             // Padding value
                             tempX += paddingValue * xBasis[a];
@@ -162,7 +165,8 @@ void GetImageGradient(const nifti_image *floatingImage,
     const size_t floVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
     if (paddingValue != paddingValue) paddingValue = 0;
-    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda + activeTimePoint * floVoxelNumber, floVoxelNumber, cudaChannelFormatKindFloat, 1);
+    const int floOffset = activeTimePoint * static_cast<int>(floVoxelNumber);
+    auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda, floVoxelNumber * floatingImage->nt * floatingImage->nu, cudaChannelFormatKindFloat, 1);
     auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, refVoxelNumber, cudaChannelFormatKindFloat, 4);
     auto floatingTexture = *floatingTexturePtr;
     auto deformationFieldTexture = *deformationFieldTexturePtr;
@@ -170,7 +174,7 @@ void GetImageGradient(const nifti_image *floatingImage,
     const mat44& floatingMatrix = floatingImage->sform_code > 0 ? floatingImage->sto_ijk : floatingImage->qto_ijk;
 
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), refVoxelNumber, [
-        warpedGradientCuda, floatingTexture, deformationFieldTexture, floatingMatrix, floatingDim, paddingValue
+        warpedGradientCuda, floatingTexture, floOffset, deformationFieldTexture, floatingMatrix, floatingDim, paddingValue
     ]__device__(const int index) {
             // Get the real world deformation in the floating space
             float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, index);
@@ -194,7 +198,7 @@ void GetImageGradient(const nifti_image *floatingImage,
                         for (char a = 0; a < 2; a++, index++) {
                             const int x = previous.x + a;
                             const float intensity = -1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z ?
-                                tex1Dfetch<float>(floatingTexture, index) : paddingValue;
+                                tex1Dfetch<float>(floatingTexture, floOffset + index) : paddingValue;
 
                             tempX.x += intensity * deriv[a];
                             tempX.y += intensity * xBasis[a];
@@ -216,7 +220,7 @@ void GetImageGradient(const nifti_image *floatingImage,
                     for (char a = 0; a < 2; a++, index++) {
                         const int x = previous.x + a;
                         const float intensity = -1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y ?
-                            tex1Dfetch<float>(floatingTexture, index) : paddingValue;
+                            tex1Dfetch<float>(floatingTexture, floOffset + index) : paddingValue;
 
                         tempX.x += intensity * deriv[a];
                         tempX.y += intensity * xBasis[a];

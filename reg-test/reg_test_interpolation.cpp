@@ -5,14 +5,11 @@
 
 /*
     This test file checks the interpolation *kernels* (the point-wise interpolation
-    weights), not the resampling operation. Each case resamples a single voxel through a
-    constant one-point deformation field and compares against an analytically computed
-    value, in 2D and 3D, for:
+    weights). Each case resamples a single voxel through a constant one-point deformation
+    field and compares against an analytically computed value, in 2D and 3D, for:
     Nearest neighbour
     Linear
     Cubic spline
-    The resampling *operation* over a full grid (boundaries, padding, masks, multiple
-    time points, addressing/coverage) is covered by reg_test_resampleImage.
 */
 
 

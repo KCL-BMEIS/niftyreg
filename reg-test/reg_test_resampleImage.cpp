@@ -4,23 +4,19 @@
 #include "reg_test_common.h"
 
 /*
-    CPU unit test of the resampling *operation* (reg_resampleImage, reached through
-    Compute::ResampleImage), as opposed to the point-wise interpolation *weights* checked by
-    reg_test_interpolation ("Interpolation kernels").
+    CPU unit test of the resampling *operation*
 
     It exercises, over a full grid and at hand-placed sample coordinates:
       - invariants: identity, integer shift, constant image, fully-out-of-FOV, full coverage;
       - per-tap boundary behaviour and padding (finite and NaN) across all interpolation orders
-        (nearest 0, linear 1, cubic 3, windowed-sinc 4 - all CPU);
+        (nearest 0, linear 1, cubic 3, windowed-sinc 4);
       - masks (masked-out output voxels left untouched, in both 2D and 3D);
       - multiple time points / channels (no bleed between volumes);
       - realistic geometry (reference != floating, non-square dims, non-identity sform).
 
-    All images are float32, so clampData is a NaN-preserving pass-through. Expected values for the
-    boundary/geometry cases come from mirrorResample(): an independent re-implementation of one
-    output voxel of the kernel that reuses the trusted weight functions from reg_test_common.h.
-    Because the tests build with USE_CUDA_FMA=OFF and the kernel accumulates in double, the mirror
-    matches the kernel bit-for-bit, so finite comparisons assert ==.
+    Expected values for the boundary/geometry cases come from mirrorResample(): an
+    independent re-implementation of one output voxel of the kernel that reuses the
+    trusted weight functions from reg_test_common.h.
 */
 
 constexpr int kNN = 0, kLinear = 1, kCubic = 3, kSinc = 4;
@@ -59,32 +55,7 @@ static void kernelWeights(int order, double relative, double* basis) {
     }
 }
 
-static void setIdentitySform(NiftiImage& img) {
-    mat44 eye;
-    Mat44Eye(&eye);
-    img->sform_code = 1;
-    img->sto_xyz = eye;
-    img->sto_ijk = eye;
-    img->qform_code = 0;
-}
-
-static void setSform(NiftiImage& img, const mat44& m) {
-    img->sform_code = 1;
-    img->sto_xyz = m;
-    img->sto_ijk = nifti_mat44_inverse(m);
-    img->qform_code = 0;
-}
-
-// A float32 image with identity sform, filled with distinct fractional values.
-static NiftiImage makeImage(const std::vector<NiftiImage::dim_t>& dims) {
-    NiftiImage img(dims, NIFTI_TYPE_FLOAT32);
-    setIdentitySform(img);
-    auto ptr = img.data();
-    const size_t n = img.nVoxels();
-    for (size_t i = 0; i < n; ++i)
-        ptr[i] = static_cast<float>(i) + 0.5f; // unique per voxel (and per volume)
-    return img;
-}
+// setIdentitySform, setSform and makeImage are shared helpers in reg_test_common.h.
 
 // Independent reference re-implementation of one output voxel of reg_resampleImage, for a float32
 // floating image. `world` is the deformation-field value (world coordinates of the reference
