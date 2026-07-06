@@ -211,13 +211,18 @@ TEST_CASE_METHOD(GetDeformationFieldTest, "Deformation Field from B-spline Grid"
                 const float resVal = resPtr[i];
                 const float expVal = expPtr[i];
                 const float diff = abs(resVal - expVal);
-                if (diff > 0) {
+                // The deformation is a float cubic B-spline weighted sum, so it reproduces the
+                // affine (grid) transformation only to float precision, not bit-exactly. The
+                // rounding is relative to the coordinate magnitude (~1 ULP), so the tolerance
+                // scales with the expected value.
+                const float tol = EPS * (std::abs(expVal) > 1.f ? std::abs(expVal) : 1.f);
+                if (diff > tol) {
                     NR_COUT << "[i]=" << i;
                     NR_COUT << " | diff=" << diff;
                     NR_COUT << " | Result=" << resVal;
                     NR_COUT << " | Expected=" << expVal << std::endl;
                 }
-                REQUIRE(diff == 0);
+                REQUIRE(diff <= tol);
             }
         }
     }
