@@ -43,6 +43,13 @@ add_executable(reg_aladin reg_aladin.cpp)
 target_link_libraries(reg_aladin _reg_aladin)
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_aladin.h.in ${CMAKE_CURRENT_BINARY_DIR}/reg_aladin.h @ONLY)
 #-----------------------------------------------------------------------------
+# Standalone CPU-vs-CUDA benchmark (own main; CUDA-only). Independent of the test infrastructure,
+# so it builds whenever USE_CUDA is on, regardless of BUILD_TESTING. Not installed (dev tool).
+if(USE_CUDA)
+  add_executable(reg_benchmark reg_benchmark.cpp)
+  target_link_libraries(reg_benchmark _reg_aladin _reg_f3d CUDA::cudart)
+endif(USE_CUDA)
+#-----------------------------------------------------------------------------
 set(MODULE_LIST
   reg_average
   reg_tools

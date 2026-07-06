@@ -105,7 +105,7 @@ set(EXEC_LIST reg_test_affineDeformationField)
 set(EXEC_LIST reg_test_be ${EXEC_LIST})
 set(EXEC_LIST reg_test_blockMatching ${EXEC_LIST})
 set(EXEC_LIST reg_test_conjugateGradient ${EXEC_LIST})
-# set(EXEC_LIST reg_test_getDeformationField ${EXEC_LIST})
+set(EXEC_LIST reg_test_getDeformationField ${EXEC_LIST})
 set(EXEC_LIST reg_test_composeField ${EXEC_LIST})
 set(EXEC_LIST reg_test_imageGradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_interpolation ${EXEC_LIST})
@@ -138,11 +138,5 @@ foreach(EXEC ${EXEC_LIST})
   target_link_libraries(${EXEC} PRIVATE Catch2::Catch2WithMain _reg_aladin _reg_f3d)
   catch_discover_tests(${EXEC})
 endforeach(EXEC)
-#-----------------------------------------------------------------------------
-# Standalone CPU-vs-CUDA benchmark (own main; not a Catch2 test, not run by CTest).
-if(USE_CUDA)
-  add_executable(reg_benchmark reg_benchmark.cpp)
-  target_link_libraries(reg_benchmark PRIVATE _reg_aladin _reg_f3d CUDA::cudart)
-endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

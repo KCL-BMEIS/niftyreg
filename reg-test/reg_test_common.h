@@ -97,36 +97,3 @@ NiftiImage makeImage(const std::vector<NiftiImage::dim_t>& dims) {
     return img;
 }
 
-// An identity deformation field perturbed by a small seeded amount, so sampling coordinates are
-// fractional (exercising the interpolation) rather than landing on integer voxels.
-NiftiImage makePerturbedField(const NiftiImage& reference, unsigned seed, float amplitude = 0.4f) {
-    NiftiImage field = CreateDeformationField(reference); // identity, world coordinates
-    std::mt19937 gen(seed);
-    std::uniform_real_distribution<float> d(-amplitude, amplitude);
-    auto ptr = field.data();
-    const size_t n = field.nVoxels();
-    for (size_t i = 0; i < n; ++i)
-        ptr[i] = static_cast<float>(ptr[i]) + d(gen);
-    return field;
-}
-
-// NaN-aware max absolute difference between two images: matched NaNs are ignored, a NaN on only one
-// side is flagged. Handy for CPU-vs-CUDA comparisons.
-struct DiffResult { double maxAbs = 0; bool nanMismatch = false; };
-DiffResult maxAbsDiff(const NiftiImage& a, const NiftiImage& b) {
-    DiffResult r;
-    const auto pa = a.data();
-    const auto pb = b.data();
-    const size_t n = std::min(a.nVoxels(), b.nVoxels());
-    for (size_t i = 0; i < n; ++i) {
-        const float va = static_cast<float>(pa[i]);
-        const float vb = static_cast<float>(pb[i]);
-        const bool na = std::isnan(va), nb = std::isnan(vb);
-        if (na || nb) {
-            if (na != nb) r.nanMismatch = true;
-            continue;
-        }
-        r.maxAbs = std::max(r.maxAbs, static_cast<double>(std::fabs(va - vb)));
-    }
-    return r;
-}
