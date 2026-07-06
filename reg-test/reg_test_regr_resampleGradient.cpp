@@ -26,6 +26,14 @@ public:
         NiftiImage reference2d({ dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
         NiftiImage reference3d({ dimSize, dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
 
+        mat44 shearedSform;
+        Mat44Eye(&shearedSform);
+        shearedSform.m[0][0] = 1.2f; shearedSform.m[1][1] = 0.9f; shearedSform.m[2][2] = 1.1f;
+        shearedSform.m[0][1] = 0.1f; shearedSform.m[0][2] = 0.05f; shearedSform.m[1][2] = -0.07f;
+        shearedSform.m[0][3] = 0.3f; shearedSform.m[1][3] = -0.2f; shearedSform.m[2][3] = 0.15f;
+        setSform(reference2d, shearedSform);
+        setSform(reference3d, shearedSform);
+
         // Create deformation fields and fill them with random values
         NiftiImage deformationField2d = CreateDeformationField(reference2d);
         NiftiImage deformationField3d = CreateDeformationField(reference3d);

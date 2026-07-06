@@ -24,38 +24,18 @@ __inline__ __device__ void InterpLinearKernel(T relative, T (&basis)[2]) {
 template<typename T, bool is3d>
 __inline__ __device__ void TransformInterpolate(const mat44 matrix, const float4 realDeformation, int3& previous,
                                                 T (&xBasis)[2], T (&yBasis)[2], T (&zBasis)[2]) {
-    // Get the voxel-based deformation
-    T voxelDeformation[is3d ? 3 : 2];
-    if constexpr (is3d) {
-        voxelDeformation[0] = (static_cast<T>(matrix.m[0][0]) * static_cast<T>(realDeformation.x) +
-                               static_cast<T>(matrix.m[0][1]) * static_cast<T>(realDeformation.y) +
-                               static_cast<T>(matrix.m[0][2]) * static_cast<T>(realDeformation.z) +
-                               static_cast<T>(matrix.m[0][3]));
-        voxelDeformation[1] = (static_cast<T>(matrix.m[1][0]) * static_cast<T>(realDeformation.x) +
-                               static_cast<T>(matrix.m[1][1]) * static_cast<T>(realDeformation.y) +
-                               static_cast<T>(matrix.m[1][2]) * static_cast<T>(realDeformation.z) +
-                               static_cast<T>(matrix.m[1][3]));
-        voxelDeformation[2] = (static_cast<T>(matrix.m[2][0]) * static_cast<T>(realDeformation.x) +
-                               static_cast<T>(matrix.m[2][1]) * static_cast<T>(realDeformation.y) +
-                               static_cast<T>(matrix.m[2][2]) * static_cast<T>(realDeformation.z) +
-                               static_cast<T>(matrix.m[2][3]));
-    } else {
-        voxelDeformation[0] = (static_cast<T>(matrix.m[0][0]) * static_cast<T>(realDeformation.x) +
-                               static_cast<T>(matrix.m[0][1]) * static_cast<T>(realDeformation.y) +
-                               static_cast<T>(matrix.m[0][3]));
-        voxelDeformation[1] = (static_cast<T>(matrix.m[1][0]) * static_cast<T>(realDeformation.x) +
-                               static_cast<T>(matrix.m[1][1]) * static_cast<T>(realDeformation.y) +
-                               static_cast<T>(matrix.m[1][3]));
-    }
+    const float world[3] = { realDeformation.x, realDeformation.y, is3d ? realDeformation.z : 0.f };
+    float voxelDeformation[3];
+    Mat44Mul<float, is3d>(matrix, world, voxelDeformation);
 
     // Compute the linear interpolation
     previous.x = Floor<int>(voxelDeformation[0]);
     previous.y = Floor<int>(voxelDeformation[1]);
-    InterpLinearKernel(voxelDeformation[0] - static_cast<T>(previous.x), xBasis);
-    InterpLinearKernel(voxelDeformation[1] - static_cast<T>(previous.y), yBasis);
+    InterpLinearKernel(static_cast<T>(voxelDeformation[0]) - static_cast<T>(previous.x), xBasis);
+    InterpLinearKernel(static_cast<T>(voxelDeformation[1]) - static_cast<T>(previous.y), yBasis);
     if constexpr (is3d) {
         previous.z = Floor<int>(voxelDeformation[2]);
-        InterpLinearKernel(voxelDeformation[2] - static_cast<T>(previous.z), zBasis);
+        InterpLinearKernel(static_cast<T>(voxelDeformation[2]) - static_cast<T>(previous.z), zBasis);
     }
 }
 /* *************************************************************** */
@@ -95,21 +75,20 @@ void ResampleImage(const nifti_image *floatingImage,
             // Get the real world deformation in the floating space
             const float4 realDeformation = tex1Dfetch<float4>(deformationFieldTexture, index);
 
-            // Get the voxel-based deformation in the floating space and compute the linear interpolation
             int3 previous;
-            double xBasis[2], yBasis[2], zBasis[2];
-            TransformInterpolate<double, is3d>(floatingMatrix, realDeformation, previous, xBasis, yBasis, zBasis);
+            float xBasis[2], yBasis[2], zBasis[2];
+            TransformInterpolate<float, is3d>(floatingMatrix, realDeformation, previous, xBasis, yBasis, zBasis);
 
-            double intensity = 0;
+            float intensity = 0;
             if constexpr (is3d) {
                 for (char c = 0; c < 2; c++) {
                     const int z = previous.z + c;
                     int indexYZ = (z * floatingDim.y + previous.y) * floatingDim.x;
-                    double tempY = 0;
+                    float tempY = 0;
                     for (char b = 0; b < 2; b++, indexYZ += floatingDim.x) {
                         const int y = previous.y + b;
                         int index = indexYZ + previous.x;
-                        double tempX = 0;
+                        float tempX = 0;
                         for (char a = 0; a < 2; a++, index++) {
                             const int x = previous.x + a;
                             if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z) {
@@ -128,7 +107,7 @@ void ResampleImage(const nifti_image *floatingImage,
                 for (char b = 0; b < 2; b++, indexY += floatingDim.x) {
                     const int y = previous.y + b;
                     int index = indexY;
-                    double tempX = 0;
+                    float tempX = 0;
                     for (char a = 0; a < 2; a++, index++) {
                         const int x = previous.x + a;
                         if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y) {
@@ -164,7 +143,6 @@ void GetImageGradient(const nifti_image *floatingImage,
     const size_t refVoxelNumber = NiftiImage::calcVoxelNumber(warpedGradient, 3);
     const size_t floVoxelNumber = NiftiImage::calcVoxelNumber(floatingImage, 3);
     const int3 floatingDim = make_int3(floatingImage->nx, floatingImage->ny, floatingImage->nz);
-    if (paddingValue != paddingValue) paddingValue = 0;
     const int floOffset = activeTimePoint * static_cast<int>(floVoxelNumber);
     auto floatingTexturePtr = Cuda::CreateTextureObject(floatingImageCuda, floVoxelNumber * floatingImage->nt * floatingImage->nu, cudaChannelFormatKindFloat, 1);
     auto deformationFieldTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, refVoxelNumber, cudaChannelFormatKindFloat, 4);
@@ -229,6 +207,12 @@ void GetImageGradient(const nifti_image *floatingImage,
                     gradientValue.y += tempX.y * deriv[b];
                 }
             }
+
+            // A NaN paddingValue poisons any voxel with an out-of-FOV tap
+            if (gradientValue.x != gradientValue.x) gradientValue.x = 0;
+            if (gradientValue.y != gradientValue.y) gradientValue.y = 0;
+            if constexpr (is3d)
+                if (gradientValue.z != gradientValue.z) gradientValue.z = 0;
 
             warpedGradientCuda[index] = gradientValue;
     });

@@ -42,25 +42,49 @@ static void kernelGeom(int order, int& size, int& offset) {
 }
 
 // Per-axis weights, dispatching to the replicas in reg_test_common.h
-static void kernelWeights(int order, double relative, double* basis) {
+static void kernelWeights(int order, float relative, float* basis) {
+    if (relative < 0) relative = 0; // reg_rounding error (matches the lib kernels)
     switch (order) {
-    case kNN: InterpNearestNeighKernel(relative, basis); break;
-    case kLinear: InterpLinearKernel(relative, basis); break;
-    case kSinc: InterpWindowedSincKernel(relative, basis); break;
+    case kNN:
+        basis[0] = basis[1] = 0;
+        if (relative >= 0.5f) basis[1] = 1; else basis[0] = 1;
+        break;
+    case kLinear:
+        basis[1] = relative;
+        basis[0] = 1.f - relative;
+        break;
+    case kSinc: {
+        int j = 0;
+        float sum = 0.f;
+        for (int i = -SINC_KERNEL_RADIUS; i < SINC_KERNEL_RADIUS; ++i) {
+            float x = relative - static_cast<float>(i);
+            if (x == 0)
+                basis[j] = 1.f;
+            else if (fabs(x) >= static_cast<float>(SINC_KERNEL_RADIUS))
+                basis[j] = 0;
+            else {
+                double pi_x = M_PI * static_cast<double>(x);
+                basis[j] = static_cast<float>(static_cast<double>(SINC_KERNEL_RADIUS) *
+                    sin(pi_x) * sin(pi_x / static_cast<double>(SINC_KERNEL_RADIUS)) / (pi_x * pi_x));
+            }
+            sum += basis[j];
+            j++;
+        }
+        for (int i = 0; i < SINC_KERNEL_SIZE; ++i) basis[i] /= sum;
+    } break;
     default: {
-        double b[4];
+        float b[4];
         InterpCubicSplineKernel(relative, b);
         for (int i = 0; i < 4; ++i) basis[i] = b[i];
     } break;
     }
 }
 
-// setIdentitySform, setSform and makeImage are shared helpers in reg_test_common.h.
-
 // Independent reference re-implementation of one output voxel of reg_resampleImage, for a float32
 // floating image. `world` is the deformation-field value (world coordinates of the reference
 // space). Mirrors ResampleImage3D/2D: maps world -> floating voxel coords via floating->sto_ijk,
-// gathers the stencil, applying paddingValue per out-of-FOV tap, accumulating in double.
+// gathers the stencil, applying paddingValue per out-of-FOV tap, accumulating in float (FP32),
+// matching ResampleImage2D/3D.
 static float mirrorResample(const NiftiImage& floating, int order, const float world[3], float pad, bool is3D) {
     int size, offset;
     kernelGeom(order, size, offset);
@@ -71,30 +95,32 @@ static float mirrorResample(const NiftiImage& floating, int order, const float w
 
     const int nx = floating->nx, ny = floating->ny, nz = floating->nz;
     auto floPtr = floating.data();
-    auto floVal = [&](int X, int Y, int Z) -> double {
-        return static_cast<double>(static_cast<float>(floPtr[(static_cast<size_t>(Z) * ny + Y) * nx + X]));
+    auto floVal = [&](int X, int Y, int Z) -> float {
+        return static_cast<float>(floPtr[(static_cast<size_t>(Z) * ny + Y) * nx + X]);
     };
 
+    // Mirror ResampleImage2D/3D's FP32 accumulation for every order: `relative` is formed in float,
+    // the (double) weight functions are cast down to a float basis, and the blend is done in float.
     int prev[3];
     for (int d = 0; d < 3; ++d) prev[d] = Floor<int>(position[d]);
-    double basisX[SINC_KERNEL_SIZE], basisY[SINC_KERNEL_SIZE], basisZ[SINC_KERNEL_SIZE];
-    kernelWeights(order, static_cast<double>(position[0]) - prev[0], basisX);
-    kernelWeights(order, static_cast<double>(position[1]) - prev[1], basisY);
-    if (is3D) kernelWeights(order, static_cast<double>(position[2]) - prev[2], basisZ);
+    float basisX[SINC_KERNEL_SIZE], basisY[SINC_KERNEL_SIZE], basisZ[SINC_KERNEL_SIZE];
+    kernelWeights(order, position[0] - static_cast<float>(prev[0]), basisX);
+    kernelWeights(order, position[1] - static_cast<float>(prev[1]), basisY);
+    if (is3D) kernelWeights(order, position[2] - static_cast<float>(prev[2]), basisZ);
     prev[0] -= offset; prev[1] -= offset; prev[2] -= offset;
 
-    double intensity = 0;
+    float intensity = 0;
     if (is3D) {
         for (int c = 0; c < size; ++c) {
             const int Z = prev[2] + c;
-            double yTemp = 0;
+            float yTemp = 0;
             for (int b = 0; b < size; ++b) {
                 const int Y = prev[1] + b;
-                double xTemp = 0;
+                float xTemp = 0;
                 for (int a = 0; a < size; ++a) {
                     const int X = prev[0] + a;
                     const bool inFov = -1 < X && X < nx && -1 < Y && Y < ny && -1 < Z && Z < nz;
-                    xTemp += (inFov ? floVal(X, Y, Z) : static_cast<double>(pad)) * basisX[a];
+                    xTemp += (inFov ? floVal(X, Y, Z) : pad) * basisX[a];
                 }
                 yTemp += xTemp * basisY[b];
             }
@@ -103,16 +129,16 @@ static float mirrorResample(const NiftiImage& floating, int order, const float w
     } else {
         for (int b = 0; b < size; ++b) {
             const int Y = prev[1] + b;
-            double xTemp = 0;
+            float xTemp = 0;
             for (int a = 0; a < size; ++a) {
                 const int X = prev[0] + a;
                 const bool inFov = -1 < X && X < nx && -1 < Y && Y < ny;
-                xTemp += (inFov ? floVal(X, Y, 0) : static_cast<double>(pad)) * basisX[a];
+                xTemp += (inFov ? floVal(X, Y, 0) : pad) * basisX[a];
             }
             intensity += xTemp * basisY[b];
         }
     }
-    return static_cast<float>(intensity);
+    return intensity;
 }
 
 // Resample a single output voxel that maps (in world coords) to `world`, sampling `floating`.

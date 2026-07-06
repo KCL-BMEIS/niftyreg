@@ -137,7 +137,7 @@ public:
                 }
             }
 
-            // --- Group B: multiple time points / channels (no mask, tp=3)
+            // --- Group B: multiple time points / channels (no mask, tp=3) ---
             {
                 std::vector<NiftiImage::dim_t> floDims = dims; // ref==flo spatial dims, 3 time points
                 floDims.resize(4, 1);
@@ -175,20 +175,19 @@ public:
                         buildField(reference, kFullyOut, gen), noMask, nan);
             }
 
-            // --- Group D: grid mismatch. reference != floating spatial dims (identity sform),
-            //     perturbed field, no mask, tp=1. Exercises resampling between differently-sized
-            //     grids and the axis indexing that the ref==floating groups (A/C) do not.
-            //     NOTE: a non-identity (sheared / arbitrary-scale) floating sform is deliberately
-            //     NOT used - it is not bit-exact CPU<->CUDA and so cannot be asserted with ==. The
-            //     CPU stores the world->voxel coordinate in float (_reg_resampling.cpp, float
-            //     position[3]) while CUDA keeps it in double (TransformInterpolate<double>,
-            //     CudaResampling.cu:25)
+            // --- Group D: realistic geometry ---
             {
                 NiftiImage floating = is3D ? makeImage({ 7, 8, 6 }) : makeImage({ 7, 8 });
+                mat44 m;
+                Mat44Eye(&m);
+                m.m[0][0] = 1.2f; m.m[1][1] = 0.9f; m.m[2][2] = 1.1f;  // anisotropic scale
+                m.m[0][1] = 0.1f; m.m[0][2] = 0.05f; m.m[1][2] = -0.07f;  // shear
+                m.m[0][3] = 0.5f; m.m[1][3] = 0.3f; m.m[2][3] = 0.2f;  // translation
+                setSform(floating, m);
                 NiftiImage reference = is3D ? makeImage({ 5, 6, 4 }) : makeImage({ 5, 6 });
                 std::vector<int> noMask(reference.nVoxelsPerVolume(), 0);
                 for (float pad : { 0.f, nan })
-                    addCase(dimTag + "grid-mismatch pad=" + padName(pad), reference, floating,
+                    addCase(dimTag + "realistic-sform pad=" + padName(pad), reference, floating,
                             buildField(reference, kPerturbed, gen), noMask, pad);
             }
         }

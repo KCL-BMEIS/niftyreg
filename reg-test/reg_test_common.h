@@ -24,20 +24,6 @@
 #define SINC_KERNEL_SIZE (SINC_KERNEL_RADIUS * 2)
 #endif
 
-inline void InterpNearestNeighKernel(double relative, double *basis) {
-    if (relative < 0) relative = 0; // reg_rounding error
-    basis[0] = basis[1] = 0;
-    if (relative >= 0.5)
-        basis[1] = 1;
-    else basis[0] = 1;
-}
-
-inline void InterpLinearKernel(double relative, double *basis) {
-    if (relative < 0) relative = 0; // reg_rounding error
-    basis[1] = relative;
-    basis[0] = 1.0 - relative;
-}
-
 template<typename T>
 void InterpCubicSplineKernel(T relative, T (&basis)[4]) {
     if (relative < 0) relative = 0; //reg_rounding error
@@ -59,30 +45,6 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
     derivative[3] = (3.f * relative - 2.f) * relative / 2.f;
 }
 
-
-inline void InterpWindowedSincKernel(double relative, double *basis) {
-    if (relative < 0) relative = 0; // reg_rounding error
-    int j = 0;
-    double sum = 0.;
-    for (int i = -SINC_KERNEL_RADIUS; i < SINC_KERNEL_RADIUS; ++i) {
-        double x = relative - static_cast<double>(i);
-        if (x == 0)
-            basis[j] = 1.0;
-        else if (fabs(x) >= static_cast<double>(SINC_KERNEL_RADIUS))
-            basis[j] = 0;
-        else {
-            double pi_x = M_PI * x;
-            basis[j] = static_cast<double>(SINC_KERNEL_RADIUS) *
-                sin(pi_x) *
-                sin(pi_x / static_cast<double>(SINC_KERNEL_RADIUS)) /
-                (pi_x * pi_x);
-        }
-        sum += basis[j];
-        j++;
-    }
-    for (int i = 0; i < SINC_KERNEL_SIZE; ++i)
-        basis[i] /= sum;
-}
 
 NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     // Set the spacing for the control point grid to 2 voxel along each axis
@@ -133,4 +95,38 @@ NiftiImage makeImage(const std::vector<NiftiImage::dim_t>& dims) {
     for (size_t i = 0; i < n; ++i)
         ptr[i] = static_cast<float>(i) + 0.5f;
     return img;
+}
+
+// An identity deformation field perturbed by a small seeded amount, so sampling coordinates are
+// fractional (exercising the interpolation) rather than landing on integer voxels.
+NiftiImage makePerturbedField(const NiftiImage& reference, unsigned seed, float amplitude = 0.4f) {
+    NiftiImage field = CreateDeformationField(reference); // identity, world coordinates
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> d(-amplitude, amplitude);
+    auto ptr = field.data();
+    const size_t n = field.nVoxels();
+    for (size_t i = 0; i < n; ++i)
+        ptr[i] = static_cast<float>(ptr[i]) + d(gen);
+    return field;
+}
+
+// NaN-aware max absolute difference between two images: matched NaNs are ignored, a NaN on only one
+// side is flagged. Handy for CPU-vs-CUDA comparisons.
+struct DiffResult { double maxAbs = 0; bool nanMismatch = false; };
+DiffResult maxAbsDiff(const NiftiImage& a, const NiftiImage& b) {
+    DiffResult r;
+    const auto pa = a.data();
+    const auto pb = b.data();
+    const size_t n = std::min(a.nVoxels(), b.nVoxels());
+    for (size_t i = 0; i < n; ++i) {
+        const float va = static_cast<float>(pa[i]);
+        const float vb = static_cast<float>(pb[i]);
+        const bool na = std::isnan(va), nb = std::isnan(vb);
+        if (na || nb) {
+            if (na != nb) r.nanMismatch = true;
+            continue;
+        }
+        r.maxAbs = std::max(r.maxAbs, static_cast<double>(std::fabs(va - vb)));
+    }
+    return r;
 }

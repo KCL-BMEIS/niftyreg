@@ -9,7 +9,19 @@ target_link_libraries(reg_tools _reg_measure _reg_blockMatching _reg_resampling 
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_tools.h.in ${CMAKE_CURRENT_BINARY_DIR}/reg_tools.h @ONLY)
 #-----------------------------------------------------------------------------
 add_executable(reg_resample reg_resample.cpp)
-target_link_libraries(reg_resample _reg_resampling _reg_localTrans _reg_tools _reg_globalTrans _reg_ReadWriteImage)
+set(_reg_resample_libraries
+  _reg_compute
+  _reg_kernels
+  _reg_resampling
+  _reg_localTrans
+  _reg_tools
+  _reg_globalTrans
+  _reg_ReadWriteImage
+)
+if(USE_CUDA)
+  set(_reg_resample_libraries ${_reg_resample_libraries} _reg_cuda_kernels)
+endif(USE_CUDA)
+target_link_libraries(reg_resample ${_reg_resample_libraries})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_resample.h.in ${CMAKE_CURRENT_BINARY_DIR}/reg_resample.h @ONLY)
 #-----------------------------------------------------------------------------
 add_executable(reg_measure reg_measure.cpp)
