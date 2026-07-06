@@ -6,7 +6,7 @@
 /* *************************************************************** */
 ClResampleImageKernel::ClResampleImageKernel(Content *conIn) : ResampleImageKernel() {
     //populate the CLContext object ptr
-    ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
+    ClAladinContent *con = dynamic_cast<ClAladinContent*>(conIn);
 
     //path to kernel file
     const char *nrInstallDir = getenv("NIFTYREG_INSTALL_DIR");

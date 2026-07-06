@@ -4,7 +4,7 @@
 /* *************************************************************** */
 CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn) : BlockMatchingKernel() {
     //get CudaAladinContent ptr
-    CudaAladinContent *con = static_cast<CudaAladinContent*>(conIn);
+    CudaAladinContent *con = dynamic_cast<CudaAladinContent*>(conIn);
 
     //get cpu ptrs
     reference = con->AladinContent::GetReference();

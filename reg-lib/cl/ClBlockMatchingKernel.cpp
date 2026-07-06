@@ -5,7 +5,7 @@
 /* *************************************************************** */
 ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKernel() {
    //populate the ClAladinContent object ptr
-   ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
+   ClAladinContent *con = dynamic_cast<ClAladinContent*>(conIn);
 
    //path to kernel file
    const char *niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");

@@ -5,7 +5,7 @@
 /* *************************************************************** */
 ClAffineDeformationFieldKernel::ClAffineDeformationFieldKernel(Content *conIn) : AffineDeformationFieldKernel() {
     //populate the ClAladinContent object ptr
-    ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
+    ClAladinContent *con = dynamic_cast<ClAladinContent*>(conIn);
 
     //path to kernel files
     const char* niftyreg_install_dir = getenv("NIFTYREG_INSTALL_DIR");

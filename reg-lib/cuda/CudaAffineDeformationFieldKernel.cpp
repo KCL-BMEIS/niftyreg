@@ -3,7 +3,7 @@
 
 /* *************************************************************** */
 CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conIn) : AffineDeformationFieldKernel() {
-   CudaAladinContent *con = static_cast<CudaAladinContent*>(conIn);
+   CudaAladinContent *con = dynamic_cast<CudaAladinContent*>(conIn);
 
    //get necessary cpu ptrs
    this->deformationFieldImage = con->AladinContent::GetDeformationField();
@@ -11,7 +11,7 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conI
 
    //get necessary cuda ptrs
    mask_d = con->GetMask_d();
-   deformationFieldArray_d = con->GetDeformationFieldArray_d();
+   deformationFieldArray_d = con->GetDeformationFieldCuda();
    transformationMatrix_d = con->GetTransformationMatrix_d();
 }
 /* *************************************************************** */

@@ -3,7 +3,7 @@
 
 /* *************************************************************** */
 CpuAffineDeformationFieldKernel::CpuAffineDeformationFieldKernel(Content *conIn) : AffineDeformationFieldKernel() {
-    AladinContent *con = static_cast<AladinContent*>(conIn);
+    AladinContent *con = dynamic_cast<AladinContent*>(conIn);
     deformationFieldImage = con->GetDeformationField();
     affineTransformation = con->GetTransformationMatrix();
     mask = con->GetReferenceMask();

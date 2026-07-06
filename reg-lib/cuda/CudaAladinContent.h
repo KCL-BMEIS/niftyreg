@@ -1,10 +1,16 @@
 #pragma once
 
 #include "AladinContent.h"
+#include "CudaContent.h"
 #include "CudaContext.hpp"
 #include "_reg_tools.h"
 
-class CudaAladinContent: public AladinContent {
+// Aladin content on CUDA. It reuses CudaContent's device storage (image buffers, the float4
+// deformation field, the compacted reference-mask list, the transformation matrix, and the
+// upload/download helpers) and only adds the block-matching-specific device buffers plus a DENSE
+// per-voxel mask (the affine and block-matching kernels index the mask randomly by voxel, which the
+// compacted list cannot serve).
+class CudaAladinContent: public virtual AladinContent, public virtual CudaContent {
 public:
     CudaAladinContent(NiftiImage& referenceIn,
                       NiftiImage& floatingIn,
@@ -18,43 +24,35 @@ public:
 
     virtual bool IsCurrentComputationDoubleCapable() override;
 
-    // Device getters
-    virtual float* GetReferenceImageArray_d();
-    virtual float* GetFloatingImageArray_d();
-    virtual float* GetWarpedImageArray_d();
-    virtual float* GetTransformationMatrix_d();
-    virtual float* GetReferencePosition_d();
-    virtual float* GetWarpedPosition_d();
-    virtual float* GetDeformationFieldArray_d();
-    virtual float* GetReferenceMat_d();
-    virtual float* GetFloIJKMat_d();
+    // Device getters. The image/transformation getters forward to the shared CudaContent buffers;
+    // the deformation field (GetDeformationFieldCuda, float4) and the compacted mask
+    // (GetReferenceMaskCuda) also come from CudaContent. The block-matching buffers and the dense
+    // mask are Aladin-specific.
+    virtual float* GetReferenceImageArray_d() { return GetReferenceCuda(); }
+    virtual float* GetFloatingImageArray_d() { return GetFloatingCuda(); }
+    virtual float* GetWarpedImageArray_d() { return GetWarpedCuda(); }
+    virtual float* GetTransformationMatrix_d() { return GetTransformationMatrixCuda(); }
+    virtual float* GetReferencePosition_d() { return referencePosition_d; }
+    virtual float* GetWarpedPosition_d() { return warpedPosition_d; }
+    virtual float* GetReferenceMat_d() { return referenceMat_d; }
+    virtual int* GetTotalBlock_d() { return totalBlock_d; }
+    virtual int* GetMask_d() { return mask_d; } // dense per-voxel mask (block matching / affine)
 
-    virtual int* GetTotalBlock_d();
-    virtual int* GetMask_d();
-
-    // CPU getters with data downloaded from device
+    // CPU getter with data downloaded from device
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
-    virtual NiftiImage& GetDeformationField() override;
-    virtual NiftiImage& GetWarped() override;
 
 private:
     void InitVars();
     void AllocateCuPtrs();
     void FreeCuPtrs();
 
-    float *referenceImageArray_d;
-    float *floatingImageArray_d;
-    float *warpedImageArray_d;
-    float *deformationFieldArray_d;
+    // Aladin-specific device buffers (the shared image/deformation/mask/transform buffers live in
+    // CudaContent).
     float *referencePosition_d;
     float *warpedPosition_d;
-    int   *totalBlock_d, *mask_d;
-
-    float *transformationMatrix_d;
+    int   *totalBlock_d;
+    int   *mask_d;         // dense per-voxel mask (compacted list lives in CudaContent)
     float *referenceMat_d;
-    float *floIJKMat_d;
-
-    void DownloadImage(NiftiImage& image, float *memoryObject, int datatype);
 
 #ifdef NR_TESTING
 public:
@@ -62,9 +60,6 @@ public:
 protected:
 #endif
     // Functions for testing
-    virtual void SetTransformationMatrix(mat44 *transformationMatrixIn) override;
-    virtual void SetWarped(NiftiImage&& warpedIn) override;
-    virtual void SetDeformationField(NiftiImage&& deformationFieldIn) override;
     virtual void SetReferenceMask(int *referenceMaskIn) override;
     virtual void SetBlockMatchingParams(_reg_blockMatchingParam *bmp) override;
 };

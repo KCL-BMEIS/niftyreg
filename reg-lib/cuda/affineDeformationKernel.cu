@@ -11,10 +11,9 @@ __device__ __inline__ double getPosition(float* matrix, double* voxel, const uns
 }
 /* *************************************************************** */
 __global__ void affineKernel(float *transformationMatrix,
-                             float *defField,
+                             float4 *defField,
                              const int *mask,
                              const uint3 dims,
-                             const unsigned voxelNumber,
                              const bool composition)
 {
    // Get the current coordinate
@@ -25,25 +24,27 @@ __global__ void affineKernel(float *transformationMatrix,
 
    if (z<dims.z && y<dims.y && x<dims.x && mask[index] >= 0)
    {
+      // The deformation field is an interleaved float4 (world coords in .x/.y/.z), shared with the
+      // Compute-path resampler.
+      const float4 current = defField[index];
       double voxel[3];
-      float *deformationFieldPtrX = &defField[index];
-      float *deformationFieldPtrY = &deformationFieldPtrX[voxelNumber];
-      float *deformationFieldPtrZ = &deformationFieldPtrY[voxelNumber];
-
-      voxel[0] = composition ? *deformationFieldPtrX : x;
-      voxel[1] = composition ? *deformationFieldPtrY : y;
-      voxel[2] = composition ? *deformationFieldPtrZ : z;
+      voxel[0] = composition ? current.x : x;
+      voxel[1] = composition ? current.y : y;
+      voxel[2] = composition ? current.z : z;
 
       /* the deformation field (real coordinates) is stored */
-      *deformationFieldPtrX = (float)getPosition(transformationMatrix, voxel, 0);
-      *deformationFieldPtrY = (float)getPosition(transformationMatrix, voxel, 1);
-      *deformationFieldPtrZ = (float)getPosition(transformationMatrix, voxel, 2);
+      float4 result;
+      result.x = (float)getPosition(transformationMatrix, voxel, 0);
+      result.y = (float)getPosition(transformationMatrix, voxel, 1);
+      result.z = (float)getPosition(transformationMatrix, voxel, 2);
+      result.w = 0;
+      defField[index] = result;
    }
 }
 /* *************************************************************** */
 void launchAffine(mat44 *affineTransformation,
                   nifti_image *deformationField,
-                  float *def_d,
+                  float4 *def_d,
                   const int *mask_d,
                   float *trans_d,
                   bool compose) {
@@ -67,6 +68,6 @@ void launchAffine(mat44 *affineTransformation,
    free(trans);
 
    uint3 dims_d = make_uint3(deformationField->nx, deformationField->ny, deformationField->nz);
-   affineKernel<<<G1_b, B1_b>>>(trans_d, def_d, mask_d, dims_d, (unsigned)NiftiImage::calcVoxelNumber(deformationField, 3), compose);
+   affineKernel<<<G1_b, B1_b>>>(trans_d, def_d, mask_d, dims_d, compose);
    NR_CUDA_CHECK_KERNEL(G1_b, B1_b);
 }

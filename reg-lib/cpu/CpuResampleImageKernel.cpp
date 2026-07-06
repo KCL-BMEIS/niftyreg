@@ -3,7 +3,7 @@
 
 /* *************************************************************** */
 CpuResampleImageKernel::CpuResampleImageKernel(Content *conIn) : ResampleImageKernel() {
-    AladinContent *con = static_cast<AladinContent*>(conIn);
+    AladinContent *con = dynamic_cast<AladinContent*>(conIn);
     floatingImage = con->GetFloating();
     warpedImage = con->GetWarped();
     deformationField = con->GetDeformationField();

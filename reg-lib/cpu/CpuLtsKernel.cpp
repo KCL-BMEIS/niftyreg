@@ -2,7 +2,7 @@
 
 /* *************************************************************** */
 CpuLtsKernel::CpuLtsKernel(Content *conIn) : LtsKernel() {
-    AladinContent *con = static_cast<AladinContent*>(conIn);
+    AladinContent *con = dynamic_cast<AladinContent*>(conIn);
     transformationMatrix = con->GetTransformationMatrix();
     blockMatchingParams = con->GetBlockMatchingParams();
 }
