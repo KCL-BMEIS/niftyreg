@@ -10,17 +10,17 @@ CudaAffineDeformationFieldKernel::CudaAffineDeformationFieldKernel(Content *conI
    this->affineTransformation = con->AladinContent::GetTransformationMatrix();
 
    //get necessary cuda ptrs
-   mask_d = con->GetMask_d();
-   deformationFieldArray_d = con->GetDeformationFieldCuda();
-   transformationMatrix_d = con->GetTransformationMatrix_d();
+   maskCuda = con->GetMaskCuda();
+   deformationFieldCuda = con->GetDeformationFieldCuda();
+   transformationMatrixCuda = con->GetTransformationMatrixCuda();
 }
 /* *************************************************************** */
 void CudaAffineDeformationFieldKernel::Calculate(bool compose) {
    launchAffine(this->affineTransformation,
                 this->deformationFieldImage,
-                deformationFieldArray_d,
-                mask_d,
-                transformationMatrix_d,
+                deformationFieldCuda,
+                maskCuda,
+                transformationMatrixCuda,
                 compose);
 }
 /* *************************************************************** */

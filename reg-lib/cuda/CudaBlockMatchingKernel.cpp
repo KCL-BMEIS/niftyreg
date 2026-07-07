@@ -11,24 +11,24 @@ CudaBlockMatchingKernel::CudaBlockMatchingKernel(Content *conIn) : BlockMatching
     params = con->AladinContent::GetBlockMatchingParams();
 
     //get cuda ptrs
-    referenceImageArray_d = con->GetReferenceImageArray_d();
-    warpedImageArray_d = con->GetWarpedImageArray_d();
-    referencePosition_d = con->GetReferencePosition_d();
-    warpedPosition_d = con->GetWarpedPosition_d();
-    totalBlock_d = con->GetTotalBlock_d();
-    mask_d = con->GetMask_d();
-    referenceMat_d = con->GetReferenceMat_d();
+    referenceCuda = con->GetReferenceCuda();
+    warpedCuda = con->GetWarpedCuda();
+    referencePositionCuda = con->GetReferencePositionCuda();
+    warpedPositionCuda = con->GetWarpedPositionCuda();
+    totalBlockCuda = con->GetTotalBlockCuda();
+    maskCuda = con->GetMaskCuda();
+    referenceMatCuda = con->GetReferenceMatCuda();
 }
 /* *************************************************************** */
 void CudaBlockMatchingKernel::Calculate() {
     block_matching_method_gpu(reference,
                               params,
-                              referenceImageArray_d,
-                              warpedImageArray_d,
-                              referencePosition_d,
-                              warpedPosition_d,
-                              totalBlock_d,
-                              mask_d,
-                              referenceMat_d);
+                              referenceCuda,
+                              warpedCuda,
+                              referencePositionCuda,
+                              warpedPositionCuda,
+                              totalBlockCuda,
+                              maskCuda,
+                              referenceMatCuda);
 }
 /* *************************************************************** */

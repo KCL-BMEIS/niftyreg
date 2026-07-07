@@ -22,15 +22,14 @@ void CudaResampleImageKernel::Calculate(int interp,
     if (interp != 1)
         NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
 
-    // The content now shares CudaContent's storage: float4 deformation field and compacted mask.
     auto resampleImage = floatingImage->nz > 1 ? NiftyReg::Cuda::ResampleImage<true> : NiftyReg::Cuda::ResampleImage<false>;
     resampleImage(floatingImage,
-                  con->GetFloatingImageArray_d(),                 // CudaContent floatingCuda
+                  con->GetFloatingCuda(),
                   warpedImage,
-                  con->GetWarpedImageArray_d(),                   // CudaContent warpedCuda
-                  con->Content::GetDeformationField(),            // nifti dims (no device download)
-                  con->GetDeformationFieldCuda(),                 // float4 deformation
-                  con->GetReferenceMaskCuda(),                    // compacted active-voxel list
+                  con->GetWarpedCuda(),
+                  con->Content::GetDeformationField(),
+                  con->GetDeformationFieldCuda(),
+                  con->GetReferenceMaskCuda(),
                   con->GetActiveVoxelNumber(),
                   interp,
                   paddingValue);
