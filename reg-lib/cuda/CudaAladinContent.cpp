@@ -1,7 +1,4 @@
 #include "CudaAladinContent.h"
-#include "CudaCommon.hpp"
-#include "_reg_tools.h"
-#include <algorithm>
 
 /* *************************************************************** */
 CudaAladinContent::CudaAladinContent(NiftiImage& referenceIn,
@@ -12,107 +9,100 @@ CudaAladinContent::CudaAladinContent(NiftiImage& referenceIn,
                                      const unsigned percentageOfBlocks,
                                      const unsigned inlierLts,
                                      int blockStepSize) :
-    Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)),
     AladinContent(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float),
                   percentageOfBlocks, inlierLts, blockStepSize),
-    CudaContent(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)) {
+    CudaContent(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)),
+    Content(referenceIn, floatingIn, referenceMaskIn, transformationMatrixIn, sizeof(float)) {
     if (bytesIn != sizeof(float))
         NR_WARN_WFCT("Datatype has been forced to float");
-    InitVars();
-    AllocateCuPtrs();
+    AllocateMask();
+    AllocateReferenceMat();
+    AllocateBlockMatchingParams();
 }
 /* *************************************************************** */
 CudaAladinContent::~CudaAladinContent() {
-    FreeCuPtrs();
+    DeallocateMask();
+    DeallocateReferenceMat();
+    DeallocateBlockMatchingParams();
 }
 /* *************************************************************** */
-void CudaAladinContent::InitVars() {
-    referencePositionCuda = nullptr;
-    warpedPositionCuda = nullptr;
-    totalBlockCuda = nullptr;
-    maskCuda = nullptr;
-    referenceMatCuda = nullptr;
+void CudaAladinContent::AllocateMask() {
+    if (!referenceMask) return;
+    Cuda::Allocate(&maskCuda, reference->nvox);
+    Cuda::TransferNiftiToDevice(maskCuda, referenceMask, reference->nvox);
 }
 /* *************************************************************** */
-void CudaAladinContent::AllocateCuPtrs() {
-    // Dense per-voxel mask for the affine / block-matching kernels (CudaContent holds the compacted
-    // active-voxel list used by the resampler)
-    if (referenceMask) {
-        Cuda::Allocate<int>(&maskCuda, reference->nvox);
-        Cuda::TransferNiftiToDevice(maskCuda, referenceMask, reference->nvox);
+void CudaAladinContent::DeallocateMask() {
+    if (maskCuda) {
+        Cuda::Free(maskCuda);
+        maskCuda = nullptr;
     }
-    // Reference XYZ matrix used by block matching
-    if (reference) {
-        Cuda::Allocate<float>(&referenceMatCuda, sizeof(mat44) / sizeof(float));
-        float* targetMat = (float*)malloc(sizeof(mat44));
-        mat44ToCptr(*GetXYZMatrix(*reference), targetMat);
-        Cuda::TransferNiftiToDevice(referenceMatCuda, targetMat, sizeof(mat44) / sizeof(float));
-        free(targetMat);
+}
+/* *************************************************************** */
+void CudaAladinContent::AllocateReferenceMat() {
+    float referenceMatCptr[sizeof(mat44) / sizeof(float)];
+    mat44ToCptr(*GetXYZMatrix(*reference), referenceMatCptr);
+    Cuda::Allocate(&referenceMatCuda, sizeof(mat44) / sizeof(float));
+    Cuda::TransferFromHostToDevice(referenceMatCuda, referenceMatCptr, sizeof(mat44) / sizeof(float));
+}
+/* *************************************************************** */
+void CudaAladinContent::DeallocateReferenceMat() {
+    if (referenceMatCuda) {
+        Cuda::Free(referenceMatCuda);
+        referenceMatCuda = nullptr;
     }
-    if (blockMatchingParams) {
-        if (blockMatchingParams->referencePosition) {
-            Cuda::Allocate<float>(&referencePositionCuda, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-            Cuda::TransferFromHostToDevice<float>(referencePositionCuda, blockMatchingParams->referencePosition, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-        }
-        if (blockMatchingParams->warpedPosition) {
-            Cuda::Allocate<float>(&warpedPositionCuda, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-            Cuda::TransferFromHostToDevice<float>(warpedPositionCuda, blockMatchingParams->warpedPosition, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-        }
-        if (blockMatchingParams->totalBlock) {
-            Cuda::Allocate<int>(&totalBlockCuda, blockMatchingParams->totalBlockNumber);
-            Cuda::TransferNiftiToDevice(totalBlockCuda, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
-        }
+}
+/* *************************************************************** */
+void CudaAladinContent::AllocateBlockMatchingParams() {
+    if (!blockMatchingParams) return;
+    const size_t positionSize = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
+    if (blockMatchingParams->referencePosition) {
+        Cuda::Allocate(&referencePositionCuda, positionSize);
+        Cuda::TransferFromHostToDevice(referencePositionCuda, blockMatchingParams->referencePosition, positionSize);
+    }
+    if (blockMatchingParams->warpedPosition) {
+        Cuda::Allocate(&warpedPositionCuda, positionSize);
+        Cuda::TransferFromHostToDevice(warpedPositionCuda, blockMatchingParams->warpedPosition, positionSize);
+    }
+    if (blockMatchingParams->totalBlock) {
+        Cuda::Allocate(&totalBlockCuda, blockMatchingParams->totalBlockNumber);
+        Cuda::TransferFromHostToDevice(totalBlockCuda, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
+    }
+}
+/* *************************************************************** */
+void CudaAladinContent::DeallocateBlockMatchingParams() {
+    if (referencePositionCuda) {
+        Cuda::Free(referencePositionCuda);
+        referencePositionCuda = nullptr;
+    }
+    if (warpedPositionCuda) {
+        Cuda::Free(warpedPositionCuda);
+        warpedPositionCuda = nullptr;
+    }
+    if (totalBlockCuda) {
+        Cuda::Free(totalBlockCuda);
+        totalBlockCuda = nullptr;
     }
 }
 /* *************************************************************** */
 _reg_blockMatchingParam* CudaAladinContent::GetBlockMatchingParams() {
-    Cuda::TransferFromDeviceToHost<float>(blockMatchingParams->warpedPosition, warpedPositionCuda, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-    Cuda::TransferFromDeviceToHost<float>(blockMatchingParams->referencePosition, referencePositionCuda, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
+    const size_t positionSize = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
+    Cuda::TransferFromDeviceToHost(blockMatchingParams->warpedPosition, warpedPositionCuda, positionSize);
+    Cuda::TransferFromDeviceToHost(blockMatchingParams->referencePosition, referencePositionCuda, positionSize);
     return blockMatchingParams;
 }
 /* *************************************************************** */
 void CudaAladinContent::SetReferenceMask(int *referenceMaskIn) {
     // Maintain both representations: CudaContent's compacted active-voxel list and the dense mask
     CudaContent::SetReferenceMask(referenceMaskIn);
-    if (maskCuda) {
-        Cuda::Free(maskCuda);
-        maskCuda = nullptr;
-    }
-    if (!referenceMask) return;
-    Cuda::Allocate<int>(&maskCuda, reference->nvox);
-    Cuda::TransferNiftiToDevice(maskCuda, referenceMask, reference->nvox);
+    DeallocateMask();
+    AllocateMask();
 }
 /* *************************************************************** */
 void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
     AladinContent::SetBlockMatchingParams(bmp);
-    if (blockMatchingParams->referencePosition) {
-        Cuda::Free(referencePositionCuda);
-        Cuda::Allocate<float>(&referencePositionCuda, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-        Cuda::TransferFromHostToDevice<float>(referencePositionCuda, blockMatchingParams->referencePosition, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-    }
-    if (blockMatchingParams->warpedPosition) {
-        Cuda::Free(warpedPositionCuda);
-        Cuda::Allocate<float>(&warpedPositionCuda, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-        Cuda::TransferFromHostToDevice<float>(warpedPositionCuda, blockMatchingParams->warpedPosition, blockMatchingParams->activeBlockNumber * blockMatchingParams->dim);
-    }
-    if (blockMatchingParams->totalBlock) {
-        Cuda::Free(totalBlockCuda);
-        Cuda::Allocate<int>(&totalBlockCuda, blockMatchingParams->totalBlockNumber);
-        Cuda::TransferFromHostToDevice<int>(totalBlockCuda, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
-    }
-}
-/* *************************************************************** */
-void CudaAladinContent::FreeCuPtrs() {
-    if (referenceMatCuda)
-        Cuda::Free(referenceMatCuda);
-    if (maskCuda)
-        Cuda::Free(maskCuda);
-    if (totalBlockCuda)
-        Cuda::Free(totalBlockCuda);
-    if (referencePositionCuda)
-        Cuda::Free(referencePositionCuda);
-    if (warpedPositionCuda)
-        Cuda::Free(warpedPositionCuda);
+    DeallocateBlockMatchingParams();
+    AllocateBlockMatchingParams();
 }
 /* *************************************************************** */
 bool CudaAladinContent::IsCurrentComputationDoubleCapable() {

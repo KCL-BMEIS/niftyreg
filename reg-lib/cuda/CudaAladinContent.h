@@ -7,6 +7,7 @@
 
 class CudaAladinContent: public virtual AladinContent, public virtual CudaContent {
 public:
+    CudaAladinContent() = delete;
     CudaAladinContent(NiftiImage& referenceIn,
                       NiftiImage& floatingIn,
                       int *referenceMaskIn = nullptr,
@@ -29,16 +30,20 @@ public:
     // CudaContent holds the compacted active-voxel list used by the resampler
     virtual int* GetMaskCuda() { return maskCuda; }
 
-private:
-    void InitVars();
-    void AllocateCuPtrs();
-    void FreeCuPtrs();
+protected:
+    float *referencePositionCuda = nullptr;
+    float *warpedPositionCuda = nullptr;
+    float *referenceMatCuda = nullptr;
+    int *totalBlockCuda = nullptr;
+    int *maskCuda = nullptr;  // Dense per-voxel mask (compacted list lives in CudaContent)
 
-    float *referencePositionCuda;
-    float *warpedPositionCuda;
-    float *referenceMatCuda;
-    int *totalBlockCuda;
-    int *maskCuda;  // Dense per-voxel mask (compacted list lives in CudaContent)
+private:
+    void AllocateMask();
+    void DeallocateMask();
+    void AllocateReferenceMat();
+    void DeallocateReferenceMat();
+    void AllocateBlockMatchingParams();
+    void DeallocateBlockMatchingParams();
 
 #ifdef NR_TESTING
 public:
