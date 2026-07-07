@@ -16,34 +16,31 @@ public:
                       const unsigned percentageOfBlocks = 0,
                       const unsigned inlierLts = 0,
                       int blockStepSize = 0);
-    virtual ~CudaAladinContent();
+    virtual ~CudaAladinContent() = default;
 
     virtual bool IsCurrentComputationDoubleCapable() override;
 
     // Getters
     virtual _reg_blockMatchingParam* GetBlockMatchingParams() override;
-    virtual float* GetReferencePositionCuda() { return referencePositionCuda; }
-    virtual float* GetWarpedPositionCuda() { return warpedPositionCuda; }
-    virtual float* GetReferenceMatCuda() { return referenceMatCuda; }
-    virtual int* GetTotalBlockCuda() { return totalBlockCuda; }
+    virtual float* GetReferencePositionCuda() { return referencePositionCuda.get(); }
+    virtual float* GetWarpedPositionCuda() { return warpedPositionCuda.get(); }
+    virtual float* GetReferenceMatCuda() { return referenceMatCuda.get(); }
+    virtual int* GetTotalBlockCuda() { return totalBlockCuda.get(); }
     // Dense per-voxel mask used by the affine and block-matching kernels;
     // CudaContent holds the compacted active-voxel list used by the resampler
-    virtual int* GetMaskCuda() { return maskCuda; }
+    virtual int* GetMaskCuda() { return maskCuda.get(); }
 
 protected:
-    float *referencePositionCuda = nullptr;
-    float *warpedPositionCuda = nullptr;
-    float *referenceMatCuda = nullptr;
-    int *totalBlockCuda = nullptr;
-    int *maskCuda = nullptr;  // Dense per-voxel mask (compacted list lives in CudaContent)
+    Cuda::UniquePtr<float> referencePositionCuda;
+    Cuda::UniquePtr<float> warpedPositionCuda;
+    Cuda::UniquePtr<float> referenceMatCuda;
+    Cuda::UniquePtr<int> totalBlockCuda;
+    Cuda::UniquePtr<int> maskCuda;  // Dense per-voxel mask (compacted list lives in CudaContent)
 
 private:
     void AllocateMask();
-    void DeallocateMask();
     void AllocateReferenceMat();
-    void DeallocateReferenceMat();
     void AllocateBlockMatchingParams();
-    void DeallocateBlockMatchingParams();
 
 #ifdef NR_TESTING
 public:

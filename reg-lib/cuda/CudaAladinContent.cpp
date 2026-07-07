@@ -20,88 +20,65 @@ CudaAladinContent::CudaAladinContent(NiftiImage& referenceIn,
     AllocateBlockMatchingParams();
 }
 /* *************************************************************** */
-CudaAladinContent::~CudaAladinContent() {
-    DeallocateMask();
-    DeallocateReferenceMat();
-    DeallocateBlockMatchingParams();
-}
-/* *************************************************************** */
 void CudaAladinContent::AllocateMask() {
     if (!referenceMask) return;
-    Cuda::Allocate(&maskCuda, reference->nvox);
-    Cuda::TransferNiftiToDevice(maskCuda, referenceMask, reference->nvox);
-}
-/* *************************************************************** */
-void CudaAladinContent::DeallocateMask() {
-    if (maskCuda) {
-        Cuda::Free(maskCuda);
-        maskCuda = nullptr;
-    }
+    int *mask;
+    Cuda::Allocate(&mask, reference->nvox);
+    maskCuda.reset(mask);
+    Cuda::TransferNiftiToDevice(maskCuda.get(), referenceMask, reference->nvox);
 }
 /* *************************************************************** */
 void CudaAladinContent::AllocateReferenceMat() {
     float referenceMatCptr[sizeof(mat44) / sizeof(float)];
     mat44ToCptr(*GetXYZMatrix(*reference), referenceMatCptr);
-    Cuda::Allocate(&referenceMatCuda, sizeof(mat44) / sizeof(float));
-    Cuda::TransferFromHostToDevice(referenceMatCuda, referenceMatCptr, sizeof(mat44) / sizeof(float));
-}
-/* *************************************************************** */
-void CudaAladinContent::DeallocateReferenceMat() {
-    if (referenceMatCuda) {
-        Cuda::Free(referenceMatCuda);
-        referenceMatCuda = nullptr;
-    }
+    float *referenceMat;
+    Cuda::Allocate(&referenceMat, sizeof(mat44) / sizeof(float));
+    referenceMatCuda.reset(referenceMat);
+    Cuda::TransferFromHostToDevice(referenceMatCuda.get(), referenceMatCptr, sizeof(mat44) / sizeof(float));
 }
 /* *************************************************************** */
 void CudaAladinContent::AllocateBlockMatchingParams() {
     if (!blockMatchingParams) return;
     const size_t positionSize = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
     if (blockMatchingParams->referencePosition) {
-        Cuda::Allocate(&referencePositionCuda, positionSize);
-        Cuda::TransferFromHostToDevice(referencePositionCuda, blockMatchingParams->referencePosition, positionSize);
+        float *referencePosition;
+        Cuda::Allocate(&referencePosition, positionSize);
+        referencePositionCuda.reset(referencePosition);
+        Cuda::TransferFromHostToDevice(referencePositionCuda.get(), blockMatchingParams->referencePosition, positionSize);
     }
     if (blockMatchingParams->warpedPosition) {
-        Cuda::Allocate(&warpedPositionCuda, positionSize);
-        Cuda::TransferFromHostToDevice(warpedPositionCuda, blockMatchingParams->warpedPosition, positionSize);
+        float *warpedPosition;
+        Cuda::Allocate(&warpedPosition, positionSize);
+        warpedPositionCuda.reset(warpedPosition);
+        Cuda::TransferFromHostToDevice(warpedPositionCuda.get(), blockMatchingParams->warpedPosition, positionSize);
     }
     if (blockMatchingParams->totalBlock) {
-        Cuda::Allocate(&totalBlockCuda, blockMatchingParams->totalBlockNumber);
-        Cuda::TransferFromHostToDevice(totalBlockCuda, blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
-    }
-}
-/* *************************************************************** */
-void CudaAladinContent::DeallocateBlockMatchingParams() {
-    if (referencePositionCuda) {
-        Cuda::Free(referencePositionCuda);
-        referencePositionCuda = nullptr;
-    }
-    if (warpedPositionCuda) {
-        Cuda::Free(warpedPositionCuda);
-        warpedPositionCuda = nullptr;
-    }
-    if (totalBlockCuda) {
-        Cuda::Free(totalBlockCuda);
-        totalBlockCuda = nullptr;
+        int *totalBlock;
+        Cuda::Allocate(&totalBlock, blockMatchingParams->totalBlockNumber);
+        totalBlockCuda.reset(totalBlock);
+        Cuda::TransferFromHostToDevice(totalBlockCuda.get(), blockMatchingParams->totalBlock, blockMatchingParams->totalBlockNumber);
     }
 }
 /* *************************************************************** */
 _reg_blockMatchingParam* CudaAladinContent::GetBlockMatchingParams() {
     const size_t positionSize = blockMatchingParams->activeBlockNumber * blockMatchingParams->dim;
-    Cuda::TransferFromDeviceToHost(blockMatchingParams->warpedPosition, warpedPositionCuda, positionSize);
-    Cuda::TransferFromDeviceToHost(blockMatchingParams->referencePosition, referencePositionCuda, positionSize);
+    Cuda::TransferFromDeviceToHost(blockMatchingParams->warpedPosition, warpedPositionCuda.get(), positionSize);
+    Cuda::TransferFromDeviceToHost(blockMatchingParams->referencePosition, referencePositionCuda.get(), positionSize);
     return blockMatchingParams;
 }
 /* *************************************************************** */
 void CudaAladinContent::SetReferenceMask(int *referenceMaskIn) {
     // Maintain both representations: CudaContent's compacted active-voxel list and the dense mask
     CudaContent::SetReferenceMask(referenceMaskIn);
-    DeallocateMask();
+    maskCuda = nullptr;
     AllocateMask();
 }
 /* *************************************************************** */
 void CudaAladinContent::SetBlockMatchingParams(_reg_blockMatchingParam* bmp) {
     AladinContent::SetBlockMatchingParams(bmp);
-    DeallocateBlockMatchingParams();
+    referencePositionCuda = nullptr;
+    warpedPositionCuda = nullptr;
+    totalBlockCuda = nullptr;
     AllocateBlockMatchingParams();
 }
 /* *************************************************************** */
