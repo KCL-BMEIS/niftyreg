@@ -2,7 +2,7 @@
 
 /* *************************************************************** */
 CpuBlockMatchingKernel::CpuBlockMatchingKernel(Content *conIn) : BlockMatchingKernel() {
-    AladinContent *con = static_cast<AladinContent*>(conIn);
+    AladinContent *con = dynamic_cast<AladinContent*>(conIn);
     reference = con->GetReference();
     warped = con->GetWarped();
     params = con->GetBlockMatchingParams();

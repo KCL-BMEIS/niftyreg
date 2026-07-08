@@ -13,6 +13,7 @@ private:
     mat44 *affineTransformation;
     nifti_image *deformationFieldImage;
 
-    float *deformationFieldArray_d, *transformationMatrix_d;
-    int *mask_d;
+    float4 *deformationFieldCuda;
+    float *transformationMatrixCuda;
+    int *maskCuda;
 };

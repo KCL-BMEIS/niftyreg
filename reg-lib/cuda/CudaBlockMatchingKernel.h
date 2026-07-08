@@ -13,7 +13,7 @@ private:
     nifti_image *reference;
     _reg_blockMatchingParam *params;
 
-    float *referenceImageArray_d, *warpedImageArray_d, *referencePosition_d;
-    float *warpedPosition_d, *referenceMat_d;
-    int *totalBlock_d, *mask_d;
+    float *referenceCuda, *warpedCuda, *referencePositionCuda;
+    float *warpedPositionCuda, *referenceMatCuda;
+    int *totalBlockCuda, *maskCuda;
 };

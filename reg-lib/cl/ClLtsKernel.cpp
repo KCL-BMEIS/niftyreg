@@ -3,7 +3,7 @@
 /* *************************************************************** */
 ClLtsKernel::ClLtsKernel(Content *conIn) : LtsKernel() {
     //populate the ClAladinContent object ptr
-    ClAladinContent *con = static_cast<ClAladinContent*>(conIn);
+    con = dynamic_cast<ClAladinContent*>(conIn);
 
     //get necessary cpu ptrs
     transformationMatrix = con->AladinContent::GetTransformationMatrix();
@@ -11,6 +11,7 @@ ClLtsKernel::ClLtsKernel(Content *conIn) : LtsKernel() {
 }
 /* *************************************************************** */
 void ClLtsKernel::Calculate(bool affine) {
+    blockMatchingParams = con->GetBlockMatchingParams();
     optimize(blockMatchingParams, transformationMatrix, affine);
 }
 /* *************************************************************** */

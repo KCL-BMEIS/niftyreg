@@ -9,6 +9,7 @@ public:
     virtual void Calculate(bool affine) override;
 
 private:
+    ClAladinContent *con;
     _reg_blockMatchingParam *blockMatchingParams;
     mat44 *transformationMatrix;
 };

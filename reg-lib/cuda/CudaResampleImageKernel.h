@@ -3,9 +3,9 @@
 #include "ResampleImageKernel.h"
 #include "CudaAladinContent.h"
 
-/*
- * kernel functions for image resampling with three interpolation variations
- * */
+// Image resampling on CUDA. Thin wrapper over the shared Compute-path resampler Cuda::ResampleImage
+// (linear only). Non-linear interpolation is handled on the CPU by reg_aladin (the final cubic warp
+// forces the CPU platform, mirroring reg_f3d).
 class CudaResampleImageKernel: public ResampleImageKernel {
 public:
     CudaResampleImageKernel(Content *conIn);
@@ -15,13 +15,7 @@ public:
                    mat33 *jacMat = nullptr);
 
 private:
+    CudaAladinContent *con;
     nifti_image *floatingImage;
     nifti_image *warpedImage;
-
-    //cuda ptrs
-    float* floatingImageArray_d;
-    float* floIJKMat_d;
-    float* warpedImageArray_d;
-    float* deformationFieldImageArray_d;
-    int *mask_d;
 };

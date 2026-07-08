@@ -9,7 +9,7 @@
 #include "Content.h"
 #include "_reg_blockMatching.h"
 
-class AladinContent: public Content {
+class AladinContent: public virtual Content {
 public:
     AladinContent(const AladinContent&) = delete;
     AladinContent(NiftiImage& referenceIn,

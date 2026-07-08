@@ -4,9 +4,9 @@
 #include "reg_test_common.h"
 
 /*
-    This test file contains the following unit tests:
-    test function: image resampling
-    In 2D and 3D
+    This test file checks the interpolation *kernels* (the point-wise interpolation
+    weights). Each case resamples a single voxel through a constant one-point deformation
+    field and compares against an analytically computed value, in 2D and 3D, for:
     Nearest neighbour
     Linear
     Cubic spline
@@ -16,7 +16,7 @@
 typedef std::tuple<std::string, NiftiImage, NiftiImage, int, float*> TestData;
 typedef std::tuple<unique_ptr<Content>, shared_ptr<Platform>> ContentDesc;
 
-TEST_CASE("Interpolation", "[unit]") {
+TEST_CASE("Interpolation kernels", "[unit]") {
     // Create a reference 2D image
     vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
     NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
@@ -176,13 +176,15 @@ TEST_CASE("Interpolation", "[unit]") {
         vector<ContentDesc> contentDescs;
         for (auto&& platformType : PlatformTypes) {
             shared_ptr<Platform> platform{ new Platform(platformType) };
+            // CUDA supports linear interpolation only (both the Aladin and Base content resample
+            // through Cuda::ResampleImage); nearest/cubic are covered on the CPU.
+            if (platformType == PlatformType::Cuda && interp != 1)
+                continue;
             // Add Aladin content
             unique_ptr<AladinContentCreator> aladinContentCreator{ dynamic_cast<AladinContentCreator*>(platform->CreateContentCreator(ContentType::Aladin)) };
             unique_ptr<AladinContent> aladinContent{ aladinContentCreator->Create(reference, reference) };
             contentDescs.push_back(ContentDesc(std::move(aladinContent), platform));
-            // Add content
-            if (platformType == PlatformType::Cuda && interp != 1)
-                continue;   // CUDA platform only supports linear interpolation
+            // Add Base content
             unique_ptr<ContentCreator> contentCreator{ dynamic_cast<ContentCreator*>(platform->CreateContentCreator()) };
             unique_ptr<Content> content{ contentCreator->Create(reference, reference) };
             contentDescs.push_back({ std::move(content), platform });

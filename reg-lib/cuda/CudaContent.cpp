@@ -148,6 +148,19 @@ void CudaContent::UpdateWarped() {
 /* *************************************************************** */
 void CudaContent::DownloadImage(NiftiImage& image, float *memoryObject, int datatype) {
     const size_t size = image->nvox;
+
+    // Fast path: the target datatype is float32 and the image is already allocated as float32
+    // (the usual case - the warped image is stored as float32). The device buffer is float32, so
+    // clampData<float> is an identity pass-through; copy straight into the image with no staging
+    // buffer, no per-voxel clamp loop, and no realloc. This avoids two large host allocations per
+    // call which, for images above glibc's ~32 MB mmap threshold, are mmap'd/munmap'd every call and
+    // trigger per-call page-fault storms (the download cost otherwise grows super-linearly).
+    if (datatype == NIFTI_TYPE_FLOAT32 && image->datatype == NIFTI_TYPE_FLOAT32 &&
+        image->nbyper == static_cast<int>(sizeof(float)) && image->data != nullptr) {
+        Cuda::TransferFromDeviceToHost(static_cast<float*>(image->data), memoryObject, size);
+        return;
+    }
+
     unique_ptr<float[]> buffer(new float[size]);
 
     Cuda::TransferFromDeviceToHost(buffer.get(), memoryObject, size);

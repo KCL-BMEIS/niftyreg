@@ -1,23 +1,14 @@
 #include "CudaResampleImageKernel.h"
-#include "resampleKernel.h"
+#include "CudaResampling.hpp"
 
 /* *************************************************************** */
 CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn) : ResampleImageKernel() {
-    CudaAladinContent *con = static_cast<CudaAladinContent*>(conIn);
-
+    con = dynamic_cast<CudaAladinContent*>(conIn);
     floatingImage = con->AladinContent::GetFloating();
     warpedImage = con->AladinContent::GetWarped();
 
-    //cuda ptrs
-    floatingImageArray_d = con->GetFloatingImageArray_d();
-    warpedImageArray_d = con->GetWarpedImageArray_d();
-    deformationFieldImageArray_d = con->GetDeformationFieldArray_d();
-    mask_d = con->GetMask_d();
-    floIJKMat_d = con->GetFloIJKMat_d();
-
     if (floatingImage->datatype != warpedImage->datatype)
         NR_FATAL_ERROR("Floating and warped images should have the same data type");
-
     if (floatingImage->nt != warpedImage->nt)
         NR_FATAL_ERROR("Floating and warped images have different dimensions along the time axis");
 }
@@ -25,17 +16,22 @@ CudaResampleImageKernel::CudaResampleImageKernel(Content *conIn) : ResampleImage
 void CudaResampleImageKernel::Calculate(int interp,
                                         float paddingValue,
                                         bool *dtiTimePoint,
-                                        mat33 * jacMat) {
-    launchResample(floatingImage,
-                   warpedImage,
-                   interp,
-                   paddingValue,
-                   dtiTimePoint,
-                   jacMat,
-                   &floatingImageArray_d,
-                   &warpedImageArray_d,
-                   &deformationFieldImageArray_d,
-                   &mask_d,
-                   &floIJKMat_d);
+                                        mat33 *jacMat) {
+    if (dtiTimePoint != nullptr || jacMat != nullptr)
+        NR_FATAL_ERROR("DTI resampling is not supported on the GPU");
+    if (interp != 1)
+        NR_FATAL_ERROR("Only linear interpolation is supported on the GPU");
+
+    auto resampleImage = floatingImage->nz > 1 ? NiftyReg::Cuda::ResampleImage<true> : NiftyReg::Cuda::ResampleImage<false>;
+    resampleImage(floatingImage,
+                  con->GetFloatingCuda(),
+                  warpedImage,
+                  con->GetWarpedCuda(),
+                  con->Content::GetDeformationField(),
+                  con->GetDeformationFieldCuda(),
+                  con->GetReferenceMaskCuda(),
+                  con->GetActiveVoxelNumber(),
+                  interp,
+                  paddingValue);
 }
 /* *************************************************************** */

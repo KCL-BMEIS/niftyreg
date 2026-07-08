@@ -5,6 +5,7 @@
 #include <random>
 #include <iomanip>
 #include <numeric>
+#include <cmath>
 #include <catch2/catch_test_macros.hpp>
 #include "_reg_lncc.h"
 #include "_reg_localTrans.h"
@@ -13,6 +14,15 @@
 #include "Platform.h"
 #include "ResampleImageKernel.h"
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+#ifndef SINC_KERNEL_RADIUS
+#define SINC_KERNEL_RADIUS 3
+#endif
+#ifndef SINC_KERNEL_SIZE
+#define SINC_KERNEL_SIZE (SINC_KERNEL_RADIUS * 2)
+#endif
 
 template<typename T>
 void InterpCubicSplineKernel(T relative, T (&basis)[4]) {
@@ -35,6 +45,7 @@ void InterpCubicSplineKernel(T relative, T (&basis)[4], T (&derivative)[4]) {
     derivative[3] = (3.f * relative - 2.f) * relative / 2.f;
 }
 
+
 NiftiImage CreateControlPointGrid(const NiftiImage& reference) {
     // Set the spacing for the control point grid to 2 voxel along each axis
     const float gridSpacing[3] = { reference->dx * 2, reference->dy * 2, reference->dz * 2 };
@@ -55,3 +66,34 @@ NiftiImage CreateDeformationField(const NiftiImage& reference) {
 
     return deformationField;
 }
+
+// Install an identity sform (world coordinates == voxel coordinates) on an image.
+void setIdentitySform(NiftiImage& img) {
+    mat44 eye;
+    Mat44Eye(&eye);
+    img->sform_code = 1;
+    img->sto_xyz = eye;
+    img->sto_ijk = eye;
+    img->qform_code = 0;
+}
+
+// Install an arbitrary sform (sto_xyz) on an image, deriving sto_ijk as its inverse.
+void setSform(NiftiImage& img, const mat44& m) {
+    img->sform_code = 1;
+    img->sto_xyz = m;
+    img->sto_ijk = nifti_mat44_inverse(m);
+    img->qform_code = 0;
+}
+
+// A float32 image with identity sform, filled with distinct fractional values (unique per voxel
+// and per volume, so neighbouring voxels and multi-timepoint volumes are all distinguishable).
+NiftiImage makeImage(const std::vector<NiftiImage::dim_t>& dims) {
+    NiftiImage img(dims, NIFTI_TYPE_FLOAT32);
+    setIdentitySform(img);
+    auto ptr = img.data();
+    const size_t n = img.nVoxels();
+    for (size_t i = 0; i < n; ++i)
+        ptr[i] = static_cast<float>(i) + 0.5f;
+    return img;
+}
+

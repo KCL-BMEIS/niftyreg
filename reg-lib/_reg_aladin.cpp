@@ -375,6 +375,11 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
 
     unique_ptr<int[]> mask(new int[this->inputReference.nVoxelsPerVolume()]());
 
+    // The final warp uses cubic interpolation, which the CUDA resampler does not support; run it on
+    // the CPU (mirroring reg_f3d, which forces the CPU platform for its final cubic warp).
+    this->platformType = PlatformType::Cpu;
+    this->platform.reset(new Platform(PlatformType::Cpu));
+
     reg_aladin<T>::InitAladinContent(this->inputReference,
                                      this->inputFloating,
                                      mask.get(),

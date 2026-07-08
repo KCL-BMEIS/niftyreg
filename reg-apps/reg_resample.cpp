@@ -11,6 +11,9 @@
  *
  */
 
+// OpenCL is not supported by this app
+#undef USE_OPENCL
+
 #include "_reg_ReadWriteImage.h"
 #include "_reg_ReadWriteMatrix.h"
 #include "_reg_resampling.h"
@@ -18,6 +21,9 @@
 #include "_reg_localTrans.h"
 #include "_reg_localTrans_jac.h"
 #include "_reg_tools.h"
+#include "Platform.h"
+#include "Compute.h"
+#include "F3dContentCreator.h"
 #include "reg_resample.h"
 
 typedef struct
@@ -69,6 +75,10 @@ void Usage(char *exec)
    NR_INFO("\t-psf\n\t\tPerform the resampling in two steps to resample an image to a lower resolution [off]");
    NR_INFO("\t-psf_alg <0/1>\n\t\tMinimise the matrix metric (0) or the determinant (1) when estimating the PSF [0]");
    NR_INFO("\t-voff\n\t\tTurns verbose off [on]");
+   if (Platform::IsCudaEnabled()) {
+      NR_INFO("\t-platf <int>\n\t\tChoose the platform: CPU=0 | CUDA=1 [0]");
+      NR_INFO("\t-gpuid <int>\n\t\tId of the GPU card to use when running on CUDA [automatic]");
+   }
 #ifdef _OPENMP
    int defaultOpenMPValue=omp_get_num_procs();
    if(getenv("OMP_NUM_THREADS")!=nullptr)
@@ -88,6 +98,10 @@ int main(int argc, char **argv)
    param->paddingValue=0;
    param->PSF_Algorithm=0;
    bool verbose=true;
+
+   // Platform selection (CPU by default; -platf 1 selects CUDA)
+   PlatformType platformType(PlatformType::Cpu);
+   unsigned gpuIdx = 999;
 
 #ifdef _OPENMP
    // Set the default number of threads
@@ -235,6 +249,26 @@ int main(int argc, char **argv)
       {
          param->PSF_Algorithm=(float)atof(argv[++i]);
       }
+      else if(strcmp(argv[i], "-platf")==0 || strcmp(argv[i], "--platf")==0)
+      {
+         PlatformType value{ atoi(argv[++i]) };
+         if(value < PlatformType::Cpu || value > PlatformType::Cuda)
+         {
+            NR_ERROR("The platform argument is expected to be 0 or 1 | 0=CPU 1=CUDA");
+            return EXIT_FAILURE;
+         }
+         if(value == PlatformType::Cuda && !Platform::IsCudaEnabled())
+         {
+            NR_WARN("The current install of NiftyReg has not been compiled with CUDA");
+            NR_WARN("The CPU platform is used");
+            value = PlatformType::Cpu;
+         }
+         platformType = value;
+      }
+      else if(strcmp(argv[i], "-gpuid")==0 || strcmp(argv[i], "--gpuid")==0)
+      {
+         gpuIdx = unsigned(atoi(argv[++i]));
+      }
       else
       {
          NR_ERROR("Unknown parameter: " << argv[i]);
@@ -279,6 +313,11 @@ int main(int argc, char **argv)
    NR_VERBOSE_APP("\t" << floatingImage->dx << "x" << floatingImage->dy << "x" << floatingImage->dz << " mm");
    NR_VERBOSE_APP("* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *");
 
+   // Set up the compute platform
+   Platform platform(platformType);
+   platform.SetGpuIdx(gpuIdx);
+   NR_VERBOSE_APP("Platform: " << (platformType == PlatformType::Cuda ? "CUDA" : "CPU"));
+
    /* *********************** */
    /* READ THE TRANSFORMATION */
    /* *********************** */
@@ -310,99 +349,77 @@ int main(int argc, char **argv)
       Mat44Eye(&inputAffineTransformation);
    }
 
-   // Create a deformation field
-   nifti_image *deformationFieldImage = nifti_copy_nim_info(referenceImage);
-   deformationFieldImage->dim[0]=deformationFieldImage->ndim=5;
-   deformationFieldImage->dim[4]=deformationFieldImage->nt=1;
-   deformationFieldImage->pixdim[4]=deformationFieldImage->dt=1.0;
-   deformationFieldImage->dim[5]=deformationFieldImage->nu=referenceImage->nz>1?3:2;
-   deformationFieldImage->dim[6]=deformationFieldImage->nv=1;
-   deformationFieldImage->dim[7]=deformationFieldImage->nw=1;
-   deformationFieldImage->nvox = NiftiImage::calcVoxelNumber(deformationFieldImage, deformationFieldImage->ndim);
-   deformationFieldImage->scl_slope=1.f;
-   deformationFieldImage->scl_inter=0.f;
-   if(inputTransformationImage!=nullptr)
-   {
-      deformationFieldImage->datatype = inputTransformationImage->datatype;
-      deformationFieldImage->nbyper = inputTransformationImage->nbyper;
-   }
-   else
-   {
-      deformationFieldImage->datatype = NIFTI_TYPE_FLOAT32;
-      deformationFieldImage->nbyper = sizeof(float);
-   }
-   deformationFieldImage->data = calloc(deformationFieldImage->nvox, deformationFieldImage->nbyper);
+   /* ******************************************* */
+   /* BUILD THE CONTENT AND THE DEFORMATION FIELD */
+   /* ******************************************* */
 
-   // Initialise as a displacement field with an identity transformation
-   deformationFieldImage->intent_code = NIFTI_INTENT_VECTOR;
-   memset(deformationFieldImage->intent_name, 0, 16);
-   strcpy(deformationFieldImage->intent_name, "NREG_TRANS");
-   deformationFieldImage->intent_p1 = DISP_FIELD;
-   reg_tools_multiplyValueToImage(deformationFieldImage,deformationFieldImage,0.f);
-   // Convert it then to an deformation field with identity
-   reg_getDeformationFromDisplacement(deformationFieldImage);
+   // NaN padding cannot be represented in integer datatypes
+   if (param->paddingValue != param->paddingValue)
+      reg_tools_changeDatatype<float>(floatingImage);
 
-   // Compute the transformation to apply
-   if(inputTransformationImage!=nullptr)
-   {
-      switch(static_cast<int>(inputTransformationImage->intent_p1))
-      {
-      case LIN_SPLINE_GRID:
-      case CUB_SPLINE_GRID:
-          NR_VERBOSE_APP("Input transformation is a cubic spline grid");
-          reg_spline_getDeformationField(inputTransformationImage,
-              deformationFieldImage,
-              nullptr, // no mask
-              true, // composition is used,
-              true); // b-spline are used
-          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
-          break;
+   NiftiImage contentReference(referenceImage);
+   NiftiImage contentFloating(floatingImage);
+   unique_ptr<Content> content;
+   unique_ptr<Compute> compute;
+   const int transformIntent = inputTransformationImage ? static_cast<int>(inputTransformationImage->intent_p1) : -1;
+
+   if (inputTransformationImage == nullptr) {
+      NR_VERBOSE_APP("Input transformation is an affine matrix");
+      unique_ptr<ContentCreator> creator{ platform.CreateContentCreator(ContentType::Base) };
+      content.reset(creator->Create(contentReference, contentFloating, nullptr, &inputAffineTransformation));
+      compute.reset(platform.CreateCompute(*content));
+      compute->GetAffineDeformationField(false);
+   }
+   else if (transformIntent == LIN_SPLINE_GRID || transformIntent == CUB_SPLINE_GRID) {
+      NR_VERBOSE_APP("Input transformation is a cubic spline grid");
+      unique_ptr<F3dContentCreator> creator{ dynamic_cast<F3dContentCreator*>(platform.CreateContentCreator(ContentType::F3d)) };
+      NiftiImage controlPointGrid(inputTransformationImage);
+      content.reset(creator->Create(contentReference, contentFloating, controlPointGrid));
+      compute.reset(platform.CreateCompute(*content));
+      compute->GetDeformationField(true, true); // composition + b-spline, as reg_resample requires
+   }
+   else if (transformIntent == SPLINE_VEL_GRID) {
+      NR_VERBOSE_APP("Input transformation is a spline velocity grid");
+      unique_ptr<F3dContentCreator> creator{ dynamic_cast<F3dContentCreator*>(platform.CreateContentCreator(ContentType::F3d)) };
+      NiftiImage velocityGrid(inputTransformationImage);
+      content.reset(creator->Create(contentReference, contentFloating, velocityGrid));
+      compute.reset(platform.CreateCompute(*content));
+      compute->GetDefFieldFromVelocityGrid(false);
+   }
+   else {
+      // No Compute constructor for these: compose the transform on the host into the content's
+      // identity-initialised deformation field, then upload it to the device
+      unique_ptr<ContentCreator> creator{ platform.CreateContentCreator(ContentType::Base) };
+      content.reset(creator->Create(contentReference, contentFloating));
+      NiftiImage& deformationField = content->GetDeformationField();
+      switch (transformIntent) {
       case DISP_VEL_FIELD:
-          NR_VERBOSE_APP("Input transformation is a displacement velocity field");
-          reg_getDeformationFromDisplacement(inputTransformationImage);
-          NR_VERBOSE_APP("Input transformation is converted to a deformation velocity field");
+         NR_VERBOSE_APP("Input transformation is a displacement velocity field");
+         reg_getDeformationFromDisplacement(inputTransformationImage);
+         [[fallthrough]];
       case DEF_VEL_FIELD:
-         {
-          NR_VERBOSE_APP("Input transformation is a deformation velocity field");
-          nifti_image *tempFlowField = nifti_dup(*deformationFieldImage);
-          reg_defField_compose(inputTransformationImage,
-                               tempFlowField,
-                               nullptr);
-          tempFlowField->intent_p1=inputTransformationImage->intent_p1;
-          tempFlowField->intent_p2=inputTransformationImage->intent_p2;
-          reg_defField_getDeformationFieldFromFlowField(tempFlowField,
-                                                        deformationFieldImage,
-                                                        false);
-          nifti_image_free(tempFlowField);
-          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
-          }
-          break;
-      case SPLINE_VEL_GRID:
-          NR_VERBOSE_APP("Input transformation is a spine velocity grid");
-          reg_spline_getDefFieldFromVelocityGrid(inputTransformationImage,
-                                                deformationFieldImage,
-                                                false);
-          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
-          break;
-      case DISP_FIELD:
-          NR_VERBOSE_APP("Input transformation is a displacement field");
-          reg_getDeformationFromDisplacement(inputTransformationImage);
-          NR_VERBOSE_APP("Input transformation is converted to a deformation field");
-      default:
-          NR_VERBOSE_APP("Input transformation is a deformation field");
-          reg_defField_compose(inputTransformationImage,
-                               deformationFieldImage,
-                               nullptr);
-          break;
+      {
+         NR_VERBOSE_APP("Input transformation is a deformation velocity field");
+         NiftiImage tempFlowField(deformationField, NiftiImage::Copy::Image);
+         reg_defField_compose(inputTransformationImage, tempFlowField, nullptr);
+         tempFlowField->intent_p1 = inputTransformationImage->intent_p1;
+         tempFlowField->intent_p2 = inputTransformationImage->intent_p2;
+         reg_defField_getDeformationFieldFromFlowField(tempFlowField, deformationField, false);
+         break;
       }
+      case DISP_FIELD:
+         NR_VERBOSE_APP("Input transformation is a displacement field");
+         reg_getDeformationFromDisplacement(inputTransformationImage);
+         [[fallthrough]];
+      default:
+         NR_VERBOSE_APP("Input transformation is a deformation field");
+         reg_defField_compose(inputTransformationImage, deformationField, nullptr);
+         break;
+      }
+      content->UpdateDeformationField(); // upload the host-built field to the device (no-op on CPU)
+      compute.reset(platform.CreateCompute(*content));
    }
-   else
-   {
-      reg_affine_getDeformationField(&inputAffineTransformation,
-                                     deformationFieldImage,
-                                     false,
-                                     nullptr);
-   }
+   NR_VERBOSE_APP("Input transformation is converted to a deformation field");
 
 
    /* ************************* */
@@ -425,85 +442,81 @@ int main(int argc, char **argv)
          param->interpolation=3;
          break;
       }
-      nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
-      warpedImage->dim[0]=warpedImage->ndim=floatingImage->dim[0];
-      warpedImage->dim[4]=warpedImage->nt=floatingImage->dim[4];
-      warpedImage->dim[5]=warpedImage->nu=floatingImage->dim[5];
-      warpedImage->cal_min=floatingImage->cal_min;
-      warpedImage->cal_max=floatingImage->cal_max;
-      warpedImage->scl_slope=floatingImage->scl_slope;
-      warpedImage->scl_inter=floatingImage->scl_inter;
-      if(param->paddingValue!=param->paddingValue &&
-            (floatingImage->datatype!=NIFTI_TYPE_FLOAT32 ||
-             floatingImage->datatype!=NIFTI_TYPE_FLOAT64)){
-         warpedImage->datatype = NIFTI_TYPE_FLOAT32;
-         reg_tools_changeDatatype<float>(floatingImage);
-      }
-      else warpedImage->datatype = floatingImage->datatype;
-      warpedImage->intent_code=floatingImage->intent_code;
-      memset(warpedImage->intent_name, 0, 16);
-      strcpy(warpedImage->intent_name,floatingImage->intent_name);
-      warpedImage->intent_p1=floatingImage->intent_p1;
-      warpedImage->intent_p2=floatingImage->intent_p2;
-      warpedImage->nbyper = floatingImage->nbyper;
-      warpedImage->nvox = (size_t)warpedImage->dim[1] * warpedImage->dim[2] *
-            warpedImage->dim[3] * warpedImage->dim[4] * warpedImage->dim[5];
-      warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
-
-      if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor)
+      if(((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor) || flag->usePSF)
       {
-         NR_DEBUG("DTI-based resampling");
-         // Compute first the Jacobian matrices
-         mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
-         reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
-         // resample the DTI image
-         bool timePoints[7];
-         for(int i=0; i<7; ++i) timePoints[i]=true;
-         if(floatingImage->dim[4]==7) timePoints[0]=false;
-         reg_resampleImage(floatingImage,
-                           warpedImage,
-                           deformationFieldImage,
-                           nullptr,
-                           param->interpolation,
-                           std::numeric_limits<float>::quiet_NaN(),
-                           timePoints,
-                           jacobian
-                           );
-      }
-      else{
-         if(flag->usePSF){
-            // Compute first the Jacobian matrices
-            mat33 *jacobian = (mat33 *)malloc(NiftiImage::calcVoxelNumber(deformationFieldImage, 3) * sizeof(mat33));
-            reg_defField_getJacobianMatrix(deformationFieldImage, jacobian);
+         // DTI-tensor and PSF resampling have no GPU implementation: fall back to the CPU
+         if(platformType != PlatformType::Cpu)
+            NR_WARN("DTI/PSF resampling has no GPU implementation; it is run on the CPU");
+         NiftiImage& deformationField = content->GetDeformationField();
 
-            reg_resampleImage_PSF(floatingImage,
-                                  warpedImage,
-                                  deformationFieldImage,
-                                  nullptr,
-                                  param->interpolation,
-                                  param->paddingValue,
-                                  jacobian,
-                                  Round<char>(param->PSF_Algorithm));
-            NR_DEBUG("PSF resampling completed");
+         nifti_image *warpedImage = nifti_copy_nim_info(referenceImage);
+         warpedImage->dim[0]=warpedImage->ndim=floatingImage->dim[0];
+         warpedImage->dim[4]=warpedImage->nt=floatingImage->dim[4];
+         warpedImage->dim[5]=warpedImage->nu=floatingImage->dim[5];
+         warpedImage->cal_min=floatingImage->cal_min;
+         warpedImage->cal_max=floatingImage->cal_max;
+         warpedImage->scl_slope=floatingImage->scl_slope;
+         warpedImage->scl_inter=floatingImage->scl_inter;
+         warpedImage->datatype = floatingImage->datatype;
+         warpedImage->intent_code=floatingImage->intent_code;
+         memset(warpedImage->intent_name, 0, 16);
+         strcpy(warpedImage->intent_name,floatingImage->intent_name);
+         warpedImage->intent_p1=floatingImage->intent_p1;
+         warpedImage->intent_p2=floatingImage->intent_p2;
+         warpedImage->nbyper = floatingImage->nbyper;
+         warpedImage->nvox = (size_t)warpedImage->dim[1] * warpedImage->dim[2] *
+               warpedImage->dim[3] * warpedImage->dim[4] * warpedImage->dim[5];
+         warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
+
+         if((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor)
+         {
+            NR_DEBUG("DTI-based resampling");
+            mat33 *jacobian = (mat33 *)malloc(deformationField.nVoxelsPerVolume() * sizeof(mat33));
+            reg_defField_getJacobianMatrix(deformationField, jacobian);
+            bool timePoints[7];
+            for(int i=0; i<7; ++i) timePoints[i]=true;
+            if(floatingImage->dim[4]==7) timePoints[0]=false;
+            reg_resampleImage(floatingImage, warpedImage, deformationField, nullptr,
+                              param->interpolation, std::numeric_limits<float>::quiet_NaN(),
+                              timePoints, jacobian);
             free(jacobian);
          }
          else
          {
-            reg_resampleImage(floatingImage,
-                              warpedImage,
-                              deformationFieldImage,
-                              nullptr,
-                              param->interpolation,
-                              param->paddingValue);
+            mat33 *jacobian = (mat33 *)malloc(deformationField.nVoxelsPerVolume() * sizeof(mat33));
+            reg_defField_getJacobianMatrix(deformationField, jacobian);
+            reg_resampleImage_PSF(floatingImage, warpedImage, deformationField, nullptr,
+                                  param->interpolation, param->paddingValue, jacobian,
+                                  Round<char>(param->PSF_Algorithm));
+            NR_DEBUG("PSF resampling completed");
+            free(jacobian);
          }
+
+         memset(warpedImage->descrip, 0, 80);
+         strcpy(warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
+         reg_io_WriteImageFile(warpedImage,param->outputResultName);
+         NR_VERBOSE_APP("Resampled image has been saved: " << param->outputResultName);
+         nifti_image_free(warpedImage);
       }
-
-      memset(warpedImage->descrip, 0, 80);
-      strcpy (warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
-      reg_io_WriteImageFile(warpedImage,param->outputResultName);
-
-      NR_VERBOSE_APP("Resampled image has been saved: " << param->outputResultName);
-      nifti_image_free(warpedImage);
+      else
+      {
+         // Standard resampling through the Platform/Content/Compute abstraction
+         compute->ResampleImage(param->interpolation, param->paddingValue);
+         NiftiImage warpedImage = std::move(content->GetWarped());
+         warpedImage->cal_min=floatingImage->cal_min;
+         warpedImage->cal_max=floatingImage->cal_max;
+         warpedImage->scl_slope=floatingImage->scl_slope;
+         warpedImage->scl_inter=floatingImage->scl_inter;
+         warpedImage->intent_code=floatingImage->intent_code;
+         memset(warpedImage->intent_name, 0, 16);
+         strcpy(warpedImage->intent_name,floatingImage->intent_name);
+         warpedImage->intent_p1=floatingImage->intent_p1;
+         warpedImage->intent_p2=floatingImage->intent_p2;
+         memset(warpedImage->descrip, 0, 80);
+         strcpy(warpedImage->descrip,"Warped image using NiftyReg (reg_resample)");
+         reg_io_WriteImageFile(warpedImage,param->outputResultName);
+         NR_VERBOSE_APP("Resampled image has been saved: " << param->outputResultName);
+      }
    }
 
    /* *********************** */
@@ -585,7 +598,7 @@ int main(int argc, char **argv)
       warpedImage->data = calloc(warpedImage->nvox, warpedImage->nbyper);
       reg_resampleImage(gridImage,
                         warpedImage,
-                        deformationFieldImage,
+                        content->GetDeformationField(),
                         nullptr,
                         1, // linear interpolation
                         0);
@@ -599,8 +612,6 @@ int main(int argc, char **argv)
 
    //   // Tell the CLI that we finished
    //   closeProgress("reg_resample", "Normal exit");
-
-   nifti_image_free(deformationFieldImage);
 
    free(flag);
    free(param);

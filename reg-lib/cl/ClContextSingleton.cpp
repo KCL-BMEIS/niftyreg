@@ -37,7 +37,8 @@ void ClContextSingleton::Init() {
         }
     }
 
-    this->commandQueue = clCreateCommandQueue(this->context, this->devices[this->clIdx], CL_QUEUE_PROFILING_ENABLE, nullptr);
+    const cl_queue_properties queueProperties[] = { CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0 };
+    this->commandQueue = clCreateCommandQueueWithProperties(this->context, this->devices[this->clIdx], queueProperties, &errNum);
     CheckErrNum(errNum, "Failed to create commandQueue for device ");
 
     this->deviceId = this->devices[this->clIdx];

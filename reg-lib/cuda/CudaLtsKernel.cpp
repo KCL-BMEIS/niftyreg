@@ -5,7 +5,7 @@
 /* *************************************************************** */
 CudaLtsKernel::CudaLtsKernel(Content *conIn) : LtsKernel() {
     //get CudaAladinContent ptr
-    con = static_cast<CudaAladinContent*>(conIn);
+    con = dynamic_cast<CudaAladinContent*>(conIn);
 
     //get cpu ptrs
     transformationMatrix = con->AladinContent::GetTransformationMatrix();
