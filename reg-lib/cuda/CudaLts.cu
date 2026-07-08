@@ -177,18 +177,19 @@ __global__ void Gather(const float* ref, const float* warped, const int* idx, in
 /* *************************************************************** */
 // Estimate into scratch.final (device), reading `count` interleaved points from ref/warped (device).
 void Estimate(const float* ref, const float* warped, int count, Scratch& s) {
+    constexpr int one = 1;
     if (!s.affine) {
-        ReduceRigidSums<<<1, kReduceThreads>>>(ref, warped, count, s.sums);
-        BuildCovariance<<<1, 1>>>(s.sums, count, s.A);
+        ReduceRigidSums<<<one, dim3(kReduceThreads)>>>(ref, warped, count, s.sums);
+        BuildCovariance<<<one, one>>>(s.sums, count, s.A);
         cusolverDnDgesvdj(GetSolver(), CUSOLVER_EIG_MODE_VECTOR, 0, 3, 3, s.A, 3, s.S, s.U, 3, s.V, 3, s.svdWork, s.svdLwork, s.info, s.gesvdjParams);
-        AssembleRigid<<<1, 1>>>(s.sums, count, s.U, s.V, s.final);
+        AssembleRigid<<<one, one>>>(s.sums, count, s.U, s.V, s.final);
     } else {
-        ReduceAffineNormal<<<1, kReduceThreads>>>(ref, warped, count, s.normalSums);
-        BuildAffineNormal<<<1, 1>>>(s.normalSums, s.An, s.Bn);
+        ReduceAffineNormal<<<one, dim3(kReduceThreads)>>>(ref, warped, count, s.normalSums);
+        BuildAffineNormal<<<one, one>>>(s.normalSums, s.An, s.Bn);
         // Cholesky-solve the tiny 4x4 SPD normal system for the 3 RHS (An X = Bn, X overwrites Bn).
         cusolverDnDpotrf(GetSolver(), CUBLAS_FILL_MODE_LOWER, 4, s.An, 4, s.potrfWork, s.potrfLwork, s.info);
         cusolverDnDpotrs(GetSolver(), CUBLAS_FILL_MODE_LOWER, 4, 3, s.An, 4, s.Bn, 4, s.info);
-        AssembleAffine<<<1, 1>>>(s.Bn, s.final);
+        AssembleAffine<<<one, one>>>(s.Bn, s.final);
     }
 }
 /* *************************************************************** */
@@ -248,7 +249,7 @@ void OptimizeLts(_reg_blockMatchingParam *params,
     // Device-resident estimate; the host reads back ONLY the trimmed-residual scalar each iteration
     // (one 8-byte D->H) to assess convergence
     for (int count = 0; count < MAX_ITERATIONS; ++count) {
-        ComputeResidual<<<gridM, kReduceThreads>>>(refWorkPtr, warpedWorkPtr, m, s.final, residualPtr);
+        ComputeResidual<<<gridM, dim3(kReduceThreads)>>>(refWorkPtr, warpedWorkPtr, m, s.final, residualPtr);
         thrust::sequence(thrust::device, idx.begin(), idx.end());
         thrust::sort_by_key(thrust::device, residual.begin(), residual.end(), idx.begin());
         const double distance = thrust::reduce(thrust::device, residual.begin(), residual.begin() + numToKeep, 0.0, thrust::plus<double>());
@@ -258,7 +259,7 @@ void OptimizeLts(_reg_blockMatchingParam *params,
         }
         lastDistance = distance;
         NR_CUDA_SAFE_CALL(cudaMemcpy(s.best, s.final, sizeof(mat44), cudaMemcpyDeviceToDevice));      // save lastTransformation
-        Gather<<<(numToKeep + kReduceThreads - 1) / kReduceThreads, kReduceThreads>>>(refWorkPtr, warpedWorkPtr, idxPtr, numToKeep, keptRefPtr, keptWarpedPtr);
+        Gather<<<(numToKeep + kReduceThreads - 1) / kReduceThreads, dim3(kReduceThreads)>>>(refWorkPtr, warpedWorkPtr, idxPtr, numToKeep, keptRefPtr, keptWarpedPtr);
         Estimate(keptRefPtr, keptWarpedPtr, numToKeep, s);
     }
 
