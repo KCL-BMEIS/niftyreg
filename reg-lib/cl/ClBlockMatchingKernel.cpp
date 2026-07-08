@@ -1,6 +1,8 @@
 #include "ClBlockMatchingKernel.h"
 #include "config.h"
 #include <fstream>
+#include <vector>
+#include <cmath>
 
 /* *************************************************************** */
 ClBlockMatchingKernel::ClBlockMatchingKernel(Content *conIn) : BlockMatchingKernel() {

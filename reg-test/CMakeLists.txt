@@ -136,7 +136,7 @@ endif(USE_CUDA)
 foreach(EXEC ${EXEC_LIST})
   add_executable(${EXEC} ${EXEC}.cpp)
   target_link_libraries(${EXEC} PRIVATE Catch2::Catch2WithMain _reg_aladin _reg_f3d)
-  catch_discover_tests(${EXEC})
+  catch_discover_tests(${EXEC} DISCOVERY_MODE PRE_TEST)
 endforeach(EXEC)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

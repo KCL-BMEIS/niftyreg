@@ -21,6 +21,9 @@ set(_reg_resample_libraries
 if(USE_CUDA)
   set(_reg_resample_libraries ${_reg_resample_libraries} _reg_cuda_kernels)
 endif(USE_CUDA)
+if(USE_OPENCL)
+  set(_reg_resample_libraries ${_reg_resample_libraries} _reg_opencl_kernels)
+endif(USE_OPENCL)
 target_link_libraries(reg_resample ${_reg_resample_libraries})
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_resample.h.in ${CMAKE_CURRENT_BINARY_DIR}/reg_resample.h @ONLY)
 #-----------------------------------------------------------------------------

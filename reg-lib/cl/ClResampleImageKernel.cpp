@@ -73,11 +73,14 @@ void ClResampleImageKernel::Calculate(int interp,
     sContext->CheckErrNum(errNum, "Error setting kernel ResampleImage.");
 
     const size_t targetVoxelNumber = NiftiImage::calcVoxelNumber(this->warpedImage, 3);
-    const unsigned maxThreads = sContext->GetMaxThreads();
-    const unsigned maxBlocks = sContext->GetMaxBlocks();
+    size_t kernelWgSize = 0;
+    errNum = clGetKernelWorkGroupInfo(kernel, sContext->GetDeviceId(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(kernelWgSize), &kernelWgSize, nullptr);
+    sContext->CheckErrNum(errNum, "Error querying interp kernel CL_KERNEL_WORK_GROUP_SIZE.");
+    const size_t maxThreads = std::min<size_t>(sContext->GetMaxThreads(), kernelWgSize);
+    const size_t maxBlocks = sContext->GetMaxBlocks();
 
-    unsigned blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
-    blocks = std::min(blocks, maxBlocks);
+    size_t blocks = (targetVoxelNumber % maxThreads) ? (targetVoxelNumber / maxThreads) + 1 : targetVoxelNumber / maxThreads;
+    blocks = std::min<size_t>(blocks, maxBlocks);
 
     const cl_uint dims = 1;
     const size_t globalWorkSize[dims] = {blocks * maxThreads};

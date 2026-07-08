@@ -10,6 +10,12 @@ ClAladinContent::ClAladinContent(NiftiImage& referenceIn,
                                  const unsigned percentageOfBlocks,
                                  const unsigned inlierLts,
                                  int blockStepSize) :
+    // Content is a virtual base of AladinContent
+    Content(referenceIn,
+            floatingIn,
+            referenceMaskIn,
+            transformationMatrixIn,
+            bytesIn),
     AladinContent(referenceIn,
                   floatingIn,
                   referenceMaskIn,

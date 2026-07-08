@@ -168,6 +168,7 @@ if(USE_OPENCL)
     include_directories(SYSTEM ${OpenCL_INCLUDE_DIRS})
     include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cl)
     add_definitions(-DUSE_OPENCL)
+    add_definitions(-DCL_TARGET_OPENCL_VERSION=300)
   endif(NOT OpenCL_FOUND)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
