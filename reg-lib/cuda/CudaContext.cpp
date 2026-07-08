@@ -17,6 +17,9 @@ CudaContext::CudaContext() {
 void CudaContext::SetCudaIdx(unsigned cudaIdxIn) {
     if (cudaIdxIn >= numDevices)
         NR_FATAL_ERROR("The specified CUDA card ID is not defined! Run reg_gpuinfo to get the proper id.");
+    // The constructor already created a context on the auto-picked card (cudaIdx).
+    if (cudaIdxIn == cudaIdx)
+        return;
     cudaIdx = cudaIdxIn;
     PickCard(cudaIdx);
 }
@@ -34,6 +37,12 @@ void CudaContext::SetBlockSize(int major) {
 /* *************************************************************** */
 void CudaContext::PickCard(unsigned deviceId = 999) {
     struct cudaDeviceProp deviceProp;
+    // Releasing a previously created context before making a new one (only hit when actually
+    // switching cards; nullptr on the first pick)
+    if (cudaContext != nullptr) {
+        cuCtxDestroy(cudaContext);
+        cudaContext = nullptr;
+    }
     if (deviceId < numDevices) {
         cudaIdx = deviceId;
         NR_CUDA_SAFE_CALL(cudaSetDevice(cudaIdx));

@@ -48,8 +48,15 @@
 #include <omp.h>
 #endif
 
-#include "_reg_localTrans.h"   // reg_createDeformationField
-#include "Platform.h"          // Platform / Content / Compute / NiftiImage / Mat44Eye
+#include "_reg_localTrans.h"     // reg_createDeformationField
+#include "_reg_blockMatching.h"  // _reg_blockMatchingParam (the LTS correspondences container)
+#include "AladinContent.h"       // AladinContent (SetBlockMatchingParams, public under NR_TESTING)
+#include "AladinContentCreator.h"// AladinContentCreator (build AladinContent via the platform)
+#include "LtsKernel.h"           // LtsKernel::GetName() / Calculate(bool affine)
+#include "CudaAladinContent.h"   // CudaAladinContent (device correspondence buffers)
+#include "CudaLts.hpp"           // Cuda::OptimizeLts (the device LTS - benchmarked directly, since
+                                 // CudaLtsKernel defaults to the CPU optimize)
+#include "Platform.h"            // Platform / Content / Compute / Kernel / NiftiImage / Mat44Eye
 
 using std::unique_ptr;
 using std::vector;
@@ -236,8 +243,12 @@ static void runTask(const BenchmarkTask& task, Platform& cpu, Platform& cuda,
     if (maxThreads > 1) {
         omp_set_num_threads(maxThreads);
         cpuN = timeIt(warmup, runs, [&] { task.run(*cpuBuilt.compute); });
-        omp_set_num_threads(1);
     }
+    // Run the GPU-path host work under the same OMP policy as reg_aladin/-platf 1 (max threads),
+    // mirroring the LTS harness. For resampling this does NOT change the GPU numbers - the resample
+    // runs entirely on the device (Cuda::ResampleImage), with no CPU/OMP fallback - it only keeps the
+    // thread policy consistent across the two harnesses. The speedup below is CPU-N / GPU(kernel).
+    omp_set_num_threads(maxThreads);
 #endif
 
     // --- CUDA: kernel-only, then compute + device->host copy (content built once) ---
@@ -281,6 +292,196 @@ static void runTask(const BenchmarkTask& task, Platform& cpu, Platform& cuda,
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+/* LTS (Least Trimmed Squares) benchmark                                                          */
+/* ---------------------------------------------------------------------------------------------- */
+// The LTS affine/rigid estimator (`optimize`, reg-lib/cpu/_reg_blockMatching.cpp) is the reg_aladin
+// CPU bottleneck and the target of the GPU-LTS port. It is not a Compute operation, so it does NOT
+// reuse the BenchmarkTask/runTask harness above; it goes through the AladinContent + LtsKernel
+// kernel abstraction. The CUDA arm (CudaLtsKernel::Calculate) today only round-trips the
+// correspondence positions device<->host and then runs the SAME CPU optimize() (no device solve
+// yet) - it is wired here as scaffolding so that a future GPU LTS is timed by this identical harness.
+// optimize() reads only blockNumber[2]/dim/activeBlockNumber/definedActiveBlockNumber/percent_to_keep
+// and the referencePosition/warpedPosition arrays, so we inject hand-built correspondences directly
+// (warped[i] = A*reference[i] for a known A) and skip real block matching entirely.
+
+// A known, well-conditioned affine (rotation * anisotropic scale/shear + translation).
+static mat44 ltsAffine3d() {
+    mat44 a; Mat44Eye(&a);
+    a.m[0][0] = 1.10f; a.m[0][1] = 0.05f; a.m[0][2] = 0.02f; a.m[0][3] = 5.f;
+    a.m[1][0] = -0.03f; a.m[1][1] = 0.95f; a.m[1][2] = 0.04f; a.m[1][3] = -3.f;
+    a.m[2][0] = 0.01f; a.m[2][1] = -0.02f; a.m[2][2] = 1.03f; a.m[2][3] = 7.f;
+    return a;
+}
+// A known rigid transform (R = Rz*Ry*Rx + translation).
+static mat44 ltsRigid3d() {
+    const double rx = 0.20, ry = -0.15, rz = 0.30;
+    const double cx = cos(rx), sx = sin(rx), cy = cos(ry), sy = sin(ry), cz = cos(rz), sz = sin(rz);
+    mat44 r; Mat44Eye(&r);
+    r.m[0][0] = (float)(cz * cy); r.m[0][1] = (float)(cz * sy * sx - sz * cx); r.m[0][2] = (float)(cz * sy * cx + sz * sx);
+    r.m[1][0] = (float)(sz * cy); r.m[1][1] = (float)(sz * sy * sx + cz * cx); r.m[1][2] = (float)(sz * sy * cx - cz * sx);
+    r.m[2][0] = (float)(-sy);     r.m[2][1] = (float)(cy * sx);                r.m[2][2] = (float)(cy * cx);
+    r.m[0][3] = 6.f; r.m[1][3] = -4.f; r.m[2][3] = 9.f;
+    return r;
+}
+
+// Build a fresh _reg_blockMatchingParam with n 3D correspondences warped[i] = A*reference[i].
+// Returned by `new`; whichever AladinContent it is handed to owns it and deletes it (freeing the
+// malloc'd arrays), so build a separate one per platform - never share across two contents.
+static _reg_blockMatchingParam* makeLtsParams(int n, int keep, const mat44& a, unsigned seed) {
+    auto* p = new _reg_blockMatchingParam();
+    p->dim = 3;
+    p->blockNumber[0] = 1; p->blockNumber[1] = 1; p->blockNumber[2] = 2;  // [2]!=1 -> 3D path
+    p->activeBlockNumber = n;
+    p->definedActiveBlockNumber = n;
+    p->percent_to_keep = keep;
+    const size_t len = static_cast<size_t>(n) * 3;
+    p->referencePosition = static_cast<float*>(malloc(len * sizeof(float)));
+    p->warpedPosition = static_cast<float*>(malloc(len * sizeof(float)));
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> d(-100.f, 100.f);
+    for (int i = 0; i < n; ++i) {
+        float in[3], out[3];
+        for (int c = 0; c < 3; ++c) in[c] = d(gen);
+        Mat44Mul<float>(a, in, out);
+        for (int c = 0; c < 3; ++c) { p->referencePosition[i * 3 + c] = in[c]; p->warpedPosition[i * 3 + c] = out[c]; }
+    }
+    return p;
+}
+
+// A content+kernel attached to a platform. Heap-allocated (returned by unique_ptr) so the mat44 and
+// images the Content points at keep stable addresses. `mat` holds the fitted transform after Calculate.
+struct LtsBuilt {
+    NiftiImage ref, flo;
+    unique_ptr<mat44> mat;
+    unique_ptr<AladinContent> content;
+    unique_ptr<Kernel> kernel;
+};
+
+// Build an AladinContent on `platform` with block-matching args 0,0,0 (no auto block matching),
+// inject the hand-built correspondences (uploads to device on CUDA), and create the LTS kernel.
+// SetBlockMatchingParams MUST precede CreateKernel (the CUDA kernel ctor reads the params back).
+static unique_ptr<LtsBuilt> buildLts(Platform& platform, const vector<dim_t>& dummyDim,
+                                     _reg_blockMatchingParam* bmp) {
+    auto b = std::make_unique<LtsBuilt>();
+    b->ref = makeImage(dummyDim);
+    b->flo = makeImage(dummyDim);
+    b->mat.reset(new mat44);
+    Mat44Eye(b->mat.get());
+    unique_ptr<ContentCreator> creator{ platform.CreateContentCreator(ContentType::Aladin) };
+    auto* aladinCreator = dynamic_cast<AladinContentCreator*>(creator.get());
+    b->content.reset(aladinCreator->Create(b->ref, b->flo, nullptr, b->mat.get(), sizeof(float), 0, 0, 0));
+    b->content->SetBlockMatchingParams(bmp);  // uploads positions to device on CUDA
+    b->kernel.reset(platform.CreateKernel(LtsKernel::GetName(), b->content.get()));
+    return b;
+}
+
+// Recovery accuracy: max ||rec*p - gt*p|| (mm) over a fixed probe set spanning the correspondence
+// coordinate range. Warped points are gt*ref, so a correct fit gives ~0; a candidate that degrades
+// the solve shows up here. Also used to report the accuracy delta between optimisation candidates.
+static double ltsAccuracyMm(const mat44& rec, const mat44& gt) {
+    const float probes[9][3] = {
+        { 0, 0, 0 }, { 80, 80, 80 }, { -80, 80, 80 }, { 80, -80, 80 }, { 80, 80, -80 },
+        { -80, -80, 80 }, { -80, 80, -80 }, { 80, -80, -80 }, { -80, -80, -80 } };
+    double worst = 0;
+    for (auto& p : probes) {
+        float in[3] = { p[0], p[1], p[2] }, ra[3], rb[3];
+        Mat44Mul<float>(rec, in, ra);
+        Mat44Mul<float>(gt, in, rb);
+        double s = 0;
+        for (int d = 0; d < 3; ++d) s += static_cast<double>(ra[d] - rb[d]) * static_cast<double>(ra[d] - rb[d]);
+        worst = std::max(worst, std::sqrt(s));
+    }
+    return worst;
+}
+
+// Time one LTS problem (3D, affine or rigid, n correspondences) on CPU (1 and max threads) and CUDA.
+static void runLtsBench(const char* type, int n, bool affine, Platform& cpu, Platform& cuda,
+                        int warmup, int runs, int maxThreads) {
+    constexpr int kKeep = 50;  // reg_aladin default LTS keep fraction (-pi)
+    const vector<dim_t> dummy{ 8, 8, 8 };
+    const mat44 a = affine ? ltsAffine3d() : ltsRigid3d();
+
+    // --- CPU: build once, time at 1 thread then max threads ---
+    unique_ptr<LtsBuilt> cpuBuilt = buildLts(cpu, dummy, makeLtsParams(n, kKeep, a, static_cast<unsigned>(n)));
+    LtsKernel* cpuKernel = cpuBuilt->kernel->castTo<LtsKernel>();
+    const auto cpuBody = [&] { Mat44Eye(cpuBuilt->mat.get()); cpuKernel->Calculate(affine); };
+#ifdef _OPENMP
+    omp_set_num_threads(1);
+#endif
+    const Stats cpu1 = timeIt(warmup, runs, cpuBody);
+    const mat44 cpuMat = *cpuBuilt->mat;  // recovered transform, for the sanity check
+
+    Stats cpuN;
+#ifdef _OPENMP
+    if (maxThreads > 1) {
+        omp_set_num_threads(maxThreads);
+        cpuN = timeIt(warmup, runs, cpuBody);
+        omp_set_num_threads(1);
+    }
+#endif
+
+    // --- CUDA: the actual device LTS (Cuda::OptimizeLts), called directly - CudaLtsKernel defaults
+    // to the CPU optimize, so going through the kernel would measure the CPU. GPU(call) = OptimizeLts
+    // on a prebuilt content (positions already on device); GPU(app) = build content + upload +
+    // OptimizeLts per call. ---
+    unique_ptr<LtsBuilt> gpuBuilt = buildLts(cuda, dummy, makeLtsParams(n, kKeep, a, static_cast<unsigned>(n)));
+    auto* gpuContent = dynamic_cast<CudaAladinContent*>(gpuBuilt->content.get());
+    _reg_blockMatchingParam* gpuParams = gpuContent->AladinContent::GetBlockMatchingParams();
+    const float* gpuRefPos = gpuContent->GetReferencePositionCuda();
+    const float* gpuWarpedPos = gpuContent->GetWarpedPositionCuda();
+    const Stats gpuCall = timeIt(warmup, runs, [&] {
+        Mat44Eye(gpuBuilt->mat.get());
+        NiftyReg::Cuda::OptimizeLts(gpuParams, gpuBuilt->mat.get(), gpuRefPos, gpuWarpedPos, affine);
+    });
+    const mat44 gpuMat = *gpuBuilt->mat;
+
+    const Stats gpuApp = timeIt(warmup, runs, [&] {
+        unique_ptr<LtsBuilt> b = buildLts(cuda, dummy, makeLtsParams(n, kKeep, a, static_cast<unsigned>(n)));
+        auto* c = dynamic_cast<CudaAladinContent*>(b->content.get());
+        Mat44Eye(b->mat.get());
+        NiftyReg::Cuda::OptimizeLts(c->AladinContent::GetBlockMatchingParams(), b->mat.get(),
+                                    c->GetReferencePositionCuda(), c->GetWarpedPositionCuda(), affine);
+    });
+
+    // --- sanity: CPU-optimize vs device-LTS recovered matrix on identical inputs (clean data) ---
+    double maxDiff = 0;
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+            maxDiff = std::max(maxDiff, static_cast<double>(std::fabs(cpuMat.m[i][j] - gpuMat.m[i][j])));
+
+    // --- recovery accuracy (max probe displacement vs the ground-truth transform, mm) ---
+    const double accMm = ltsAccuracyMm(cpuMat, a);
+
+    // --- print one row ---
+    const double cpuNms = cpuN.available ? cpuN.meanMs : cpu1.meanMs;
+    const double gpuSpeedup = gpuCall.meanMs > 0 ? cpuNms / gpuCall.meanMs : 0;
+    std::printf("%-7s %-4s %9d %10.3f ", type, "3D", n, cpu1.meanMs);
+    if (cpuN.available) std::printf("%10.3f ", cpuN.meanMs);
+    else                std::printf("%10s ", "n/a");
+    std::printf("%12.4f %12.4f %10.2fx %11.2e\n", gpuCall.meanMs, gpuApp.meanMs, gpuSpeedup, accMm);
+    if (maxDiff > 1e-3)
+        std::printf("  ** WARNING: CPU/CUDA LTS matrix diff %.3g for %s N=%d **\n", maxDiff, type, n);
+    std::fflush(stdout);
+}
+
+static void runLtsBenchmarks(Platform& cpu, Platform& cuda, int warmup, int runs, int maxThreads) {
+    std::printf("\nLTS estimation (optimize() via LtsKernel) - affine/rigid point-set fit, keep=50%% (reg_aladin -pi default)\n");
+    std::printf("NOTE: CUDA LTS currently round-trips the correspondence positions device<->host then runs the CPU\n");
+    std::printf("      optimize() (no device solve yet); the GPU columns are scaffolding to compare a future GPU LTS.\n");
+    std::printf("GPU(call) = LtsKernel::Calculate on a prebuilt content; GPU(app) = build content + upload + Calculate.\n");
+    std::printf("The GPU CPU-fallback runs at max threads (as reg_aladin -platf 1 does), so GPU(call) tracks CPU-N today.\n");
+    std::printf("GPUspeedup = CPU-N / GPU(call) (~1 now: the GPU path is the CPU-N solve + a device round-trip).\n");
+    std::printf("recov(mm) = max probe displacement of the recovered vs ground-truth transform (fit accuracy).\n");
+    std::printf("%-7s %-4s %9s %10s %10s %12s %12s %11s %11s\n",
+                "type", "dim", "points", "CPU-1", "CPU-N", "GPU(call)", "GPU(app)", "GPUspeedup", "recov(mm)");
+    std::printf("%-7s %-4s %9s %10s %10s %12s %12s %11s %11s\n",
+                "----", "---", "------", "-----", "-----", "---------", "--------", "----------", "---------");
+    const vector<int> sizes = { 1000, 10000, 100000, 200000 };
+    for (int n : sizes) runLtsBench("affine", n, /*affine*/true, cpu, cuda, warmup, runs, maxThreads);
+    for (int n : sizes) runLtsBench("rigid", n, /*affine*/false, cpu, cuda, warmup, runs, maxThreads);
+}
+
+/* ---------------------------------------------------------------------------------------------- */
 
 int main(int argc, char** argv) {
     int runs = 10, warmup = 2;
@@ -296,7 +497,8 @@ int main(int argc, char** argv) {
             gpuIdx = static_cast<unsigned>(std::atoi(argv[++i]));
         else if (!std::strcmp(argv[i], "-h") || !std::strcmp(argv[i], "--help")) {
             std::printf("Usage: %s [-n timed_runs] [-w warmup_runs] [-gpuid <int>]\n", argv[0]);
-            std::printf("  Benchmarks 2D and 3D linear resampling on CPU (1 and max threads) vs CUDA.\n");
+            std::printf("  Benchmarks 2D and 3D linear resampling on CPU (1 and max threads) vs CUDA,\n");
+            std::printf("  then the LTS affine/rigid estimator (CPU thread-scaling + CUDA-path scaffolding).\n");
             std::printf("  -gpuid <int>  Id of the GPU card to use [automatic]\n");
             return 0;
         }
@@ -349,6 +551,9 @@ int main(int argc, char** argv) {
 
     for (const BenchmarkTask& task : tasks)
         runTask(task, cpu, cuda, warmup, runs, maxThreads);
+
+    // LTS (reg_aladin affine/rigid fit): CPU thread-scaling + the CUDA-path baseline (scaffolding).
+    runLtsBenchmarks(cpu, cuda, warmup, runs, maxThreads);
 
     return 0;
 }

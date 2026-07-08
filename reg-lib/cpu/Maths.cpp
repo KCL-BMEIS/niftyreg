@@ -343,23 +343,13 @@ void Svd(T **in, const size_t size_m, const size_t size_n, T * w, T **v) {
 #endif
     Eigen::MatrixXd m(size_m, size_n);
 
-    //Convert to Eigen matrix
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(in,m, size__m, size__n) \
-   private(sn)
-#endif
+    // Convert to Eigen matrix
     for (sm = 0; sm < size__m; sm++)
         for (sn = 0; sn < size__n; sn++)
             m(sm, sn) = static_cast<double>(in[sm][sn]);
 
     Eigen::JacobiSVD<Eigen::MatrixXd> Svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-#ifdef _OPENMP
-#pragma omp parallel for default(none) \
-   shared(in,Svd,v,w, size__n,size__m) \
-   private(sn2, sm)
-#endif
     for (sn = 0; sn < size__n; sn++) {
         w[sn] = static_cast<T>(Svd.singularValues()(sn));
         for (sn2 = 0; sn2 < size__n; sn2++)
@@ -370,6 +360,73 @@ void Svd(T **in, const size_t size_m, const size_t size_n, T * w, T **v) {
 }
 template void Svd<float>(float **in, const size_t m, const size_t n, float * w, float **v);
 template void Svd<double>(double **in, const size_t m, const size_t n, double * w, double **v);
+/* *************************************************************** */
+void EstimateAffineLeastSquares(const float* const* points1, const float* const* points2,
+                                size_t numPoints, unsigned dim, mat44 *transformation) {
+    const Eigen::Index d = static_cast<Eigen::Index>(dim);
+    // Design matrix M = [source coords | 1]  (numPoints x d+1), targets W (numPoints x d).
+    // The affine's d rows are d independent least-squares fits that all share M, so one QR of the
+    // (numPoints x d+1) system solves for all d columns of P at once. Accumulate in double.
+    Eigen::MatrixXd m(static_cast<Eigen::Index>(numPoints), d + 1);
+    Eigen::MatrixXd rhs(static_cast<Eigen::Index>(numPoints), d);
+    for (size_t i = 0; i < numPoints; ++i) {
+        for (Eigen::Index c = 0; c < d; ++c) {
+            m(static_cast<Eigen::Index>(i), c) = static_cast<double>(points1[i][c]);
+            rhs(static_cast<Eigen::Index>(i), c) = static_cast<double>(points2[i][c]);
+        }
+        m(static_cast<Eigen::Index>(i), d) = 1.0;
+    }
+    // P is (d+1) x d: column r holds [coeffs..., translation] for output coordinate r.
+    // Column-pivoting QR is accurate and robust to near-rank-deficient point sets.
+    const Eigen::MatrixXd p = m.colPivHouseholderQr().solve(rhs);
+    Mat44Eye(transformation);
+    for (Eigen::Index r = 0; r < d; ++r) {
+        for (Eigen::Index c = 0; c < d; ++c)
+            transformation->m[r][c] = static_cast<float>(p(c, r));
+        transformation->m[r][3] = static_cast<float>(p(d, r));  // translation (mat44 column 3)
+    }
+}
+/* *************************************************************** */
+void EstimateRigidLeastSquares(const float* const* points1, const float* const* points2,
+                               size_t numPoints, unsigned dim, mat44 *transformation) {
+    const Eigen::Index d = static_cast<Eigen::Index>(dim);
+    // Kabsch: the best rotation is constrained (unlike the affine least-squares fit), so it goes
+    // through an SVD. Centre both clouds, form the dxd cross-covariance H = Σ (p1-c1)(p2-c2)^T,
+    // decompose H = U S V^T, then R = V U^T (with a reflection guard so R is a proper rotation) and
+    // t = c2 - R c1. Everything accumulates in double, like EstimateAffineLeastSquares.
+    Eigen::VectorXd c1 = Eigen::VectorXd::Zero(d), c2 = Eigen::VectorXd::Zero(d);
+    for (size_t i = 0; i < numPoints; ++i)
+        for (Eigen::Index k = 0; k < d; ++k) {
+            c1[k] += static_cast<double>(points1[i][k]);
+            c2[k] += static_cast<double>(points2[i][k]);
+        }
+    c1 /= static_cast<double>(numPoints);
+    c2 /= static_cast<double>(numPoints);
+
+    Eigen::MatrixXd h = Eigen::MatrixXd::Zero(d, d);
+    Eigen::VectorXd p(d), q(d);
+    for (size_t i = 0; i < numPoints; ++i) {
+        for (Eigen::Index k = 0; k < d; ++k) {
+            p[k] = static_cast<double>(points1[i][k]) - c1[k];
+            q[k] = static_cast<double>(points2[i][k]) - c2[k];
+        }
+        h.noalias() += p * q.transpose();
+    }
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(h, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::MatrixXd v = svd.matrixV();
+    Eigen::MatrixXd r = v * svd.matrixU().transpose();
+    if (r.determinant() < 0) {                 // reflection -> flip the last column of V, recompute
+        v.col(d - 1) *= -1.0;
+        r = v * svd.matrixU().transpose();
+    }
+    const Eigen::VectorXd t = c2 - r * c1;
+    Mat44Eye(transformation);
+    for (Eigen::Index a = 0; a < d; ++a) {
+        for (Eigen::Index b = 0; b < d; ++b)
+            transformation->m[a][b] = static_cast<float>(r(a, b));
+        transformation->m[a][3] = static_cast<float>(t[a]);   // translation (mat44 column 3)
+    }
+}
 /* *************************************************************** */
 template<class T>
 T Matrix2dDet(T **mat, const size_t m, const size_t n) {
