@@ -32,45 +32,43 @@ cusolverDnHandle_t GetSolver() {
 // Reusable device scratch (allocated once per OptimizeLts
 struct Scratch {
     bool affine;
-    double *sums = nullptr;                 // rigid: Sref[3], Swarped[3], Scross[9]
-    double *A = nullptr, *U = nullptr, *V = nullptr, *S = nullptr, *svdWork = nullptr;  // rigid 3x3 SVD
+    Cuda::UniquePtr<double> sums;                                  // rigid: Sref[3], Swarped[3], Scross[9]
+    Cuda::UniquePtr<double> A, U, V, S, svdWork;                   // rigid 3x3 SVD
     int svdLwork = 0; gesvdjInfo_t gesvdjParams = nullptr;
     // affine: reduce to the 4x4 normal system (like rigid's 3x3), then a tiny Cholesky solve - far
     // cheaper than DDgels on the tall NxN matrix. normalSums = MtM(10 unique) + MtW(12); An = 4x4
     // col-major; Bn = 4x3 RHS (overwritten with the solution by Dpotrs).
-    double *normalSums = nullptr, *An = nullptr, *Bn = nullptr, *potrfWork = nullptr;
+    Cuda::UniquePtr<double> normalSums, An, Bn, potrfWork;
     int potrfLwork = 0;
-    int *info = nullptr;
-    mat44 *final = nullptr, *best = nullptr;        // device transforms
+    Cuda::UniquePtr<int> info;
+    Cuda::UniquePtr<float> final, best;                            // device transforms (mat44 flattened to float[16])
 
     Scratch(bool affineIn, int maxCount) : affine(affineIn) {
         cusolverDnHandle_t solver = GetSolver();
-        NR_CUDA_SAFE_CALL(cudaMalloc(&info, sizeof(int)));
-        NR_CUDA_SAFE_CALL(cudaMalloc(&final, sizeof(mat44)));
-        NR_CUDA_SAFE_CALL(cudaMalloc(&best, sizeof(mat44)));
+        int *infoRaw; Cuda::Allocate(&infoRaw, 1); info.reset(infoRaw);
+        float *finalRaw; Cuda::Allocate(&finalRaw, sizeof(mat44) / sizeof(float)); final.reset(finalRaw);
+        float *bestRaw; Cuda::Allocate(&bestRaw, sizeof(mat44) / sizeof(float)); best.reset(bestRaw);
         if (!affine) {
-            NR_CUDA_SAFE_CALL(cudaMalloc(&sums, 15 * sizeof(double)));
-            NR_CUDA_SAFE_CALL(cudaMalloc(&A, 9 * sizeof(double)));
-            NR_CUDA_SAFE_CALL(cudaMalloc(&U, 9 * sizeof(double)));
-            NR_CUDA_SAFE_CALL(cudaMalloc(&V, 9 * sizeof(double)));
-            NR_CUDA_SAFE_CALL(cudaMalloc(&S, 3 * sizeof(double)));
+            double *sumsRaw; Cuda::Allocate(&sumsRaw, 15); sums.reset(sumsRaw);
+            double *aRaw; Cuda::Allocate(&aRaw, 9); A.reset(aRaw);
+            double *uRaw; Cuda::Allocate(&uRaw, 9); U.reset(uRaw);
+            double *vRaw; Cuda::Allocate(&vRaw, 9); V.reset(vRaw);
+            double *sRaw; Cuda::Allocate(&sRaw, 3); S.reset(sRaw);
             cusolverDnCreateGesvdjInfo(&gesvdjParams);
-            cusolverDnDgesvdj_bufferSize(solver, CUSOLVER_EIG_MODE_VECTOR, 0, 3, 3, A, 3, S, U, 3, V, 3, &svdLwork, gesvdjParams);
-            NR_CUDA_SAFE_CALL(cudaMalloc(&svdWork, svdLwork * sizeof(double)));
+            cusolverDnDgesvdj_bufferSize(solver, CUSOLVER_EIG_MODE_VECTOR, 0, 3, 3, A.get(), 3, S.get(), U.get(), 3, V.get(), 3, &svdLwork, gesvdjParams);
+            double *svdWorkRaw; Cuda::Allocate(&svdWorkRaw, svdLwork); svdWork.reset(svdWorkRaw);
         } else {
             (void)maxCount;
-            NR_CUDA_SAFE_CALL(cudaMalloc(&normalSums, 22 * sizeof(double)));
-            NR_CUDA_SAFE_CALL(cudaMalloc(&An, 16 * sizeof(double)));
-            NR_CUDA_SAFE_CALL(cudaMalloc(&Bn, 12 * sizeof(double)));
-            cusolverDnDpotrf_bufferSize(solver, CUBLAS_FILL_MODE_LOWER, 4, An, 4, &potrfLwork);
-            NR_CUDA_SAFE_CALL(cudaMalloc(&potrfWork, potrfLwork * sizeof(double)));
+            double *normalSumsRaw; Cuda::Allocate(&normalSumsRaw, 22); normalSums.reset(normalSumsRaw);
+            double *anRaw; Cuda::Allocate(&anRaw, 16); An.reset(anRaw);
+            double *bnRaw; Cuda::Allocate(&bnRaw, 12); Bn.reset(bnRaw);
+            cusolverDnDpotrf_bufferSize(solver, CUBLAS_FILL_MODE_LOWER, 4, An.get(), 4, &potrfLwork);
+            double *potrfWorkRaw; Cuda::Allocate(&potrfWorkRaw, potrfLwork); potrfWork.reset(potrfWorkRaw);
         }
     }
+    // Device buffers free themselves via UniquePtr; only the cuSolver handle needs manual cleanup.
     ~Scratch() {
-        cudaFree(info); cudaFree(final); cudaFree(best);
-        if (!affine) { cudaFree(sums); cudaFree(A); cudaFree(U); cudaFree(V); cudaFree(S); cudaFree(svdWork);
-                       if (gesvdjParams) cusolverDnDestroyGesvdjInfo(gesvdjParams); }
-        else { cudaFree(normalSums); cudaFree(An); cudaFree(Bn); cudaFree(potrfWork); }
+        if (gesvdjParams) cusolverDnDestroyGesvdjInfo(gesvdjParams);
     }
 };
 /* *************************************************************** */
@@ -179,17 +177,17 @@ __global__ void Gather(const float* ref, const float* warped, const int* idx, in
 void Estimate(const float* ref, const float* warped, int count, Scratch& s) {
     constexpr int one = 1;
     if (!s.affine) {
-        ReduceRigidSums<<<one, dim3(kReduceThreads)>>>(ref, warped, count, s.sums);
-        BuildCovariance<<<one, one>>>(s.sums, count, s.A);
-        cusolverDnDgesvdj(GetSolver(), CUSOLVER_EIG_MODE_VECTOR, 0, 3, 3, s.A, 3, s.S, s.U, 3, s.V, 3, s.svdWork, s.svdLwork, s.info, s.gesvdjParams);
-        AssembleRigid<<<one, one>>>(s.sums, count, s.U, s.V, s.final);
+        ReduceRigidSums<<<one, dim3(kReduceThreads)>>>(ref, warped, count, s.sums.get());
+        BuildCovariance<<<one, one>>>(s.sums.get(), count, s.A.get());
+        cusolverDnDgesvdj(GetSolver(), CUSOLVER_EIG_MODE_VECTOR, 0, 3, 3, s.A.get(), 3, s.S.get(), s.U.get(), 3, s.V.get(), 3, s.svdWork.get(), s.svdLwork, s.info.get(), s.gesvdjParams);
+        AssembleRigid<<<one, one>>>(s.sums.get(), count, s.U.get(), s.V.get(), reinterpret_cast<mat44*>(s.final.get()));
     } else {
-        ReduceAffineNormal<<<one, dim3(kReduceThreads)>>>(ref, warped, count, s.normalSums);
-        BuildAffineNormal<<<one, one>>>(s.normalSums, s.An, s.Bn);
+        ReduceAffineNormal<<<one, dim3(kReduceThreads)>>>(ref, warped, count, s.normalSums.get());
+        BuildAffineNormal<<<one, one>>>(s.normalSums.get(), s.An.get(), s.Bn.get());
         // Cholesky-solve the tiny 4x4 SPD normal system for the 3 RHS (An X = Bn, X overwrites Bn).
-        cusolverDnDpotrf(GetSolver(), CUBLAS_FILL_MODE_LOWER, 4, s.An, 4, s.potrfWork, s.potrfLwork, s.info);
-        cusolverDnDpotrs(GetSolver(), CUBLAS_FILL_MODE_LOWER, 4, 3, s.An, 4, s.Bn, 4, s.info);
-        AssembleAffine<<<one, one>>>(s.Bn, s.final);
+        cusolverDnDpotrf(GetSolver(), CUBLAS_FILL_MODE_LOWER, 4, s.An.get(), 4, s.potrfWork.get(), s.potrfLwork, s.info.get());
+        cusolverDnDpotrs(GetSolver(), CUBLAS_FILL_MODE_LOWER, 4, 3, s.An.get(), 4, s.Bn.get(), 4, s.info.get());
+        AssembleAffine<<<one, one>>>(s.Bn.get(), reinterpret_cast<mat44*>(s.final.get()));
     }
 }
 /* *************************************************************** */
@@ -203,8 +201,8 @@ void OptimizeLts(_reg_blockMatchingParam *params,
     // Device-resident path for 3D (rigid + affine); 2D uses the (verified) CPU fallback for now.
     if (params->dim != 3) {
         const size_t count = static_cast<size_t>(params->activeBlockNumber) * params->dim;
-        NR_CUDA_SAFE_CALL(cudaMemcpy(params->referencePosition, referencePositionCuda, count * sizeof(float), cudaMemcpyDeviceToHost));
-        NR_CUDA_SAFE_CALL(cudaMemcpy(params->warpedPosition, warpedPositionCuda, count * sizeof(float), cudaMemcpyDeviceToHost));
+        Cuda::TransferFromDeviceToHost(params->referencePosition, referencePositionCuda, count);
+        Cuda::TransferFromDeviceToHost(params->warpedPosition, warpedPositionCuda, count);
         optimize(params, transformationMatrix, affine);
         return;
     }
@@ -243,27 +241,27 @@ void OptimizeLts(_reg_blockMatchingParam *params,
     const int gridM = (m + kReduceThreads - 1) / kReduceThreads;
 
     Estimate(refWorkPtr, warpedWorkPtr, m, s);                 // initial estimate over all points
-    NR_CUDA_SAFE_CALL(cudaMemcpy(s.best, s.final, sizeof(mat44), cudaMemcpyDeviceToDevice));  // s.best = lastTransformation
+    NR_CUDA_SAFE_CALL(cudaMemcpy(s.best.get(), s.final.get(), sizeof(mat44), cudaMemcpyDeviceToDevice));  // s.best = lastTransformation
     double lastDistance = DBL_MAX;
 
     // Device-resident estimate; the host reads back ONLY the trimmed-residual scalar each iteration
     // (one 8-byte D->H) to assess convergence
     for (int count = 0; count < MAX_ITERATIONS; ++count) {
-        ComputeResidual<<<gridM, dim3(kReduceThreads)>>>(refWorkPtr, warpedWorkPtr, m, s.final, residualPtr);
+        ComputeResidual<<<gridM, dim3(kReduceThreads)>>>(refWorkPtr, warpedWorkPtr, m, reinterpret_cast<mat44*>(s.final.get()), residualPtr);
         thrust::sequence(thrust::device, idx.begin(), idx.end());
         thrust::sort_by_key(thrust::device, residual.begin(), residual.end(), idx.begin());
         const double distance = thrust::reduce(thrust::device, residual.begin(), residual.begin() + numToKeep, 0.0, thrust::plus<double>());
         if (distance > lastDistance || (lastDistance - distance) < TOLERANCE) {
-            NR_CUDA_SAFE_CALL(cudaMemcpy(s.final, s.best, sizeof(mat44), cudaMemcpyDeviceToDevice));  // rollback to lastTransformation
+            NR_CUDA_SAFE_CALL(cudaMemcpy(s.final.get(), s.best.get(), sizeof(mat44), cudaMemcpyDeviceToDevice));  // rollback to lastTransformation
             break;
         }
         lastDistance = distance;
-        NR_CUDA_SAFE_CALL(cudaMemcpy(s.best, s.final, sizeof(mat44), cudaMemcpyDeviceToDevice));      // save lastTransformation
+        NR_CUDA_SAFE_CALL(cudaMemcpy(s.best.get(), s.final.get(), sizeof(mat44), cudaMemcpyDeviceToDevice));      // save lastTransformation
         Gather<<<(numToKeep + kReduceThreads - 1) / kReduceThreads, dim3(kReduceThreads)>>>(refWorkPtr, warpedWorkPtr, idxPtr, numToKeep, keptRefPtr, keptWarpedPtr);
         Estimate(keptRefPtr, keptWarpedPtr, numToKeep, s);
     }
 
-    NR_CUDA_SAFE_CALL(cudaMemcpy(transformationMatrix, s.final, sizeof(mat44), cudaMemcpyDeviceToHost));
+    Cuda::TransferFromDeviceToHost(reinterpret_cast<float*>(transformationMatrix), s.final.get(), sizeof(mat44) / sizeof(float));
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda
