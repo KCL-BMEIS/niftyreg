@@ -75,6 +75,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaKernelConvolution.cu
     CudaKernelFactory.cpp
     CudaLocalTransformation.cu
+    CudaLts.cu
     CudaLtsKernel.cpp
     CudaMeasureCreator.cpp
     CudaNormaliseGradient.cu
@@ -85,7 +86,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
 )
-target_link_libraries(${NAME} CUDA::cuda_driver)
+target_link_libraries(${NAME} CUDA::cuda_driver CUDA::cusolver CUDA::cublas)
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib

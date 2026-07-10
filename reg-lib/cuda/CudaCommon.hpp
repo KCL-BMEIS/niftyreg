@@ -118,6 +118,9 @@ template<class DataType>
 void TransferFromHostToDevice(DataType*, const DataType*, const size_t);
 /* *************************************************************** */
 template<class DataType>
+void TransferFromDeviceToDevice(DataType*, const DataType*, const size_t);
+/* *************************************************************** */
+template<class DataType>
 void Free(DataType*);
 /* *************************************************************** */
 namespace Internal {

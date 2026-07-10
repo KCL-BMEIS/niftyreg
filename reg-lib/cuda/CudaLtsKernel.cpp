@@ -1,6 +1,7 @@
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include "CudaLtsKernel.h"
+#include "CudaLts.hpp"
 
 /* *************************************************************** */
 CudaLtsKernel::CudaLtsKernel(Content *conIn) : LtsKernel() {
@@ -13,7 +14,6 @@ CudaLtsKernel::CudaLtsKernel(Content *conIn) : LtsKernel() {
 }
 /* *************************************************************** */
 void CudaLtsKernel::Calculate(bool affine) {
-    blockMatchingParams = con->GetBlockMatchingParams();
-    optimize(blockMatchingParams, transformationMatrix, affine);
+    Cuda::OptimizeLts(blockMatchingParams, transformationMatrix, con->GetReferencePositionCuda(), con->GetWarpedPositionCuda(), affine);
 }
 /* *************************************************************** */

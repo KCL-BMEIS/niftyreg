@@ -279,6 +279,14 @@ template void TransferFromHostToDevice<float>(float*, const float*, const size_t
 template void TransferFromHostToDevice<double>(double*, const double*, const size_t);
 /* *************************************************************** */
 template<class DataType>
+void TransferFromDeviceToDevice(DataType *arrayCuda, const DataType *sourceCuda, const size_t nElements) {
+    NR_CUDA_SAFE_CALL(cudaMemcpy(arrayCuda, sourceCuda, nElements * sizeof(DataType), cudaMemcpyDeviceToDevice));
+}
+template void TransferFromDeviceToDevice<int>(int*, const int*, const size_t);
+template void TransferFromDeviceToDevice<float>(float*, const float*, const size_t);
+template void TransferFromDeviceToDevice<double>(double*, const double*, const size_t);
+/* *************************************************************** */
+template<class DataType>
 void Free(DataType *arrayCuda) {
     if (arrayCuda != nullptr)
         NR_CUDA_SAFE_CALL(cudaFree(arrayCuda));
