@@ -241,7 +241,7 @@ void OptimizeLts(_reg_blockMatchingParam *params,
     const int gridM = (m + kReduceThreads - 1) / kReduceThreads;
 
     Estimate(refWorkPtr, warpedWorkPtr, m, s);                 // initial estimate over all points
-    NR_CUDA_SAFE_CALL(cudaMemcpy(s.best.get(), s.final.get(), sizeof(mat44), cudaMemcpyDeviceToDevice));  // s.best = lastTransformation
+    Cuda::TransferFromDeviceToDevice(s.best.get(), s.final.get(), sizeof(mat44) / sizeof(float));  // s.best = lastTransformation
     double lastDistance = DBL_MAX;
 
     // Device-resident estimate; the host reads back ONLY the trimmed-residual scalar each iteration
@@ -252,11 +252,11 @@ void OptimizeLts(_reg_blockMatchingParam *params,
         thrust::sort_by_key(thrust::device, residual.begin(), residual.end(), idx.begin());
         const double distance = thrust::reduce(thrust::device, residual.begin(), residual.begin() + numToKeep, 0.0, thrust::plus<double>());
         if (distance > lastDistance || (lastDistance - distance) < TOLERANCE) {
-            NR_CUDA_SAFE_CALL(cudaMemcpy(s.final.get(), s.best.get(), sizeof(mat44), cudaMemcpyDeviceToDevice));  // rollback to lastTransformation
+            Cuda::TransferFromDeviceToDevice(s.final.get(), s.best.get(), sizeof(mat44) / sizeof(float));  // rollback to lastTransformation
             break;
         }
         lastDistance = distance;
-        NR_CUDA_SAFE_CALL(cudaMemcpy(s.best.get(), s.final.get(), sizeof(mat44), cudaMemcpyDeviceToDevice));      // save lastTransformation
+        Cuda::TransferFromDeviceToDevice(s.best.get(), s.final.get(), sizeof(mat44) / sizeof(float));      // save lastTransformation
         Gather<<<(numToKeep + kReduceThreads - 1) / kReduceThreads, dim3(kReduceThreads)>>>(refWorkPtr, warpedWorkPtr, idxPtr, numToKeep, keptRefPtr, keptWarpedPtr);
         Estimate(keptRefPtr, keptWarpedPtr, numToKeep, s);
     }

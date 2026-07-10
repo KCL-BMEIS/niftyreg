@@ -322,45 +322,6 @@ void Mat44Disp(const mat44& mat, const std::string& title) {
         << mat.m[3][0] << "\t" << mat.m[3][1] << "\t" << mat.m[3][2] << "\t" << mat.m[3][3] << std::endl;
 }
 /* *************************************************************** */
-/** @brief SVD
-* @param in input matrix to decompose - in place
-* @param size_m row
-* @param size_n colomn
-* @param w diagonal term
-* @param v rotation part
-*/
-template<class T>
-void Svd(T **in, const size_t size_m, const size_t size_n, T * w, T **v) {
-    if (size_m == 0 || size_n == 0)
-        NR_FATAL_ERROR("The specified matrix is empty");
-
-#ifdef _WIN32
-    long sm, sn, sn2;
-    long size__m = (long)size_m, size__n = (long)size_n;
-#else
-    size_t sm, sn, sn2;
-    size_t size__m = size_m, size__n = size_n;
-#endif
-    Eigen::MatrixXd m(size_m, size_n);
-
-    // Convert to Eigen matrix
-    for (sm = 0; sm < size__m; sm++)
-        for (sn = 0; sn < size__n; sn++)
-            m(sm, sn) = static_cast<double>(in[sm][sn]);
-
-    Eigen::JacobiSVD<Eigen::MatrixXd> Svd(m, Eigen::ComputeThinU | Eigen::ComputeThinV);
-
-    for (sn = 0; sn < size__n; sn++) {
-        w[sn] = static_cast<T>(Svd.singularValues()(sn));
-        for (sn2 = 0; sn2 < size__n; sn2++)
-            v[sn2][sn] = static_cast<T>(Svd.matrixV()(sn2, sn));
-        for (sm = 0; sm < size__m; sm++)
-            in[sm][sn] = static_cast<T>(Svd.matrixU()(sm, sn));
-    }
-}
-template void Svd<float>(float **in, const size_t m, const size_t n, float * w, float **v);
-template void Svd<double>(double **in, const size_t m, const size_t n, double * w, double **v);
-/* *************************************************************** */
 void EstimateAffineLeastSquares(const float* const* points1, const float* const* points2,
                                 size_t numPoints, unsigned dim, mat44 *transformation) {
     const Eigen::Index d = static_cast<Eigen::Index>(dim);

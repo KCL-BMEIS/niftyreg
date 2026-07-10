@@ -174,6 +174,18 @@ TEST_CASE("LTS estimation", "[unit]") {
         REQUIRE(fabs(linearDet(rec, 2) - 1.0) < TOL_ORTHO);
         REQUIRE(maxOrthonormalityError(rec, 2) < TOL_ORTHO);
     }
+    // A reflected (improper) correspondence set forces det(V*U^T) < 0, exercising the reflection
+    // guard in EstimateRigidLeastSquares. The estimator must still return a *proper* rotation
+    // (det +1, orthonormal), never a reflection.
+    SECTION("Rigid reflection guard (improper input -> proper rotation)") {
+        const auto ref = makeCloud(gen, 3, N);
+        mat44 refl; Mat44Eye(&refl);
+        refl.m[0][0] = -1.0f;                                   // reflect across x=0 (det of linear part = -1)
+        refl.m[0][3] = 3.0f; refl.m[1][3] = -2.0f; refl.m[2][3] = 5.0f;
+        const auto rec = runLts(3, ref, warpBy(ref, 3, refl), N, N, 100, false);
+        REQUIRE(fabs(linearDet(rec, 3) - 1.0) < TOL_ORTHO);     // proper rotation, not a reflection
+        REQUIRE(maxOrthonormalityError(rec, 3) < TOL_ORTHO);
+    }
     SECTION("Identity recovery") {
         const auto ref = makeCloud(gen, 3, N);
         mat44 gt; Mat44Eye(&gt);

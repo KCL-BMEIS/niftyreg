@@ -352,9 +352,6 @@ DEVICE inline double SquareDistance3d(const float *first_point3D, const float *s
                 Square(first_point3D[2] - second_point3D[2]));
 }
 /* *************************************************************** */
-template<class T>
-void Svd(T **in, const size_t m, const size_t n, T *w, T **v);
-/* *************************************************************** */
 /// @brief Least-squares affine mapping points1 -> points2 (dim = 2 or 3), written into `transformation`.
 /// Solves the `dim` independent (dim+1)-parameter regressions that share the [coords 1] design matrix
 /// via a single Householder QR of a (numPoints x dim+1) system - far cheaper than SVD-ing the
