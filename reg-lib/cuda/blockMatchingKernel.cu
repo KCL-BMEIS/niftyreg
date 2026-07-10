@@ -66,36 +66,36 @@ __device__ __inline__ void apply_affine(const float4& pt, float *result) {
 }
 /* *************************************************************** */
 __device__ __inline__ float blockReduce2DSum(float val, unsigned tid) {
-    static __shared__ float shared[16];
+    static __shared__ float shared[1];
     __syncthreads();
-    shared[tid] = val;
+    // The 2D block has 16 threads (lanes 0-15 of a single warp)
+    for (int offset = 8; offset > 0; offset >>= 1)
+        val += __shfl_down_sync(0x0000FFFF, val, offset);
+    if (tid == 0)
+        shared[0] = val;
     __syncthreads();
-
-    for (unsigned i = 8; i > 0; i >>= 1) {
-        if (tid < i)
-            shared[tid] += shared[tid + i];
-        __syncthreads();
-    }
     return shared[0];
 }
 /* *************************************************************** */
 __device__ __inline__ float blockReduceSum(float val, unsigned tid) {
-    static __shared__ float shared[64];
+    static __shared__ float shared[32];
     __syncthreads();
-    shared[tid] = val;
+    // Step i = 32 combines lane t (warp 0) with lane t+32 (warp 1). Warp shuffles
+    // cannot cross warps, so this first step goes through shared memory, matching the
+    // first step of the previous tree reduction.
+    if (tid >= 32)
+        shared[tid - 32] = val;
     __syncthreads();
-
-    for (unsigned i = 32; i > 0; i >>= 1) {
-        if (tid < i)
-            shared[tid] += shared[tid + i];
-        __syncthreads();
+    if (tid < 32) {
+        val += shared[tid];
+        // Steps i = 16, 8, 4, 2, 1 stay within warp 0 -> warp shuffles, no barriers.
+        // Same pairwise order as the previous tree, so the sum is bit-identical.
+        for (int offset = 16; offset > 0; offset >>= 1)
+            val += __shfl_down_sync(0xFFFFFFFF, val, offset);
     }
-    // if (tid == 0){
-    //     for (unsigned i = 1; i < 64; ++i) {
-    //             shared[0] += shared[i];
-    //     }
-    // }
-    // __syncthreads();
+    if (tid == 0)
+        shared[0] = val;
+    __syncthreads();
     return shared[0];
 }
 /* *************************************************************** */
