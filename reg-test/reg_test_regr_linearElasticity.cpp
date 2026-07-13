@@ -3,11 +3,6 @@
 
 /**
  *  Linear elasticity (approximate linear energy) CPU vs CUDA diagnostic regression test.
- *
- *  Purpose: reproduce and characterise the CPU/CUDA discrepancy seen on the reg_f3d "-le" path,
- *  and determine whether the CUDA result is *systematically* less accurate than the CPU result
- *  (a correctness-bug signature) or merely differs by symmetric float rounding.
- *
  *  For every case we evaluate the approximate linear energy value and its gradient on three backends:
  *    - CPU  single precision (NIFTI_TYPE_FLOAT32 control point grid)
  *    - CUDA single precision

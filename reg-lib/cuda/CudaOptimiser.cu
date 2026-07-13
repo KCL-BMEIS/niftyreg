@@ -188,6 +188,13 @@ void CudaConjugateGradient::Perturbation(float length) {
     this->firstCall = true;
 }
 /* *************************************************************** */
+void CudaConjugateGradient::RestartOptimisation() {
+    // Discard the accumulated conjugate direction: the next UpdateGradientValues
+    // reinitialises H = G = -gradient (steepest descent). Used to recover when the
+    // unrestarted conjugate direction has lost conjugacy and the line search stalls.
+    this->firstCall = true;
+}
+/* *************************************************************** */
 void InitialiseConjugateGradient(float4 *gradientCuda, float4 *conjugateGCuda, float4 *conjugateHCuda, const size_t nVoxels) {
     auto gradientTexturePtr = Cuda::CreateTextureObject(gradientCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto gradientTexture = *gradientTexturePtr;
@@ -228,10 +235,7 @@ void GetConjugateGradient(float4 *gradientCuda,
                                 cudaTextureObject_t conjugateHTexture, const int index) {
         const float4 hValue = tex1Dfetch<float4>(conjugateHTexture, index);
         const float4 gValue = tex1Dfetch<float4>(conjugateGTexture, index);
-        // Promote each component product to double before summing, matching the CPU oracle
-        // (reg_conjugateGradient accumulates each float product into a double). Summing the three
-        // components in float first (as before) systematically degraded gam and, via H = G + gam*H,
-        // biased the search direction so the line search stopped improving - and thus converged - early.
+        // Promote each component product to double before summing, matching the CPU code
         const double gg = static_cast<double>(gValue.x * hValue.x) +
                           static_cast<double>(gValue.y * hValue.y) +
                           static_cast<double>(gValue.z * hValue.z);

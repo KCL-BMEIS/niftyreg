@@ -756,6 +756,7 @@ void reg_base<T>::Run() {
             PrintInitialObjFunctionValue();
 
             // Iterate until convergence or until the max number of iteration is reach
+            bool justRestarted = false;
             while (currentSize) {
                 if (optimiser->GetCurrentIterationNumber() >= optimiser->GetMaxIterationNumber()) {
                     NR_WARN("The current level reached the maximum number of iteration");
@@ -776,6 +777,20 @@ void reg_base<T>::Run() {
 
                 // Update the objective function variables and print some information
                 PrintCurrentObjFunctionValue(currentSize);
+
+                // The line search fully stalled (no step length improved the objective).
+                // Restart the optimiser to steepest descent and retry from the full step
+                // size before giving up.
+                if (currentSize == 0) {
+                    if (!justRestarted &&
+                        optimiser->GetCurrentIterationNumber() < optimiser->GetMaxIterationNumber()) {
+                        optimiser->RestartOptimisation();
+                        currentSize = maxStepSize;
+                        justRestarted = true;
+                    }
+                } else {
+                    justRestarted = false;
+                }
             }
 
             if (perturbation < perturbationNumber) {

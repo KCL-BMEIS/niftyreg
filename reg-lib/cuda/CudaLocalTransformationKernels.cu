@@ -53,7 +53,7 @@ __device__ __inline__ float Mat33Determ(const mat33 r) {
 }
 /* *************************************************************** */
 __device__ __inline__ float Mat33RowNorm(const mat33 a) {
-    // Row sums accumulated in double (fabs on double) to match the CPU oracle nifti_mat33_rownorm
+    // Row sums accumulated in double (fabs on double) to match the CPU
     float r1 = static_cast<float>(fabs(static_cast<double>(a.m[0][0])) + fabs(static_cast<double>(a.m[0][1])) + fabs(static_cast<double>(a.m[0][2])));
     const float r2 = static_cast<float>(fabs(static_cast<double>(a.m[1][0])) + fabs(static_cast<double>(a.m[1][1])) + fabs(static_cast<double>(a.m[1][2])));
     const float r3 = static_cast<float>(fabs(static_cast<double>(a.m[2][0])) + fabs(static_cast<double>(a.m[2][1])) + fabs(static_cast<double>(a.m[2][2])));
@@ -63,7 +63,7 @@ __device__ __inline__ float Mat33RowNorm(const mat33 a) {
 }
 /* *************************************************************** */
 __device__ __inline__ float Mat33ColNorm(const mat33 a) {
-    // Column sums accumulated in double (fabs on double) to match the CPU oracle nifti_mat33_colnorm
+    // Column sums accumulated in double (fabs on double) to match the CPU
     float r1 = static_cast<float>(fabs(static_cast<double>(a.m[0][0])) + fabs(static_cast<double>(a.m[1][0])) + fabs(static_cast<double>(a.m[2][0])));
     const float r2 = static_cast<float>(fabs(static_cast<double>(a.m[0][1])) + fabs(static_cast<double>(a.m[1][1])) + fabs(static_cast<double>(a.m[2][1])));
     const float r3 = static_cast<float>(fabs(static_cast<double>(a.m[0][2])) + fabs(static_cast<double>(a.m[1][2])) + fabs(static_cast<double>(a.m[2][2])));
@@ -72,9 +72,7 @@ __device__ __inline__ float Mat33ColNorm(const mat33 a) {
     return r1;
 }
 /* *************************************************************** */
-// Single-precision 3x3 multiply matching the CPU oracle nifti_mat33_mul bit-for-bit (float
-// accumulation). NB: the shared Maths.hpp operator* accumulates in double, so it must NOT be used
-// where the result has to reproduce the CPU linear-energy path exactly.
+// Single-precision 3x3 multiply matching the CPU oracle nifti_mat33_mul bit-for-bit
 __device__ __inline__ mat33 NiftiMat33Mul(const mat33 a, const mat33 b) {
     mat33 c;
     for (int i = 0; i < 3; i++)
@@ -84,8 +82,6 @@ __device__ __inline__ mat33 NiftiMat33Mul(const mat33 a, const mat33 b) {
 }
 /* *************************************************************** */
 __device__ __inline__ mat33 Mat33Polar(mat33 x) {
-    // NB: the intermediate arithmetic is performed in double precision (with single-precision
-    // storage per iteration) to match the CPU oracle nifti_mat33_polar bit-for-bit (requires FMA off)
     // Force matrix to be nonsingular
     float gam = Mat33Determ(x);
     while (gam == 0.0) {        // Perturb matrix
