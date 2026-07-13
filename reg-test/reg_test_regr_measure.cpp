@@ -210,14 +210,21 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
             // Check the voxel-based similarity measure gradients
             const auto voxelBasedGradCpuPtr = voxelBasedGradCpu.data();
             const auto voxelBasedGradCudaPtr = voxelBasedGradCuda.data();
+            double maxGradDiff = 0, maxGradMag = 0;
             for (size_t i = 0; i < voxelBasedGradCpu.nVoxels(); ++i) {
                 const float cpuVal = voxelBasedGradCpuPtr[i];
                 const float cudaVal = voxelBasedGradCudaPtr[i];
                 const float diff = fabs(cpuVal - cudaVal);
-                if (diff > EPS)
+                maxGradDiff = std::max<double>(maxGradDiff, diff);
+                maxGradMag = std::max<double>(maxGradMag, fabs(cpuVal));
+                if (diff > 0)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
+            // Diagnostic: magnitude of the CPU vs CUDA gap (is it ~1e-6 EPS-scale or ~1e-13 bit-scale?)
+            NR_COUT << "Value  |cpu-cuda|=" << fabs(simMeasureCpu - simMeasureCuda) << std::endl;
+            NR_COUT << "Grad   max|cpu-cuda|=" << maxGradDiff << "  (max|cpu|=" << maxGradMag
+                    << ", relative=" << (maxGradMag > 0 ? maxGradDiff / maxGradMag : 0) << ")" << std::endl;
         }
     }
 }

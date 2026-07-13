@@ -228,10 +228,18 @@ void GetConjugateGradient(float4 *gradientCuda,
                                 cudaTextureObject_t conjugateHTexture, const int index) {
         const float4 hValue = tex1Dfetch<float4>(conjugateHTexture, index);
         const float4 gValue = tex1Dfetch<float4>(conjugateGTexture, index);
-        const float gg = gValue.x * hValue.x + gValue.y * hValue.y + gValue.z * hValue.z;
+        // Promote each component product to double before summing, matching the CPU oracle
+        // (reg_conjugateGradient accumulates each float product into a double). Summing the three
+        // components in float first (as before) systematically degraded gam and, via H = G + gam*H,
+        // biased the search direction so the line search stopped improving - and thus converged - early.
+        const double gg = static_cast<double>(gValue.x * hValue.x) +
+                          static_cast<double>(gValue.y * hValue.y) +
+                          static_cast<double>(gValue.z * hValue.z);
 
         const float4 grad = tex1Dfetch<float4>(gradientTexture, index);
-        const float dgg = (grad.x + gValue.x) * grad.x + (grad.y + gValue.y) * grad.y + (grad.z + gValue.z) * grad.z;
+        const double dgg = static_cast<double>((grad.x + gValue.x) * grad.x) +
+                           static_cast<double>((grad.y + gValue.y) * grad.y) +
+                           static_cast<double>((grad.z + gValue.z) * grad.z);
 
         return make_double2(dgg, gg);
     };

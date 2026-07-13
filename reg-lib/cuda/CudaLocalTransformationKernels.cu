@@ -53,28 +53,43 @@ __device__ __inline__ float Mat33Determ(const mat33 r) {
 }
 /* *************************************************************** */
 __device__ __inline__ float Mat33RowNorm(const mat33 a) {
-    float r1 = fabs(a.m[0][0]) + fabs(a.m[0][1]) + fabs(a.m[0][2]);
-    const float r2 = fabs(a.m[1][0]) + fabs(a.m[1][1]) + fabs(a.m[1][2]);
-    const float r3 = fabs(a.m[2][0]) + fabs(a.m[2][1]) + fabs(a.m[2][2]);
+    // Row sums accumulated in double (fabs on double) to match the CPU oracle nifti_mat33_rownorm
+    float r1 = static_cast<float>(fabs(static_cast<double>(a.m[0][0])) + fabs(static_cast<double>(a.m[0][1])) + fabs(static_cast<double>(a.m[0][2])));
+    const float r2 = static_cast<float>(fabs(static_cast<double>(a.m[1][0])) + fabs(static_cast<double>(a.m[1][1])) + fabs(static_cast<double>(a.m[1][2])));
+    const float r3 = static_cast<float>(fabs(static_cast<double>(a.m[2][0])) + fabs(static_cast<double>(a.m[2][1])) + fabs(static_cast<double>(a.m[2][2])));
     if (r1 < r2) r1 = r2;
     if (r1 < r3) r1 = r3;
     return r1;
 }
 /* *************************************************************** */
 __device__ __inline__ float Mat33ColNorm(const mat33 a) {
-    float r1 = fabs(a.m[0][0]) + fabs(a.m[1][0]) + fabs(a.m[2][0]);
-    const float r2 = fabs(a.m[0][1]) + fabs(a.m[1][1]) + fabs(a.m[2][1]);
-    const float r3 = fabs(a.m[0][2]) + fabs(a.m[1][2]) + fabs(a.m[2][2]);
+    // Column sums accumulated in double (fabs on double) to match the CPU oracle nifti_mat33_colnorm
+    float r1 = static_cast<float>(fabs(static_cast<double>(a.m[0][0])) + fabs(static_cast<double>(a.m[1][0])) + fabs(static_cast<double>(a.m[2][0])));
+    const float r2 = static_cast<float>(fabs(static_cast<double>(a.m[0][1])) + fabs(static_cast<double>(a.m[1][1])) + fabs(static_cast<double>(a.m[2][1])));
+    const float r3 = static_cast<float>(fabs(static_cast<double>(a.m[0][2])) + fabs(static_cast<double>(a.m[1][2])) + fabs(static_cast<double>(a.m[2][2])));
     if (r1 < r2) r1 = r2;
     if (r1 < r3) r1 = r3;
     return r1;
 }
 /* *************************************************************** */
+// Single-precision 3x3 multiply matching the CPU oracle nifti_mat33_mul bit-for-bit (float
+// accumulation). NB: the shared Maths.hpp operator* accumulates in double, so it must NOT be used
+// where the result has to reproduce the CPU linear-energy path exactly.
+__device__ __inline__ mat33 NiftiMat33Mul(const mat33 a, const mat33 b) {
+    mat33 c;
+    for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+            c.m[i][j] = a.m[i][0] * b.m[0][j] + a.m[i][1] * b.m[1][j] + a.m[i][2] * b.m[2][j];
+    return c;
+}
+/* *************************************************************** */
 __device__ __inline__ mat33 Mat33Polar(mat33 x) {
+    // NB: the intermediate arithmetic is performed in double precision (with single-precision
+    // storage per iteration) to match the CPU oracle nifti_mat33_polar bit-for-bit (requires FMA off)
     // Force matrix to be nonsingular
     float gam = Mat33Determ(x);
     while (gam == 0.0) {        // Perturb matrix
-        gam = 0.00001f * (0.001f + Mat33RowNorm(x));
+        gam = static_cast<float>(0.00001 * (0.001 + Mat33RowNorm(x)));
         x.m[0][0] += gam; x.m[1][1] += gam; x.m[2][2] += gam;
         gam = Mat33Determ(x);
     }
@@ -85,10 +100,10 @@ __device__ __inline__ mat33 Mat33Polar(mat33 x) {
     while (1) {
         const mat33 y = Mat33Inverse(x);
         if (dif > 0.3) {     // Far from convergence
-            const float alp = sqrt(Mat33RowNorm(x) * Mat33ColNorm(x));
-            const float bet = sqrt(Mat33RowNorm(y) * Mat33ColNorm(y));
-            gam = sqrt(bet / alp);
-            gmi = 1.f / gam;
+            const float alp = static_cast<float>(sqrt(static_cast<double>(Mat33RowNorm(x) * Mat33ColNorm(x))));
+            const float bet = static_cast<float>(sqrt(static_cast<double>(Mat33RowNorm(y) * Mat33ColNorm(y))));
+            gam = static_cast<float>(sqrt(static_cast<double>(bet / alp)));
+            gmi = static_cast<float>(1.0 / gam);
         } else {
             gam = gmi = 1.0f;  // Close to convergence
         }
@@ -1257,11 +1272,11 @@ __device__ static mat33 CreateDisplacementMatrix(const int index,
             }
         }
     }
-    // Convert from mm to voxel
-    matrix = reorientation * matrix;
+    // Convert from mm to voxel (float-accumulate multiply, matching the CPU oracle)
+    matrix = NiftiMat33Mul(reorientation, matrix);
     // Removing the rotation component
     const mat33 r = Mat33Inverse(Mat33Polar(matrix));
-    matrix = r * matrix;
+    matrix = NiftiMat33Mul(r, matrix);
     // Convert to displacement
     matrix.m[0][0]--; matrix.m[1][1]--;
     if constexpr (is3d) matrix.m[2][2]--;
