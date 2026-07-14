@@ -12,7 +12,6 @@
 
 #include "_reg_localTrans_jac.h"
 
-#define USE_SQUARE_LOG_JAC
 
 /* *************************************************************** */
 /* *************************************************************** */
@@ -1272,11 +1271,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
          for(size_t i=0; i<detNumber; ++i)
          {
             double logDet = log(jacDetPtr[i]);
-#ifdef USE_SQUARE_LOG_JAC
             penaltySum += logDet * logDet;
-#else
-            penaltySum += fasb(logDet);
-#endif
          }
       }
       break;
@@ -1286,11 +1281,7 @@ double reg_spline_getJacobianPenaltyTerm(nifti_image *splineControlPoint,
          for(size_t i=0; i<detNumber; ++i)
          {
             double logDet = log(jacDetPtr[i]);
-#ifdef USE_SQUARE_LOG_JAC
             penaltySum += logDet * logDet;
-#else
-            penaltySum += fasb(logDet);
-#endif
          }
       }
       break;
@@ -1404,11 +1395,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                         if(detJac>0)
                         {
                            jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef USE_SQUARE_LOG_JAC
                            detJac = 2.0*log(detJac) / detJac;
-#else
-                           detJac = (log(detJac)>0?1.0:-1.0) / detJac;
-#endif
                            addJacobianGradientValues<DataType>(jacobianMatrix,
                                                             detJac,
                                                             basisX[coord],
@@ -1507,11 +1494,7 @@ void reg_spline_jacobianDetGradient2D(nifti_image *splineControlPoint,
                               basisValues[1] = xBasis * yFirst ;
 
                               jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef USE_SQUARE_LOG_JAC
                               detJac= 2.0*log(detJac) / detJac;
-#else
-                              detJac = (log(detJac)>0?1.0:-1.0) / detJac;
-#endif
                               addJacobianGradientValues<DataType>(jacobianMatrix,
                                                                detJac,
                                                                basisValues[0],
@@ -1655,11 +1638,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                  if(detJac>0)
                                  {
                                     jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef USE_SQUARE_LOG_JAC
                                     detJac = 2.0*log(detJac) / detJac;
-#else
-                                    detJac = (log(detJac)>0?1.0:-1.0) / detJac;
-#endif
                                     addJacobianGradientValues<DataType>(jacobianMatrix,
                                                                      detJac,
                                                                      basisX[coord],
@@ -1781,11 +1760,7 @@ void reg_spline_jacobianDetGradient3D(nifti_image *splineControlPoint,
                                        basisValues[2] = xBasis * yBasis * zFirst ;
 
                                        jacobianMatrix = jacobianMatrices[jacIndex];
-#ifdef USE_SQUARE_LOG_JAC
                                        detJac= 2.0*log(detJac) / detJac;
-#else
-                                       detJac = (log(detJac)>0?1.0:-1.0) / detJac;
-#endif
                                        addJacobianGradientValues<DataType>(jacobianMatrix,
                                                                         detJac,
                                                                         basisValues[0],
@@ -1925,11 +1900,7 @@ double reg_spline_correctFolding2D(nifti_image *splineControlPoint,
    for(i=0; i< jacobianNumber; i++)
    {
       logDet = log(jacobianDeterminant[i]);
-#ifdef USE_SQUARE_LOG_JAC
       penaltyTerm += logDet*logDet;
-#else
-      penaltyTerm +=  fabs(log(logDet));
-#endif
    }
    if(penaltyTerm==penaltyTerm)
    {
@@ -2174,11 +2145,7 @@ double reg_spline_correctFolding3D(nifti_image *splineControlPoint,
    for(i=0; i< jacobianNumber; i++)
    {
       logDet = log(jacobianDeterminant[i]);
-#ifdef USE_SQUARE_LOG_JAC
       penaltyTerm += logDet*logDet;
-#else
-      penaltyTerm +=  fabs(log(logDet));
-#endif
    }
    if(penaltyTerm==penaltyTerm)
    {

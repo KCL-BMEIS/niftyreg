@@ -35,11 +35,9 @@ public:
     cl_device_id* GetDevices();
     cl_command_queue GetCommandQueue();
     cl_uint GetNumPlatforms();
-    cl_platform_id* GetPlatformIds();
     cl_uint GetNumDevices();
     size_t GetMaxThreads();
     unsigned GetMaxBlocks();
-    size_t GetWarpGroupLength(cl_kernel kernel);
     bool IsCardDoubleCapable();
 
 private:

@@ -389,31 +389,6 @@ void EstimateRigidLeastSquares(const float* const* points1, const float* const* 
     }
 }
 /* *************************************************************** */
-template<class T>
-T Matrix2dDet(T **mat, const size_t m, const size_t n) {
-    if (m != n)
-        NR_FATAL_ERROR("The matrix have to be square: [" + std::to_string(m) + " " + std::to_string(n) + "]");
-
-    double res;
-    if (m == 2) {
-        res = static_cast<double>(mat[0][0]) * static_cast<double>(mat[1][1]) - static_cast<double>(mat[1][0]) * static_cast<double>(mat[0][1]);
-    } else if (m == 3) {
-        res = (static_cast<double>(mat[0][0]) * (static_cast<double>(mat[1][1]) * static_cast<double>(mat[2][2]) - static_cast<double>(mat[1][2]) * static_cast<double>(mat[2][1]))) -
-            (static_cast<double>(mat[0][1]) * (static_cast<double>(mat[1][0]) * static_cast<double>(mat[2][2]) - static_cast<double>(mat[1][2]) * static_cast<double>(mat[2][0]))) +
-            (static_cast<double>(mat[0][2]) * (static_cast<double>(mat[1][0]) * static_cast<double>(mat[2][1]) - static_cast<double>(mat[1][1]) * static_cast<double>(mat[2][0])));
-    } else {
-        // Convert to Eigen format
-        Eigen::MatrixXd eigenRes(m, n);
-        for (size_t i = 0; i < m; i++)
-            for (size_t j = 0; j < n; j++)
-                eigenRes(i, j) = static_cast<double>(mat[i][j]);
-        res = eigenRes.determinant();
-    }
-    return static_cast<T>(res);
-}
-template float Matrix2dDet<float>(float **mat, const size_t m, const size_t n);
-template double Matrix2dDet<double>(double **mat, const size_t m, const size_t n);
-/* *************************************************************** */
 void Mat33Expm(mat33 *tensorIn) {
     int sm, sn;
     Eigen::Matrix3d tensor;

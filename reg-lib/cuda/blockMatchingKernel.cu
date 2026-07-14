@@ -31,13 +31,6 @@
  *
  */
 // Some parameters that we need for the kernel execution.
-// The caller is supposed to ensure that the values are set
-
-// Transformation matrix from nifti header
-__device__ __constant__ float4 t_m_a;
-__device__ __constant__ float4 t_m_b;
-__device__ __constant__ float4 t_m_c;
-
 #define BLOCK_WIDTH   4
 #define BLOCK_SIZE    64
 #define OVERLAP_SIZE  3
@@ -54,15 +47,6 @@ __device__ __inline__ void reg_mat44_mul_cuda(const float *mat, const DataType *
     out[0] = (DataType)((double)mat[0 * 4 + 0] * (double)in[0] + (double)mat[0 * 4 + 1] * (double)in[1] + (double)mat[0 * 4 + 2] * (double)in[2] + (double)mat[0 * 4 + 3]);
     out[1] = (DataType)((double)mat[1 * 4 + 0] * (double)in[0] + (double)mat[1 * 4 + 1] * (double)in[1] + (double)mat[1 * 4 + 2] * (double)in[2] + (double)mat[1 * 4 + 3]);
     out[2] = (DataType)((double)mat[2 * 4 + 0] * (double)in[0] + (double)mat[2 * 4 + 1] * (double)in[1] + (double)mat[2 * 4 + 2] * (double)in[2] + (double)mat[2 * 4 + 3]);
-}
-// Apply the transformation matrix
-__device__ __inline__ void apply_affine(const float4& pt, float *result) {
-    float4 mat = t_m_a;
-    result[0] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
-    mat = t_m_b;
-    result[1] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
-    mat = t_m_c;
-    result[2] = (mat.x * pt.x) + (mat.y * pt.y) + (mat.z * pt.z) + (mat.w);
 }
 /* *************************************************************** */
 __device__ __inline__ float blockReduce2DSum(float val, unsigned tid) {

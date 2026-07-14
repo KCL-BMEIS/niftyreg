@@ -113,41 +113,6 @@ protected:
     double *entropyValuesBw = nullptr;
 };
 /* *************************************************************** */
-/// Multi channel NMI version - Entropy
-void reg_getMultiChannelNmiValue(nifti_image *referenceImages,
-                                 nifti_image *warpedImages,
-                                 unsigned *referenceBins, // should be an array of size num_reference_volumes
-                                 unsigned *warpedBins, // should be an array of size num_warped_volumes
-                                 double *probaJointHistogram,
-                                 double *logJointHistogram,
-                                 double *entropies,
-                                 int *mask,
-                                 bool approx);
-/* *************************************************************** */
-/// Multi channel NMI version - Gradient
-void reg_getVoxelBasedMultiChannelNmiGradient2D(nifti_image *referenceImages,
-                                                nifti_image *warpedImages,
-                                                nifti_image *warpedImageGradient,
-                                                unsigned *referenceBins,
-                                                unsigned *warpedBins,
-                                                double *logJointHistogram,
-                                                double *entropies,
-                                                nifti_image *nmiGradientImage,
-                                                int *mask,
-                                                bool approx);
-/* *************************************************************** */
-/// Multi channel NMI version - Gradient
-void reg_getVoxelBasedMultiChannelNmiGradient3D(nifti_image *referenceImages,
-                                                nifti_image *warpedImages,
-                                                nifti_image *warpedImageGradient,
-                                                unsigned *referenceBins,
-                                                unsigned *warpedBins,
-                                                double *logJointHistogram,
-                                                double *entropies,
-                                                nifti_image *nmiGradientImage,
-                                                int *mask,
-                                                bool approx);
-/* *************************************************************** */
 template<class PrecisionType>
 DEVICE constexpr PrecisionType GetBasisSplineValue(PrecisionType x) {
     x = x < 0 ? -x : x;

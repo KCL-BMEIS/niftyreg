@@ -47,11 +47,6 @@ public:
     virtual void GetVoxelBasedSimilarityMeasureGradientFw(int currentTimePoint) override;
     /// @brief Compute the voxel-based ssd gradient backwards
     virtual void GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint) override;
-    /// @brief Here
-    virtual void GetDiscretisedValue(nifti_image *controlPointGridImage,
-                                     float *discretisedValue,
-                                     int discretiseRadius,
-                                     int discretiseStep) override;
 
 protected:
     bool normaliseTimePoint[255]{};
