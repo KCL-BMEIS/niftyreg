@@ -336,6 +336,79 @@ TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
                             REQUIRE(diff < EPS);
                         }
                     }
+
+                    // Helpers to drive a further conjugate-gradient update and compare the
+                    // device/CPU optimiser against the in-test reference implementation.
+                    auto fillRandomGradients = [&]() {
+                        auto gradPtr = transGrad.data();
+                        auto gradBwPtr = transGradBw.data();
+                        for (size_t i = 0; i < transGrad.nVoxels(); i++) {
+                            gradPtr[i] = distr(gen);
+                            if (isSymmetric)
+                                gradBwPtr[i] = distr(gen);
+                        }
+                        content->F3dContent::GetTransformationGradient().copyData(transGrad);
+                        content->UpdateTransformationGradient();
+                        if (isSymmetric) {
+                            contentBw->F3dContent::GetTransformationGradient().copyData(transGradBw);
+                            contentBw->UpdateTransformationGradient();
+                        }
+                    };
+                    auto requireGradientsMatchReference = [&]() {
+                        const auto gradPtr = content->GetTransformationGradient().data();
+                        const auto gradExpPtr = transGrad.data();
+                        NiftiImageData gradBwPtr, gradExpBwPtr;
+                        if (isSymmetric) {
+                            gradBwPtr = contentBw->GetTransformationGradient().data();
+                            gradExpBwPtr = transGradBw.data();
+                        }
+                        for (size_t i = 0; i < transGrad.nVoxels(); ++i) {
+                            REQUIRE(abs(static_cast<float>(gradPtr[i]) - static_cast<float>(gradExpPtr[i])) < EPS);
+                            if (isSymmetric)
+                                REQUIRE(abs(static_cast<float>(gradBwPtr[i]) - static_cast<float>(gradExpBwPtr[i])) < EPS);
+                        }
+                    };
+
+                    // RestartOptimisation(): a restart must discard the
+                    // conjugate-direction history so the optimiser behaves as if freshly
+                    // initialised, while leaving the iteration counter untouched (unlike
+                    // Perturbation)
+                    NR_COUT << "\n**************** RestartOptimisation " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
+                    constexpr size_t iterAdvance = 3;
+                    for (size_t it = 0; it < iterAdvance; ++it)
+                        optimiser->IncrementCurrentIterationNumber();
+                    optimiser->RestartOptimisation();
+                    REQUIRE(optimiser->GetCurrentIterationNumber() == iterAdvance);  // restart leaves iterations alone
+
+                    // First update after the restart re-initialises to steepest descent
+                    // (first-call behaviour: the gradient is left unchanged).
+                    fillRandomGradients();
+                    optimiser->UpdateGradientValues();
+                    UpdateGradientValues(transGrad, true, isSymmetric, &transGradBw);
+                    requireGradientsMatchReference();
+
+                    // The subsequent update rebuilds the conjugate direction from the
+                    // restart - identical to a freshly-initialised optimiser.
+                    fillRandomGradients();
+                    optimiser->UpdateGradientValues();
+                    UpdateGradientValues(transGrad, false, isSymmetric, &transGradBw);
+                    requireGradientsMatchReference();
+
+                    // Perturbation(): it also resets the conjugate direction
+                    // and additionally resets the iteration counter to zero. A zero-length
+                    // perturbation leaves the control points untouched, isolating the state
+                    // reset from the (platform-dependent, random) displacement kick.
+                    NR_COUT << "\n**************** Perturbation " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
+                    for (size_t it = 0; it < iterAdvance; ++it)
+                        optimiser->IncrementCurrentIterationNumber();
+                    optimiser->Perturbation(0);
+                    REQUIRE(optimiser->GetCurrentIterationNumber() == 0);  // perturbation resets iterations
+
+                    // After a perturbation the next update behaves as a first call again.
+                    fillRandomGradients();
+                    optimiser->UpdateGradientValues();
+                    UpdateGradientValues(transGrad, true, isSymmetric, &transGradBw);
+                    requireGradientsMatchReference();
                 }
             }
             // Ensure the termination of content before CudaContext

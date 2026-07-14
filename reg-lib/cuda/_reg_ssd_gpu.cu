@@ -163,12 +163,15 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
             return;
 
         const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
-        const double common = -2.0 * (refValue - warValue) * adjustedWeight * weight;
+        // Match the CPU multiply order (weight before adjustedWeight) and round each product to
+        // float before accumulating, mirroring reg_getVoxelBasedSsdGradient in _reg_ssd.cpp. This
+        // keeps the CUDA gradient bit-exact with the CPU regardless of the FMA build flag.
+        const double common = -2.0 * (refValue - warValue) * weight * adjustedWeight;
 
         float4 ssdGradientValue = ssdGradientCuda[index];
-        ssdGradientValue.x += common * spaGradientValue.x;
-        ssdGradientValue.y += common * spaGradientValue.y;
-        ssdGradientValue.z += common * spaGradientValue.z;
+        ssdGradientValue.x += static_cast<float>(common * spaGradientValue.x);
+        ssdGradientValue.y += static_cast<float>(common * spaGradientValue.y);
+        ssdGradientValue.z += static_cast<float>(common * spaGradientValue.z);
         ssdGradientCuda[index] = ssdGradientValue;
     });
 }

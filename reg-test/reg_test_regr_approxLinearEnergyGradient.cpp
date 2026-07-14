@@ -19,9 +19,8 @@ public:
         if (!testCases.empty())
             return;
 
-        // Create a random number generator
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        // Create a random number generator (deterministic seed for reproducibility)
+        std::mt19937 gen(0);
         std::uniform_real_distribution<float> distr(0, 10);
 
         // Create 2D reference, floating and control point grid images
@@ -137,16 +136,17 @@ TEST_CASE_METHOD(ApproxLinearEnergyGradientTest, "Regression Approximate Linear 
             NR_COUT << "Approx Linear Energy: " << approxLinearEnergyCpu << " " << approxLinearEnergyCuda << std::endl;
             REQUIRE(abs(approxLinearEnergyCpu - approxLinearEnergyCuda) < EPS);
 
-            // Check the transformation gradients
+            // Check the transformation gradients - CUDA is aligned to the CPU oracle bit-for-bit
+            // (float-accumulate multiply + double-precision polar decomposition, FMA off)
             const auto transGradCpuPtr = transGradCpu.data();
             const auto transGradCudaPtr = transGradCuda.data();
             for (size_t i = 0; i < transGradCpu.nVoxels(); ++i) {
                 const float cpuVal = transGradCpuPtr[i];
                 const float cudaVal = transGradCudaPtr[i];
                 const auto diff = abs(cpuVal - cudaVal);
-                if (diff > EPS)
+                if (diff > 0)
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
-                REQUIRE(diff < EPS);
+                REQUIRE(diff == 0);
             }
         }
     }

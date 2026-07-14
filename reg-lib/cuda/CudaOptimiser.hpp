@@ -93,6 +93,7 @@ public:
                           float smallLength,
                           float& startLength) override;
     virtual void Perturbation(float length) override;
+    virtual void RestartOptimisation() override;
 };
 /* *************************************************************** */
 } // namespace NiftyReg

@@ -138,6 +138,8 @@ public:
                           T smallLength,
                           T& startLength);
     virtual void Perturbation(float length);
+    // Reset any accumulated search-direction history. No-op for memoryless optimisers.
+    virtual void RestartOptimisation() {}
 };
 /* *************************************************************** */
 /** @class ConjugateGradient
@@ -177,6 +179,7 @@ public:
                           T smallLength,
                           T& startLength) override;
     virtual void Perturbation(float length) override;
+    virtual void RestartOptimisation() override;
 };
 /* *************************************************************** */
 } // namespace NiftyReg

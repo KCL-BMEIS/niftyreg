@@ -188,6 +188,13 @@ void CudaConjugateGradient::Perturbation(float length) {
     this->firstCall = true;
 }
 /* *************************************************************** */
+void CudaConjugateGradient::RestartOptimisation() {
+    // Discard the accumulated conjugate direction: the next UpdateGradientValues
+    // reinitialises H = G = -gradient (steepest descent). Used to recover when the
+    // unrestarted conjugate direction has lost conjugacy and the line search stalls.
+    this->firstCall = true;
+}
+/* *************************************************************** */
 void InitialiseConjugateGradient(float4 *gradientCuda, float4 *conjugateGCuda, float4 *conjugateHCuda, const size_t nVoxels) {
     auto gradientTexturePtr = Cuda::CreateTextureObject(gradientCuda, nVoxels, cudaChannelFormatKindFloat, 4);
     auto gradientTexture = *gradientTexturePtr;
@@ -228,10 +235,15 @@ void GetConjugateGradient(float4 *gradientCuda,
                                 cudaTextureObject_t conjugateHTexture, const int index) {
         const float4 hValue = tex1Dfetch<float4>(conjugateHTexture, index);
         const float4 gValue = tex1Dfetch<float4>(conjugateGTexture, index);
-        const float gg = gValue.x * hValue.x + gValue.y * hValue.y + gValue.z * hValue.z;
+        // Promote each component product to double before summing, matching the CPU code
+        const double gg = static_cast<double>(gValue.x * hValue.x) +
+                          static_cast<double>(gValue.y * hValue.y) +
+                          static_cast<double>(gValue.z * hValue.z);
 
         const float4 grad = tex1Dfetch<float4>(gradientTexture, index);
-        const float dgg = (grad.x + gValue.x) * grad.x + (grad.y + gValue.y) * grad.y + (grad.z + gValue.z) * grad.z;
+        const double dgg = static_cast<double>((grad.x + gValue.x) * grad.x) +
+                           static_cast<double>((grad.y + gValue.y) * grad.y) +
+                           static_cast<double>((grad.z + gValue.z) * grad.z);
 
         return make_double2(dgg, gg);
     };

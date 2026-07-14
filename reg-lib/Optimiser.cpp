@@ -328,6 +328,13 @@ void ConjugateGradient<T>::Perturbation(float length) {
     this->firstCall = true;
 }
 /* *************************************************************** */
+template <class T>
+void ConjugateGradient<T>::RestartOptimisation() {
+    // Discard the accumulated conjugate direction: the next UpdateGradientValues
+    // reinitialises H = G = -gradient (steepest descent).
+    this->firstCall = true;
+}
+/* *************************************************************** */
 template class ConjugateGradient<float>;
 template class ConjugateGradient<double>;
 /* *************************************************************** */
