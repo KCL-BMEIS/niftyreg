@@ -12,10 +12,11 @@
 // It times an operation in-process through the Platform/Content/Compute abstraction, so it measures
 // the compute path itself rather than the whole reg_resample binary (no file I/O).
 //
-// Currently it benchmarks 2D and 3D linear image resampling. It is written so that adding more
-// functionality is a matter of writing another task factory and pushing its
-// tasks into the list in main() - the timing / thread-sweep / printing harness (runTask) is generic
-// over a BenchmarkTask and is never duplicated per operation.
+// It benchmarks: 2D/3D linear image resampling, the LTS affine/rigid estimator, and the NMI
+// similarity-value computation (CPU 1-thread vs N-threads vs CUDA). Adding more resampling-style
+// functionality is a matter of writing another task factory and pushing its tasks into the list in
+// main() - the timing / thread-sweep / printing harness (runTask) is generic over a BenchmarkTask
+// and is never duplicated per operation; LTS and NMI have their own runXxxBench harnesses.
 //
 // For each task it reports, as means over the timed runs:
 //   - CPU-1        : CPU, single thread
@@ -57,6 +58,8 @@
 #include "CudaLts.hpp"           // Cuda::OptimizeLts (the device LTS - benchmarked directly, since
                                  // CudaLtsKernel defaults to the CPU optimize)
 #include "Platform.h"            // Platform / Content / Compute / Kernel / NiftiImage / Mat44Eye
+#include "DefContentCreator.h"   // DefContentCreator / DefContent (the NMI value benchmark content)
+#include "_reg_nmi.h"            // reg_nmi (ApproximatePw / SetTimePointWeight; NMI similarity value)
 
 using std::unique_ptr;
 using std::vector;
@@ -482,6 +485,130 @@ static void runLtsBenchmarks(Platform& cpu, Platform& cuda, int warmup, int runs
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+/* NMI similarity-value benchmark                                                                 */
+/* ---------------------------------------------------------------------------------------------- */
+// Times reg_nmi::GetSimilarityMeasureValue() - the joint-histogram fill + entropy computation that
+// runs once per optimisation iteration (and again inside every NMI gradient step). The dominant cost
+// is the per-voxel histogram fill; the approximation path (the default, integer binning) is the one
+// parallelised with OpenMP. We pin ApproximatePw() on both platforms so CPU-1, CPU-N and GPU all
+// compute the same thing and the comparison is fair.
+//
+// Setup mirrors reg_test_nmi.cpp / reg_test_regr_measure.cpp and goes entirely through the base
+// Platform / DefContentCreator / MeasureCreator virtuals - the CUDA platform produces a
+// CudaDefContent + reg_nmi_gpu automatically, so no CUDA-specific types are referenced here.
+// SetWarped() uploads the warped image to the device on CUDA, so no resample step is needed.
+
+// A float32 image filled with random integer intensities in [2, 65] (the NMI bin range for the
+// default 68 bins: reg_nmi rescales the reference/floating to [2, bin-3]; the warped is used as-is,
+// so it must already sit in that range). At least one voxel hits each end so the reference rescale
+// is stable. Integer values keep the approximation-path histogram fill in its intended regime.
+static NiftiImage makeNmiImage(const std::vector<NiftiImage::dim_t>& dims, unsigned seed) {
+    NiftiImage img(dims, NIFTI_TYPE_FLOAT32);
+    setIdentitySform(img);
+    auto ptr = img.data();
+    const size_t n = img.nVoxels();
+    std::mt19937 gen(seed);
+    std::uniform_int_distribution<int> d(2, 65);
+    if (n > 0) ptr[0] = 2.f;
+    if (n > 1) ptr[1] = 65.f;
+    for (size_t i = 2; i < n; ++i)
+        ptr[i] = static_cast<float>(d(gen));
+    return img;
+}
+
+// A DefContent + NMI measure attached to a platform, warped image uploaded and the measure
+// initialised. Everything is held so the timed GetSimilarityMeasureValue() call stays valid.
+struct NmiBuilt {
+    NiftiImage ref, flo, war;
+    unique_ptr<Content> content;
+    unique_ptr<MeasureCreator> measureCreator;
+    unique_ptr<reg_measure> measure;  // a reg_nmi (reg_nmi_gpu on CUDA), driven via the base pointer
+};
+
+static NmiBuilt buildNmi(Platform& platform, const NiftiImage& reference, const NiftiImage& warped) {
+    NmiBuilt b;
+    b.ref = reference;  // fresh per-platform copies (InitialiseMeasure rescales the reference in place)
+    b.flo = reference;  // floating is required by Create but unused by the value (warped drives it)
+    b.war = warped;
+    unique_ptr<ContentCreator> cc{ platform.CreateContentCreator(ContentType::Def) };
+    auto* defCreator = dynamic_cast<DefContentCreator*>(cc.get());
+    b.content.reset(defCreator->Create(b.ref, b.flo));   // CudaDefContent on the CUDA platform
+    b.content->SetWarped(NiftiImage(b.war));              // uploads host->device on CUDA
+    b.measureCreator.reset(platform.CreateMeasureCreator());
+    b.measure.reset(b.measureCreator->Create(MeasureType::Nmi));  // reg_nmi_gpu on the CUDA platform
+    auto* nmi = dynamic_cast<reg_nmi*>(b.measure.get());
+    for (int t = 0; t < b.ref->nt; ++t)
+        nmi->SetTimePointWeight(t, 1.0);
+    nmi->ApproximatePw();  // pin the (default) approximation path so all three columns match
+    auto* defContent = dynamic_cast<DefContent*>(b.content.get());
+    b.measureCreator->Initialise(*b.measure, *defContent);
+    return b;
+}
+
+// Time one NMI value computation (2D or 3D, cubic size n) on CPU (1 and max threads) and CUDA.
+static void runNmiBench(bool is3d, int n, Platform& cpu, Platform& cuda,
+                        int warmup, int runs, int maxThreads) {
+    const vector<dim_t> dims = is3d ? vector<dim_t>{ n, n, n } : vector<dim_t>{ n, n };
+    const unsigned seed = static_cast<unsigned>(n) * 2u + (is3d ? 1u : 0u);
+    const NiftiImage reference = makeNmiImage(dims, seed);
+    const NiftiImage warped = makeNmiImage(dims, seed + 100u);
+    const size_t voxels = reference.nVoxels();
+
+    // --- CPU (build once; time at 1 thread, then at max threads) ---
+    NmiBuilt cpuBuilt = buildNmi(cpu, reference, warped);
+#ifdef _OPENMP
+    omp_set_num_threads(1);
+#endif
+    const Stats cpu1 = timeIt(warmup, runs, [&] { cpuBuilt.measure->GetSimilarityMeasureValue(); });
+    const double cpuVal = cpuBuilt.measure->GetSimilarityMeasureValue();
+
+    Stats cpuN;
+#ifdef _OPENMP
+    if (maxThreads > 1) {
+        omp_set_num_threads(maxThreads);
+        cpuN = timeIt(warmup, runs, [&] { cpuBuilt.measure->GetSimilarityMeasureValue(); });
+    }
+    omp_set_num_threads(maxThreads);  // keep the GPU-path host work under the reg_aladin -platf 1 policy
+#endif
+
+    // --- CUDA (build once; the value call runs the device kernel and reduces to the host) ---
+    NmiBuilt gpuBuilt = buildNmi(cuda, reference, warped);
+    const Stats gpu = timeIt(warmup, runs, [&] {
+        gpuBuilt.measure->GetSimilarityMeasureValue();
+        cudaDeviceSynchronize();
+    });
+    const double gpuVal = gpuBuilt.measure->GetSimilarityMeasureValue();
+
+    // --- print one row ---
+    const double cpuNms = cpuN.available ? cpuN.meanMs : cpu1.meanMs;
+    const double ompSpeedup = cpuN.available && cpuN.meanMs > 0 ? cpu1.meanMs / cpuN.meanMs : 0;
+    const double gpuSpeedup = gpu.meanMs > 0 ? cpuNms / gpu.meanMs : 0;
+    const std::string size = is3d ? (std::to_string(n) + "^3") : (std::to_string(n) + "^2");
+    std::printf("%-8s %-10s %12zu %10.3f ", is3d ? "NMI 3D" : "NMI 2D", size.c_str(), voxels, cpu1.meanMs);
+    if (cpuN.available) std::printf("%10.3f %8.2fx ", cpuN.meanMs, ompSpeedup);
+    else                std::printf("%10s %9s ", "n/a", "n/a");
+    std::printf("%12.4f %10.2fx\n", gpu.meanMs, gpuSpeedup);
+    if (std::fabs(cpuVal - gpuVal) > 1e-4)
+        std::printf("  ** WARNING: CPU/CUDA NMI value diff %.3g (cpu=%.6f cuda=%.6f) **\n",
+                    std::fabs(cpuVal - gpuVal), cpuVal, gpuVal);
+    std::fflush(stdout);
+}
+
+static void runNmiBenchmarks(Platform& cpu, Platform& cuda, int warmup, int runs, int maxThreads) {
+    std::printf("\nNMI similarity value (reg_nmi::GetSimilarityMeasureValue, approximation path pinned)\n");
+    std::printf("The joint-histogram fill (per-voxel) is the OpenMP-parallelised hot loop; entropies are O(bins).\n");
+    std::printf("OMPspeedup = CPU-1 / CPU-N; GPUspeedup = CPU-N / GPU. GPU includes device sync (thrust reduce).\n");
+    std::printf("%-8s %-10s %12s %10s %10s %8s %12s %10s\n",
+                "measure", "size", "voxels", "CPU-1", "CPU-N", "OMPspd", "GPU", "GPUspd");
+    std::printf("%-8s %-10s %12s %10s %10s %8s %12s %10s\n",
+                "-------", "----", "------", "-----", "-----", "------", "---", "------");
+    const vector<int> sizes3d = { 64, 128, 256 };
+    const vector<int> sizes2d = { 512, 2048, 4096 };
+    for (int n : sizes3d) runNmiBench(/*is3d*/true, n, cpu, cuda, warmup, runs, maxThreads);
+    for (int n : sizes2d) runNmiBench(/*is3d*/false, n, cpu, cuda, warmup, runs, maxThreads);
+}
+
+/* ---------------------------------------------------------------------------------------------- */
 
 int main(int argc, char** argv) {
     int runs = 10, warmup = 2;
@@ -554,6 +681,9 @@ int main(int argc, char** argv) {
 
     // LTS (reg_aladin affine/rigid fit): CPU thread-scaling + the CUDA-path baseline (scaffolding).
     runLtsBenchmarks(cpu, cuda, warmup, runs, maxThreads);
+
+    // NMI similarity value: CPU 1-thread vs N-threads (the OpenMP win) vs CUDA.
+    runNmiBenchmarks(cpu, cuda, warmup, runs, maxThreads);
 
     return 0;
 }

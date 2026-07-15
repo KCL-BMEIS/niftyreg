@@ -236,10 +236,6 @@ cl_uint ClContextSingleton::GetNumPlatforms() {
     return this->numPlatforms;
 }
 /* *************************************************************** */
-cl_platform_id* ClContextSingleton::GetPlatformIds() {
-    return this->platformIds.get();
-}
-/* *************************************************************** */
 cl_uint ClContextSingleton::GetNumDevices() {
     return this->numDevices;
 }
@@ -254,14 +250,6 @@ bool ClContextSingleton::IsCardDoubleCapable() {
 /* *************************************************************** */
 unsigned ClContextSingleton::GetMaxBlocks() {
     return this->maxBlocks;
-}
-/* *************************************************************** */
-size_t ClContextSingleton::GetWarpGroupLength(cl_kernel kernel) {
-    size_t local;
-    // Get the maximum work group size for executing the kernel on the device
-    cl_int err = clGetKernelWorkGroupInfo(kernel, this->deviceId, CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE, sizeof(local), &local, nullptr);
-    CheckErrNum(err, "Error: Failed to retrieve kernel work group info!");
-    return local;
 }
 /* *************************************************************** */
 cl_kernel ClContextSingleton::DummyKernel(cl_device_id deviceIdIn) {

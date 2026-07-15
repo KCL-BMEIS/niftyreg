@@ -211,16 +211,40 @@ void reg_getNmiValue(const nifti_image *referenceImage,
             } else {
                 // An approximation is used for the Parzen windowing. First intensities are binarised then
                 // the histogram is convolved with a spine kernel function.
-                for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
-                    if (referenceMask[voxel] > -1) {
-                        const DataType refValue = refPtr[voxel];
-                        const DataType warValue = warPtr[voxel];
-                        if (refValue == refValue && warValue == warValue &&
-                            0 <= refValue && refValue < referenceBinNumber[t] &&
-                            0 <= warValue && warValue < floatingBinNumber[t]) {
-                            ++jointHistoProPtr[static_cast<int>(refValue) + static_cast<int>(warValue) * referenceBinNumber[t]];
+                // The fill uses integer counts, so per-thread partial histograms merged afterwards
+                // produce a result that is bit-identical to the serial version regardless of order.
+                const int jointBinNumber = referenceBinNumber[t] * floatingBinNumber[t];
+#ifdef _OPENMP
+#pragma omp parallel default(none) \
+    shared(voxelNumber, referenceMask, refPtr, warPtr, \
+    referenceBinNumber, floatingBinNumber, jointHistoProPtr, jointBinNumber, t)
+#endif // _OPENMP
+                {
+                    std::vector<double> localHisto(jointBinNumber, 0.0);
+#ifdef WIN32
+                    long voxel;
+#pragma omp for
+                    for (voxel = 0; voxel < (long)voxelNumber; ++voxel) {
+#else
+#pragma omp for
+                    for (size_t voxel = 0; voxel < voxelNumber; ++voxel) {
+#endif
+                        if (referenceMask[voxel] > -1) {
+                            const DataType refValue = refPtr[voxel];
+                            const DataType warValue = warPtr[voxel];
+                            if (refValue == refValue && warValue == warValue &&
+                                0 <= refValue && refValue < referenceBinNumber[t] &&
+                                0 <= warValue && warValue < floatingBinNumber[t]) {
+                                ++localHisto[static_cast<int>(refValue) + static_cast<int>(warValue) * referenceBinNumber[t]];
+                            }
                         }
                     }
+                    // Merge the per-thread histograms into the shared one
+#ifdef _OPENMP
+#pragma omp critical
+#endif // _OPENMP
+                    for (int i = 0; i < jointBinNumber; ++i)
+                        jointHistoProPtr[i] += localHisto[i];
                 }
                 // Convolve the histogram with a cubic B-spline kernel
                 constexpr double kernel[3]{ GetBasisSplineValue(-1.0), GetBasisSplineValue(0.0), GetBasisSplineValue(-1.0) };

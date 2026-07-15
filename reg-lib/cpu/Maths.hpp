@@ -100,11 +100,6 @@ DEVICE inline T* Matrix1dAlloc(const size_t arraySize) {
 }
 /* *************************************************************** */
 template<class T>
-DEVICE inline void Matrix1dDealloc(T *mat) {
-    free(mat);
-}
-/* *************************************************************** */
-template<class T>
 DEVICE inline T** Matrix2dAlloc(const size_t arraySizeX, const size_t arraySizeY) {
     T **res;
     res = static_cast<T**>(malloc(arraySizeX * sizeof(T*)));
@@ -118,18 +113,6 @@ DEVICE inline void Matrix2dDealloc(const size_t arraySizeX, T **mat) {
     for (size_t i = 0; i < arraySizeX; i++)
         free(mat[i]);
     free(mat);
-}
-/* *************************************************************** */
-template<class T>
-DEVICE inline T** Matrix2dTranspose(T **mat, const size_t arraySizeX, const size_t arraySizeY) {
-    T **res;
-    res = static_cast<T**>(malloc(arraySizeY * sizeof(T*)));
-    for (size_t i = 0; i < arraySizeY; i++)
-        res[i] = static_cast<T*>(malloc(arraySizeX * sizeof(T)));
-    for (size_t i = 0; i < arraySizeX; i++)
-        for (size_t j = 0; j < arraySizeY; j++)
-            res[j][i] = mat[i][j];
-    return res;
 }
 /* *************************************************************** */
 template<class T>
@@ -363,9 +346,6 @@ void EstimateAffineLeastSquares(const float* const* points1, const float* const*
 // Kabsch's algorithm (dim = 2 or 3). Interleaved [dim] coordinates per point, accumulated in double.
 void EstimateRigidLeastSquares(const float* const* points1, const float* const* points2,
                                size_t numPoints, unsigned dim, mat44 *transformation);
-/* *************************************************************** */
-template<class T>
-T Matrix2dDet(T **mat, const size_t m, const size_t n);
 /* *************************************************************** */
 /// @brief Compute the log of a 3-by-3 matrix
 void Mat33Expm(mat33 *tensorIn);

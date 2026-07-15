@@ -112,7 +112,6 @@ public:
         }
         NR_FUNC_CALLED();
     }
-    virtual void GetDiscretisedValue(nifti_image*, float*, int, int) {}
     virtual void SetTimePointWeight(int timePoint, double weight) {
         this->timePointWeights[timePoint] = weight;
     }
