@@ -5,6 +5,8 @@
 #include "_reg_localTrans_regul.h"
 
 /* *************************************************************** */
+Compute::~Compute() = default;
+/* *************************************************************** */
 void Compute::ResampleImage(int interpolation, float paddingValue) {
     reg_resampleImage(con.GetFloating(),
                       con.GetWarped(),
