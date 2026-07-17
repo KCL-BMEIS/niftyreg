@@ -2,6 +2,7 @@
 
 #include "Content.h"
 #include "Optimiser.hpp"
+#include "_reg_tools.h"
 
 class Compute {
 public:
@@ -46,4 +47,6 @@ public:
 private:
     void ConvolveImage(NiftiImage&);
     NiftiImage ScaleGradient(const NiftiImage&, float);
+    // Reusable scratch for the voxel-based-gradient smoothing convolutions
+    ConvolutionWorkspace convWorkspace;
 };

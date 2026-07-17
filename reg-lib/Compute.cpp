@@ -230,36 +230,18 @@ void Compute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
 void Compute::ConvolveImage(NiftiImage& image) {
     const NiftiImage& controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
     constexpr ConvKernelType kernelType = ConvKernelType::Cubic;
-    float currentNodeSpacing[3];
-    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
-    bool activeAxis[3] = { 1, 0, 0 };
-    reg_tools_kernelConvolution(image,
-                                currentNodeSpacing,
-                                kernelType,
-                                nullptr, // mask
-                                nullptr, // all volumes are considered as active
-                                activeAxis);
-    // Convolution along the y axis
-    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dy;
-    activeAxis[0] = 0;
-    activeAxis[1] = 1;
-    reg_tools_kernelConvolution(image,
-                                currentNodeSpacing,
-                                kernelType,
-                                nullptr, // mask
-                                nullptr, // all volumes are considered as active
-                                activeAxis);
-    // Convolution along the z axis if required
-    if (image->nz > 1) {
-        currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dz;
-        activeAxis[1] = 0;
-        activeAxis[2] = 1;
-        reg_tools_kernelConvolution(image,
-                                    currentNodeSpacing,
-                                    kernelType,
-                                    nullptr, // mask
-                                    nullptr, // all volumes are considered as active
-                                    activeAxis);
+    // Reuse the workspace so the per-axis passes pool their scratch. The density is recomputed each pass:
+    // every axis renormalises by its own smoothed density, so it is NOT shared across passes.
+    convWorkspace.useFloatAccumulation = true;
+    const float nodeSpacings[3]{ controlPointGrid->dx, controlPointGrid->dy, controlPointGrid->dz };
+    const int axisCount = image->nz > 1 ? 3 : 2;
+    for (int axis = 0; axis < axisCount; ++axis) {
+        float currentNodeSpacing[3];
+        currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = nodeSpacings[axis];
+        bool activeAxis[3]{ axis == 0, axis == 1, axis == 2 };
+        convWorkspace.densityValid = false; // recompute the density for this pass
+        reg_tools_kernelConvolution(image, currentNodeSpacing, kernelType,
+                                    nullptr, nullptr, activeAxis, &convWorkspace);
     }
 }
 /* *************************************************************** */

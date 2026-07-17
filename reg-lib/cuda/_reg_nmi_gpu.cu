@@ -32,13 +32,14 @@ void reg_nmi_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
                                     int *floMask, int *floMaskCuda,
                                     nifti_image *warpedImgBw, float *warpedImgBwCuda,
                                     nifti_image *warpedGradBw, float4 *warpedGradBwCuda,
-                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda) {
+                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda,
+                                    size_t activeVoxNumBw) {
     reg_nmi::InitialiseMeasure(refImg, floImg, refMask, warpedImg, warpedGrad, voxelBasedGrad,
                                localWeightSim, floMask, warpedImgBw, warpedGradBw, voxelBasedGradBw);
     reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum,
                                        warpedImg, warpedImgCuda, warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda,
                                        localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
-                                       warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
+                                       warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda, activeVoxNumBw);
     // The reference and floating images have to be updated on the device
     Cuda::TransferNiftiToDevice(this->referenceImageCuda, this->referenceImage);
     Cuda::TransferNiftiToDevice(this->floatingImageCuda, this->floatingImage);
@@ -282,7 +283,7 @@ double reg_nmi_gpu::GetSimilarityMeasureValueBw() {
                                        this->jointHistogramProBwCudaVecs,
                                        this->entropyValuesBw,
                                        this->floatingMaskCuda,
-                                       this->activeVoxelNumber,
+                                       this->activeVoxelNumberBw,
                                        this->approximatePw);
 }
 /* *************************************************************** */
@@ -404,7 +405,7 @@ void reg_nmi_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint)
                              this->jointHistogramLogBwCudaVecs[currentTimePoint].data().get(),
                              this->voxelBasedGradientBwCuda,
                              this->floatingMaskCuda,
-                             this->activeVoxelNumber,
+                             this->activeVoxelNumberBw,
                              this->entropyValuesBw[currentTimePoint],
                              this->floatingBinNumber[currentTimePoint],
                              this->referenceBinNumber[currentTimePoint],

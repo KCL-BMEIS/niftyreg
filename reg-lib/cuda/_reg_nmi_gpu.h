@@ -49,7 +49,8 @@ public:
                                    nifti_image *warpedGradBw = nullptr,
                                    float4 *warpedGradBwCuda = nullptr,
                                    nifti_image *voxelBasedGradBw = nullptr,
-                                   float4 *voxelBasedGradBwCuda = nullptr) override;
+                                   float4 *voxelBasedGradBwCuda = nullptr,
+                                   size_t activeVoxNumBw = 0) override;
     /// @brief Returns the nmi value forwards
     virtual double GetSimilarityMeasureValueFw() override;
     /// @brief Returns the nmi value backwards

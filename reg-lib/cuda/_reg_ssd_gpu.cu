@@ -32,13 +32,14 @@ void reg_ssd_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
                                     int *floMask, int *floMaskCuda,
                                     nifti_image *warpedImgBw, float *warpedImgBwCuda,
                                     nifti_image *warpedGradBw, float4 *warpedGradBwCuda,
-                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda) {
+                                    nifti_image *voxelBasedGradBw, float4 *voxelBasedGradBwCuda,
+                                    size_t activeVoxNumBw) {
     reg_ssd::InitialiseMeasure(refImg, floImg, refMask, warpedImg, warpedGrad, voxelBasedGrad,
                                localWeightSim, floMask, warpedImgBw, warpedGradBw, voxelBasedGradBw);
     reg_measure_gpu::InitialiseMeasure(refImg, refImgCuda, floImg, floImgCuda, refMask, refMaskCuda, activeVoxNum,
                                        warpedImg, warpedImgCuda, warpedGrad, warpedGradCuda, voxelBasedGrad, voxelBasedGradCuda,
                                        localWeightSim, localWeightSimCuda, floMask, floMaskCuda, warpedImgBw, warpedImgBwCuda,
-                                       warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda);
+                                       warpedGradBw, warpedGradBwCuda, voxelBasedGradBw, voxelBasedGradBwCuda, activeVoxNumBw);
     // Check if the reference and floating images need to be updated
     for (int i = 0; i < this->referenceTimePoints; ++i)
         if (this->timePointWeights[i] > 0 && normaliseTimePoint[i]) {
@@ -108,7 +109,7 @@ double reg_ssd_gpu::GetSimilarityMeasureValueBw() {
                                this->warpedImageBwCuda,
                                nullptr,
                                this->floatingMaskCuda,
-                               this->activeVoxelNumber,
+                               this->activeVoxelNumberBw,
                                this->timePointWeights,
                                this->referenceTimePoints);
 }
@@ -197,7 +198,7 @@ void reg_ssd_gpu::GetVoxelBasedSimilarityMeasureGradientBw(int currentTimePoint)
                                      nullptr,
                                      this->voxelBasedGradientBwCuda,
                                      this->floatingMaskCuda,
-                                     this->activeVoxelNumber,
+                                     this->activeVoxelNumberBw,
                                      this->timePointWeights[currentTimePoint],
                                      currentTimePoint);
 }

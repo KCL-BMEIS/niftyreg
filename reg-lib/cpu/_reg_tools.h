@@ -76,6 +76,31 @@ void reg_tools_removeSCLInfo(nifti_image *img);
 void reg_getRealImageSpacing(nifti_image *image,
                              float *spacingValues);
 /* *************************************************************** */
+/** @brief Reusable scratch for reg_tools_kernelConvolution.
+ *
+ * Passing the same workspace to repeated convolutions avoids re-allocating (and zero-initialising)
+ * the per-call density and NaN-mask buffers. It can also cache the smoothed density field: when
+ * @c densityValid is true the next convolution reuses the cached density instead of recomputing it,
+ * which lets a routine that convolves several images sharing one mask (e.g. LNCC's five
+ * convolutions) compute the density only once. The caller must keep @c densityValid true only
+ * across convolutions that genuinely share the same density - same mask, every in-mask voxel finite
+ * in every image (the LNCC scratch images qualify).
+ */
+struct ConvolutionWorkspace {
+    std::unique_ptr<float[]> density;
+    std::unique_ptr<bool[]> nanImage;
+    size_t size = 0;
+    bool densityValid = false;
+    // Accumulate the weighted sum in float instead of double.
+    bool useFloatAccumulation = false;
+    void EnsureSize(const size_t voxelNumber) {
+        if (size >= voxelNumber) return;
+        density.reset(new float[voxelNumber]);
+        nanImage.reset(new bool[voxelNumber]);
+        size = voxelNumber;
+    }
+};
+/* *************************************************************** */
 /** @brief Smooth an image using a specified kernel
  * @param image Image to be smoothed
  * @param sigma Standard deviation of the kernel to use.
@@ -86,13 +111,35 @@ void reg_getRealImageSpacing(nifti_image *image,
  * smoothed. The array follow the dim array of the nifti header.
  * @param axes Boolean array to specify which axes have to be
  * smoothed. The array follow the dim array of the nifti header.
+ * @param workspace Optional reusable scratch (see ConvolutionWorkspace). When nullptr (default) the
+ * buffers are allocated locally and the density is always recomputed, i.e. unchanged behaviour.
  */
 void reg_tools_kernelConvolution(nifti_image *image,
                                  const float *sigma,
                                  const ConvKernelType kernelType,
                                  const int *mask = nullptr,
                                  const bool *timePoints = nullptr,
-                                 const bool *axes = nullptr);
+                                 const bool *axes = nullptr,
+                                 ConvolutionWorkspace *workspace = nullptr);
+/* *************************************************************** */
+/** @brief Smooth up to four single-time-point images sharing the same geometry, mask and kernel in
+ * a single sweep. Per image the result is bit-for-bit identical to calling
+ * reg_tools_kernelConvolution on it alone, but the line fetches, kernel weights and density
+ * computation are shared, and the per-tap accumulators are laid out so the compiler can vectorise
+ * across images without reordering any single image's sum.
+ * @param images Array of imageCount images to be smoothed (all axes, first time point)
+ * @param imageCount Number of images (1 to 4)
+ * @param sigma Standard deviation of the kernel (sigma[0] applies to every image)
+ * @param kernelType Type of kernel to use
+ * @param mask An integer mask over which the smoothing should occur (may be nullptr)
+ * @param workspace Optional reusable scratch (see ConvolutionWorkspace)
+ */
+void reg_tools_kernelConvolutionMulti(nifti_image *const *images,
+                                      const int imageCount,
+                                      const float *sigma,
+                                      const ConvKernelType kernelType,
+                                      const int *mask = nullptr,
+                                      ConvolutionWorkspace *workspace = nullptr);
 /* *************************************************************** */
 /** @brief Smooth a label image using a Gaussian kernel
  * @param image Image to be smoothed
