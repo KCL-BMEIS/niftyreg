@@ -1408,16 +1408,19 @@ void reg_tools_kernelConvolutionMulti(nifti_image *const *images,
     const bool useFloat = workspace && workspace->useFloatAccumulation;
     std::visit([&](auto&& imgDataType) {
         using ImgDataType = std::decay_t<decltype(imgDataType)>;
-        auto convolve = [&](auto accType) {
-            using AccType = std::decay_t<decltype(accType)>;
+        auto call = [&]<class AccType, int N>(AccType, std::integral_constant<int, N>) {
+            reg_tools_kernelConvolutionMulti<ImgDataType, AccType, N>(images, sigma, kernelType, mask, workspace);
+        };
+        auto dispatchCount = [&](auto acc) {
             switch (imageCount) {
-            case 2: reg_tools_kernelConvolutionMulti<ImgDataType, AccType, 2>(images, sigma, kernelType, mask, workspace); break;
-            case 3: reg_tools_kernelConvolutionMulti<ImgDataType, AccType, 3>(images, sigma, kernelType, mask, workspace); break;
-            case 4: reg_tools_kernelConvolutionMulti<ImgDataType, AccType, 4>(images, sigma, kernelType, mask, workspace); break;
+            case 2: call(acc, std::integral_constant<int, 2>{}); break;
+            case 3: call(acc, std::integral_constant<int, 3>{}); break;
+            case 4: call(acc, std::integral_constant<int, 4>{}); break;
+            default: throw std::runtime_error("unsupported image count");
             }
         };
-        if (useFloat) convolve(float{});
-        else convolve(double{});
+        if (useFloat) dispatchCount(float{});
+        else          dispatchCount(double{});
     }, NiftiImage::getFloatingDataType(images[0]));
 #endif
 }
