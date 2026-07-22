@@ -2480,6 +2480,13 @@ void reg_defField_compose(const nifti_image *deformationField,
     if (deformationField->datatype != dfToUpdate->datatype)
         NR_FATAL_ERROR("Both deformation fields are expected to have the same type");
 
+    if (positionField && (positionField->datatype != dfToUpdate->datatype ||
+                        positionField->nx != dfToUpdate->nx ||
+                        positionField->ny != dfToUpdate->ny ||
+                        positionField->nz != dfToUpdate->nz ||
+                        positionField->nu != dfToUpdate->nu))
+        NR_FATAL_ERROR("The position field must share the deformation field's geometry and data type");
+
     unique_ptr<int[]> currentMask;
     if (!mask) {
         currentMask.reset(new int[NiftiImage::calcVoxelNumber(dfToUpdate, 3)]());
