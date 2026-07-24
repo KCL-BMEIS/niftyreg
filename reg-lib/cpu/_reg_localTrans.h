@@ -133,10 +133,16 @@ int reg_spline_cppComposition(nifti_image *grid1,
  * @param mask Mask overlaid on the dfToUpdate field where only voxel
  * within the mask will be updated. All positive values in the mask
  * are considered as belonging to the mask.
+ * @param positionField Optional field supplying the lookup positions. When null (default) the
+ * positions are read from dfToUpdate (in-place composition). When provided, the positions are
+ * read from it and the result written to dfToUpdate, so the source and destination fields never
+ * alias - used by the scaling-and-squaring loop to ping-pong between two buffers instead of
+ * copying the field back after every step. positionField must share dfToUpdate's geometry.
  */
 void reg_defField_compose(const nifti_image *deformationField,
                           nifti_image *dfToUpdate,
-                          const int *mask);
+                          const int *mask,
+                          const nifti_image *positionField = nullptr);
 /* *************************************************************** */
 /** @brief Compute the inverse of a deformation field
  * @author Marcel van Herk (CMIC / NKI / AVL)

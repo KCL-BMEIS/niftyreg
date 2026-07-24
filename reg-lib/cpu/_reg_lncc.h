@@ -68,5 +68,9 @@ protected:
     int *backwardMask;
 
     ConvKernelType kernelType;
+
+    // Reusable convolution scratch
+    ConvolutionWorkspace forwardConvWorkspace;
+    ConvolutionWorkspace backwardConvWorkspace;
 };
 /* *************************************************************** */

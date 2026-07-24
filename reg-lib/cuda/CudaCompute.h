@@ -3,9 +3,15 @@
 #include "Compute.h"
 #include "CudaCommon.hpp"
 
+namespace NiftyReg::Cuda { struct ExponentiationWorkspace; struct KernelConvolutionWorkspace; }
+
 class CudaCompute: public Compute {
 public:
-    CudaCompute(Content& con): Compute(con) {}
+    // Constructor and destructor are defined in the .cu so the incomplete ExponentiationWorkspace
+    // can be held by unique_ptr here without pulling thrust into this host-included header (the
+    // unique_ptr's destructor, needed by both, is only instantiated where the type is complete).
+    CudaCompute(Content& con);
+    ~CudaCompute();
 
     virtual void ResampleImage(int interpolation, float paddingValue) override;
     virtual double GetJacobianPenaltyTerm(bool approx) override;
@@ -42,4 +48,10 @@ protected:
 private:
     void ConvolveImage(const NiftiImage&, float4*);
     Cuda::UniquePtr<float4> ScaleGradient(const float4*, const size_t, const float);
+    // Reusable scratch for the velocity-field exponentiation, kept across iterations to avoid
+    // per-call cudaMalloc/cudaFree (lazily created on first -vel use).
+    std::unique_ptr<NiftyReg::Cuda::ExponentiationWorkspace> expWorkspace;
+    // Reusable scratch for the voxel-based-gradient smoothing convolutions (three per-axis passes
+    // per iteration), so their internal buffers are pooled rather than reallocated each pass.
+    std::unique_ptr<NiftyReg::Cuda::KernelConvolutionWorkspace> convWorkspace;
 };

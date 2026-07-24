@@ -18,6 +18,35 @@
 /* *************************************************************** */
 namespace NiftyReg::Cuda {
 /* *************************************************************** */
+const int* ExponentiationWorkspace::GetIdentityMask(const size_t voxelNumber) {
+    // The identity mask [0, 1, ...) is constant, so only (re)fill it when it must grow.
+    if (mask.size() < voxelNumber) {
+        mask.resize(voxelNumber);
+        thrust::sequence(mask.begin(), mask.end());
+    }
+    return mask.data().get();
+}
+/* *************************************************************** */
+float4* ExponentiationWorkspace::GetFlowField(const size_t voxelNumber) {
+    if (flowField.size() < voxelNumber)
+        flowField.resize(voxelNumber);
+    // GetFlowFieldFromVelocityGrid seeds the field as an identity displacement (all zeros) before
+    // adding the spline component, so the buffer must start zeroed - matching the freshly allocated
+    // (value-initialised) device_vector the non-workspace path uses. Reused buffers hold stale data,
+    // so zero the active range here.
+    cudaMemset(flowField.data().get(), 0, voxelNumber * sizeof(float4));
+    return flowField.data().get();
+}
+/* *************************************************************** */
+vector<thrust::device_vector<float4>>& ExponentiationWorkspace::GetIntermediates(const size_t count, const size_t voxelNumber) {
+    if (intermediates.size() < count)
+        intermediates.resize(count);
+    for (auto& v : intermediates)
+        if (v.size() < voxelNumber)
+            v.resize(voxelNumber);
+    return intermediates;
+}
+/* *************************************************************** */
 template<bool composition, bool bspline>
 void GetDeformationField(const nifti_image *controlPointImage,
                          const nifti_image *referenceImage,
@@ -647,6 +676,27 @@ void DefFieldCompose(const nifti_image *deformationField,
         DefFieldComposeKernel<is3d>(deformationFieldOutCuda, deformationFieldTexture, referenceImageDims, affineMatrixB, affineMatrixC, index);
     });
 }
+template void DefFieldCompose<true>(const nifti_image*, const float4*, float4*);
+template void DefFieldCompose<false>(const nifti_image*, const float4*, float4*);
+/* *************************************************************** */
+// Ping-pong composition for the scaling-and-squaring loops: the sampling positions and the lookup
+// table are the SAME source field (given by srcTexture), and the squared field is written to a
+// distinct output buffer, so no field copy-back is needed between steps. The caller supplies the
+// texture (created once for a buffer that is reused across every step, avoiding per-step texture
+// creation). Bit-identical to DefFieldCompose applied to a field composed with itself.
+template<bool is3d>
+static void DefFieldComposePingPong(const nifti_image *deformationField,
+                                    cudaTextureObject_t srcTexture,
+                                    float4 *deformationFieldOutCuda) {
+    const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
+    const int3 referenceImageDims{ deformationField->nx, deformationField->ny, deformationField->nz };
+    const mat44& affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;
+    const mat44& affineMatrixC = deformationField->sform_code > 0 ? deformationField->sto_xyz : deformationField->qto_xyz;
+
+    thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [=]__device__(const int index) {
+        DefFieldComposeKernel<is3d, true>(deformationFieldOutCuda, srcTexture, referenceImageDims, affineMatrixB, affineMatrixC, index);
+    });
+}
 /* *************************************************************** */
 void GetDeformationFieldFromFlowField(nifti_image *flowField,
                                       nifti_image *deformationField,
@@ -704,18 +754,20 @@ void GetDeformationFieldFromFlowField(nifti_image *flowField,
     // Conversion from displacement to deformation
     GetDeformationFromDisplacement(flowField, flowFieldCuda);
 
-    // The computed scaled deformation field is copied over
-    thrust::copy(thrust::device, flowFieldCuda, flowFieldCuda + voxelNumber, deformationFieldCuda);
-
-    // The deformation field is squared
-    auto defFieldCompose = deformationField->nz > 1 ? DefFieldCompose<true> : DefFieldCompose<false>;
+    auto defFieldComposePingPong = deformationField->nz > 1 ? DefFieldComposePingPong<true> : DefFieldComposePingPong<false>;
+    auto flowTexturePtr = Cuda::CreateTextureObject(flowFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    auto defTexturePtr = Cuda::CreateTextureObject(deformationFieldCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
+    float4 *curCuda = flowFieldCuda, *nextCuda = deformationFieldCuda;
+    cudaTextureObject_t curTexture = *flowTexturePtr, nextTexture = *defTexturePtr;
     for (int i = 0; i < squaringNumber; ++i) {
-        // The deformation field is applied to itself
-        defFieldCompose(deformationField, deformationFieldCuda, flowFieldCuda);
-        // The computed scaled deformation field is copied over
-        thrust::copy_n(thrust::device, flowFieldCuda, voxelNumber, deformationFieldCuda);
+        defFieldComposePingPong(deformationField, curTexture, nextCuda);
+        std::swap(curCuda, nextCuda);
+        std::swap(curTexture, nextTexture);
         NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
     }
+    // Ensure the result ends up in deformationFieldCuda (one copy at most, vs one per step above)
+    if (curCuda != deformationFieldCuda)
+        thrust::copy_n(thrust::device, curCuda, voxelNumber, deformationFieldCuda);
     // The affine component of the transformation is restored
     if (!affineOnlyCudaVec.empty()) {
         GetDisplacementFromDeformation(deformationField, deformationFieldCuda);
@@ -733,12 +785,20 @@ void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                  nifti_image *deformationField,
                                  float4 *velocityFieldGridCuda,
                                  float4 *deformationFieldCuda,
-                                 const bool updateStepNumber) {
+                                 const bool updateStepNumber,
+                                 ExponentiationWorkspace *workspace) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
 
-    // Create a mask array where no voxel is excluded
-    thrust::device_vector<int> maskCudaVec(voxelNumber);
-    thrust::sequence(maskCudaVec.begin(), maskCudaVec.end());
+    // Identity mask (no voxel excluded); reused from the workspace when provided, else built here
+    thrust::device_vector<int> localMask;
+    const int *maskCuda;
+    if (workspace) {
+        maskCuda = workspace->GetIdentityMask(voxelNumber);
+    } else {
+        localMask.resize(voxelNumber);
+        thrust::sequence(localMask.begin(), localMask.end());
+        maskCuda = localMask.data().get();
+    }
 
     // Clean any extension in the deformation field as it is unexpected
     nifti_free_extensions(deformationField);
@@ -750,7 +810,7 @@ void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                          deformationField,
                                          velocityFieldGridCuda,
                                          deformationFieldCuda,
-                                         maskCudaVec.data().get(),
+                                         maskCuda,
                                          voxelNumber);
     } else if (velocityFieldGrid->intent_p1 == SPLINE_VEL_GRID) {
         // Create an image to store the flow field
@@ -762,14 +822,21 @@ void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
         if (velocityFieldGrid->num_ext > 0)
             nifti_copy_extensions(flowField, velocityFieldGrid);
 
-        // Allocate CUDA memory for the flow field
-        thrust::device_vector<float4> flowFieldCudaVec(voxelNumber);
+        // Flow-field scratch: reused from the workspace when provided, else allocated here
+        thrust::device_vector<float4> localFlowField;
+        float4 *flowFieldCuda;
+        if (workspace) {
+            flowFieldCuda = workspace->GetFlowField(voxelNumber);
+        } else {
+            localFlowField.resize(voxelNumber);
+            flowFieldCuda = localFlowField.data().get();
+        }
 
         // Generate the velocity field
         GetFlowFieldFromVelocityGrid(velocityFieldGrid, flowField, velocityFieldGridCuda,
-                                     flowFieldCudaVec.data().get(), maskCudaVec.data().get(), voxelNumber);
+                                     flowFieldCuda, maskCuda, voxelNumber);
         // Exponentiate the flow field
-        GetDeformationFieldFromFlowField(flowField, deformationField, flowFieldCudaVec.data().get(),
+        GetDeformationFieldFromFlowField(flowField, deformationField, flowFieldCuda,
                                          deformationFieldCuda, updateStepNumber);
         // Update the number of step required. No action otherwise
         velocityFieldGrid->intent_p2 = flowField->intent_p2;
@@ -779,14 +846,22 @@ void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
 void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
                                         float4 *velocityFieldGridCuda,
                                         vector<NiftiImage>& deformationFields,
-                                        vector<thrust::device_vector<float4>>& deformationFieldCudaVecs) {
+                                        vector<thrust::device_vector<float4>>& deformationFieldCudaVecs,
+                                        ExponentiationWorkspace *workspace) {
     if (velocityFieldGrid->intent_p1 != SPLINE_VEL_GRID)
         NR_FATAL_ERROR("The provided input image is not a spline parametrised transformation");
 
-    // Create a mask array where no voxel is excluded
+    // Identity mask (no voxel excluded); reused from the workspace when provided
     const size_t voxelNumber = deformationFields[0].nVoxelsPerVolume();
-    thrust::device_vector<int> maskCudaVec(voxelNumber);
-    thrust::sequence(maskCudaVec.begin(), maskCudaVec.end());
+    thrust::device_vector<int> localMask;
+    const int *maskCuda;
+    if (workspace) {
+        maskCuda = workspace->GetIdentityMask(voxelNumber);
+    } else {
+        localMask.resize(voxelNumber);
+        thrust::sequence(localMask.begin(), localMask.end());
+        maskCuda = localMask.data().get();
+    }
 
     // Create an image to store the flow field
     NiftiImage flowField(deformationFields[0], NiftiImage::Copy::ImageInfo);
@@ -797,13 +872,19 @@ void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
     if (velocityFieldGrid->num_ext > 0)
         nifti_copy_extensions(flowField, velocityFieldGrid);
 
-    // Allocate CUDA memory for the flow field
-    thrust::device_vector<float4> flowFieldCudaVec(voxelNumber);
-    auto flowFieldCuda = flowFieldCudaVec.data().get();
+    // Flow-field scratch: reused from the workspace when provided
+    thrust::device_vector<float4> localFlowField;
+    float4 *flowFieldCuda;
+    if (workspace) {
+        flowFieldCuda = workspace->GetFlowField(voxelNumber);
+    } else {
+        localFlowField.resize(voxelNumber);
+        flowFieldCuda = localFlowField.data().get();
+    }
 
     // Generate the velocity field
     GetFlowFieldFromVelocityGrid(velocityFieldGrid, flowField, velocityFieldGridCuda,
-                                 flowFieldCuda, maskCudaVec.data().get(), voxelNumber);
+                                 flowFieldCuda, maskCuda, voxelNumber);
 
     // Remove the affine component from the flow field
     NiftiImage affineOnly;
@@ -831,13 +912,15 @@ void GetIntermediateDefFieldFromVelGrid(nifti_image *velocityFieldGrid,
     // Conversion from displacement to deformation
     GetDeformationFromDisplacement(deformationFields[0], deformationFieldCudaVecs[0].data().get());
 
-    // The deformation field is squared
-    auto defFieldCompose = deformationFields[0]->nz > 1 ? DefFieldCompose<true> : DefFieldCompose<false>;
+    // The deformation field is squared. Each intermediate field (vec[i+1] = vec[i] composed with
+    // itself) must be kept for the gradient exponentiation, so the buffers cannot be ping-ponged;
+    // but the per-step copy-back is still removed by reading the sampling positions from vec[i]'s
+    // texture (positions == lookup == vec[i]) and writing directly into the distinct vec[i+1].
+    auto defFieldComposePingPong = deformationFields[0]->nz > 1 ? DefFieldComposePingPong<true> : DefFieldComposePingPong<false>;
     for (int i = 0; i < squaringNumber; i++) {
-        // The computed scaled deformation field is copied over
-        thrust::copy_n(thrust::device, deformationFieldCudaVecs[i].data().get(), voxelNumber, deformationFieldCudaVecs[i + 1].data().get());
-        // The deformation field is applied to itself
-        defFieldCompose(deformationFields[i], deformationFieldCudaVecs[i].data().get(), deformationFieldCudaVecs[i + 1].data().get());
+        auto srcTexturePtr = Cuda::CreateTextureObject(deformationFieldCudaVecs[i].data().get(), voxelNumber, cudaChannelFormatKindFloat, 4);
+        // vec[i+1] = vec[i](vec[i])
+        defFieldComposePingPong(deformationFields[i], *srcTexturePtr, deformationFieldCudaVecs[i + 1].data().get());
         NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
     }
 

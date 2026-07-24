@@ -2240,7 +2240,14 @@ void reg_spline_refineControlPointGrid(nifti_image *controlPointGrid,
 template <class DataType>
 void reg_defField_compose2D(const nifti_image *deformationField,
                             nifti_image *dfToUpdate,
-                            const int *mask) {
+                            const int *mask,
+                            const nifti_image *positionField = nullptr) {
+    if (positionField && (positionField->datatype != dfToUpdate->datatype ||
+                          positionField->nx != dfToUpdate->nx ||
+                          positionField->ny != dfToUpdate->ny ||
+                          positionField->nz != dfToUpdate->nz ||
+                          positionField->nu != dfToUpdate->nu))
+        NR_FATAL_ERROR("The position field must share the deformation field's geometry and data type");
     const size_t dfVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 2);
 #ifdef _WIN32
     long i;
@@ -2251,6 +2258,11 @@ void reg_defField_compose2D(const nifti_image *deformationField,
 #endif
     const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
     const DataType *defPtrY = &defPtrX[dfVoxelNumber];
+
+    // See reg_defField_compose3D: positions come from positionField (ping-pong) or dfToUpdate
+    // (in-place); positionField shares dfToUpdate's geometry, so the result is identical.
+    const DataType *posPtrX = static_cast<DataType*>((positionField ? positionField : dfToUpdate)->data);
+    const DataType *posPtrY = &posPtrX[warVoxelNumber];
 
     DataType *resPtrX = static_cast<DataType*>(dfToUpdate->data);
     DataType *resPtrY = &resPtrX[warVoxelNumber];
@@ -2272,14 +2284,14 @@ void reg_defField_compose2D(const nifti_image *deformationField,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
-   deformationField, defPtrX, defPtrY, resPtrX, resPtrY) \
+   deformationField, defPtrX, defPtrY, posPtrX, posPtrY, resPtrX, resPtrY) \
    private(a, b, index, pre,realDefX, realDefY, voxelX, voxelY, \
    defX, defY, relX, relY, basis)
 #endif
     for (i = 0; i < warVoxelNumber; ++i) {
         if (mask[i] > -1) {
-            realDefX = resPtrX[i];
-            realDefY = resPtrY[i];
+            realDefX = posPtrX[i];
+            realDefY = posPtrY[i];
 
             // Conversion from real to voxel in the deformation field
             voxelX =
@@ -2333,7 +2345,14 @@ void reg_defField_compose2D(const nifti_image *deformationField,
 template <class DataType>
 void reg_defField_compose3D(const nifti_image *deformationField,
                             nifti_image *dfToUpdate,
-                            const int *mask) {
+                            const int *mask,
+                            const nifti_image *positionField = nullptr) {
+    if (positionField && (positionField->datatype != dfToUpdate->datatype ||
+                          positionField->nx != dfToUpdate->nx ||
+                          positionField->ny != dfToUpdate->ny ||
+                          positionField->nz != dfToUpdate->nz ||
+                          positionField->nu != dfToUpdate->nu))
+        NR_FATAL_ERROR("The position field must share the deformation field's geometry and data type");
     const size_t dfVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
 #ifdef _WIN32
     long i;
@@ -2345,6 +2364,15 @@ void reg_defField_compose3D(const nifti_image *deformationField,
     const DataType *defPtrX = static_cast<DataType*>(deformationField->data);
     const DataType *defPtrY = &defPtrX[dfVoxelNumber];
     const DataType *defPtrZ = &defPtrY[dfVoxelNumber];
+
+    // Positions to look up: normally the field being updated (in-place composition). When a
+    // separate positionField is supplied (the scaling-and-squaring ping-pong), the positions are
+    // read from it and the result written to dfToUpdate, so source and destination never alias.
+    // positionField shares dfToUpdate's geometry, so the arithmetic is identical to the in-place
+    // case where positionField == dfToUpdate.
+    const DataType *posPtrX = static_cast<DataType*>((positionField ? positionField : dfToUpdate)->data);
+    const DataType *posPtrY = &posPtrX[warVoxelNumber];
+    const DataType *posPtrZ = &posPtrY[warVoxelNumber];
 
     DataType *resPtrX = static_cast<DataType*>(dfToUpdate->data);
     DataType *resPtrY = &resPtrX[warVoxelNumber];
@@ -2372,16 +2400,16 @@ void reg_defField_compose3D(const nifti_image *deformationField,
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
    shared(warVoxelNumber, mask, df_real2Voxel, df_voxel2Real, \
-   defPtrX, defPtrY, defPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
+   defPtrX, defPtrY, defPtrZ, posPtrX, posPtrY, posPtrZ, resPtrX, resPtrY, resPtrZ, deformationField) \
    private(a, b, c, currentX, currentY, currentZ, index, tempIndex, pre, \
    realDef, voxel, tempBasis, defX, defY, defZ, relX, relY, relZ, basis, inY, inZ)
 #endif
     for (i = 0; i < warVoxelNumber; ++i) {
         if (mask[i] > -1) {
             // Conversion from real to voxel in the deformation field
-            realDef[0] = resPtrX[i];
-            realDef[1] = resPtrY[i];
-            realDef[2] = resPtrZ[i];
+            realDef[0] = posPtrX[i];
+            realDef[1] = posPtrY[i];
+            realDef[2] = posPtrZ[i];
             voxel[0] =
                 df_real2Voxel.m[0][0] * realDef[0] +
                 df_real2Voxel.m[0][1] * realDef[1] +
@@ -2459,9 +2487,17 @@ void reg_defField_compose3D(const nifti_image *deformationField,
 /* *************************************************************** */
 void reg_defField_compose(const nifti_image *deformationField,
                           nifti_image *dfToUpdate,
-                          const int *mask) {
+                          const int *mask,
+                          const nifti_image *positionField) {
     if (deformationField->datatype != dfToUpdate->datatype)
         NR_FATAL_ERROR("Both deformation fields are expected to have the same type");
+
+    if (positionField && (positionField->datatype != dfToUpdate->datatype ||
+                        positionField->nx != dfToUpdate->nx ||
+                        positionField->ny != dfToUpdate->ny ||
+                        positionField->nz != dfToUpdate->nz ||
+                        positionField->nu != dfToUpdate->nu))
+        NR_FATAL_ERROR("The position field must share the deformation field's geometry and data type");
 
     unique_ptr<int[]> currentMask;
     if (!mask) {
@@ -2472,7 +2508,7 @@ void reg_defField_compose(const nifti_image *deformationField,
     std::visit([&](auto&& defFieldDataType) {
         using DefFieldDataType = std::decay_t<decltype(defFieldDataType)>;
         auto defFieldCompose = dfToUpdate->nu == 2 ? reg_defField_compose2D<DefFieldDataType> : reg_defField_compose3D<DefFieldDataType>;
-        defFieldCompose(deformationField, dfToUpdate, mask);
+        defFieldCompose(deformationField, dfToUpdate, mask, positionField);
     }, NiftiImage::getFloatingDataType(deformationField));
 }
 /* *************************************************************** */
@@ -3553,21 +3589,22 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowField,
     // Conversion from displacement to deformation
     reg_getDeformationFromDisplacement(flowField);
 
-    // The computed scaled deformation field is copied over
-    memcpy(deformationField->data, flowField->data,
-           deformationField->nvox * deformationField->nbyper);
-
-    // The deformation field is squared
+    // The deformation field is squared. Ping-pong between the two existing buffers:
+    nifti_image *curField = flowField;          // holds the current (scaled, then squared) field
+    nifti_image *nextField = deformationField;  // receives the next squared field
     for (unsigned short i = 0; i < squaringNumber; ++i) {
-        // The deformation field is applied to itself
-        reg_defField_compose(deformationField,
-                             flowField,
-                             nullptr);
-        // The computed scaled deformation field is copied over
-        memcpy(deformationField->data, flowField->data,
-               deformationField->nvox * deformationField->nbyper);
+        // nextField = curField(curField)
+        reg_defField_compose(curField,   // lookup table
+                             nextField,  // output
+                             nullptr,
+                             curField);  // positions
+        std::swap(curField, nextField);
         NR_DEBUG("Squaring (composition) step " << i + 1 << "/" << squaringNumber);
     }
+    // Ensure the result ends up in deformationField (one copy at most, vs one per step above)
+    if (curField != deformationField)
+        memcpy(deformationField->data, curField->data,
+               deformationField->nvox * deformationField->nbyper);
     // The affine conponent of the transformation is restored
     if (affineOnly) {
         reg_getDisplacementFromDeformation(deformationField);
