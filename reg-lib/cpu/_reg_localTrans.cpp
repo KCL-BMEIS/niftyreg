@@ -2242,6 +2242,12 @@ void reg_defField_compose2D(const nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             const int *mask,
                             const nifti_image *positionField = nullptr) {
+    if (positionField && (positionField->datatype != dfToUpdate->datatype ||
+                          positionField->nx != dfToUpdate->nx ||
+                          positionField->ny != dfToUpdate->ny ||
+                          positionField->nz != dfToUpdate->nz ||
+                          positionField->nu != dfToUpdate->nu))
+        NR_FATAL_ERROR("The position field must share the deformation field's geometry and data type");
     const size_t dfVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 2);
 #ifdef _WIN32
     long i;
@@ -2341,6 +2347,12 @@ void reg_defField_compose3D(const nifti_image *deformationField,
                             nifti_image *dfToUpdate,
                             const int *mask,
                             const nifti_image *positionField = nullptr) {
+    if (positionField && (positionField->datatype != dfToUpdate->datatype ||
+                          positionField->nx != dfToUpdate->nx ||
+                          positionField->ny != dfToUpdate->ny ||
+                          positionField->nz != dfToUpdate->nz ||
+                          positionField->nu != dfToUpdate->nu))
+        NR_FATAL_ERROR("The position field must share the deformation field's geometry and data type");
     const size_t dfVoxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
 #ifdef _WIN32
     long i;

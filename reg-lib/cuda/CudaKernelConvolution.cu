@@ -66,6 +66,36 @@ double ComputeKernelWeights(vector<float>& kernel, const int radius, const doubl
     return kernelSum;
 }
 /* *************************************************************** */
+// Kernel support radius (in voxels) for a per-axis spacing `temp`.
+template<ConvKernelType kernelType>
+int KernelRadius(const double temp) {
+    if constexpr (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear)
+        return static_cast<int>(temp);
+    else if constexpr (kernelType == ConvKernelType::Gaussian)
+        return static_cast<int>(temp * 3.0);
+    else if constexpr (kernelType == ConvKernelType::Cubic)
+        return static_cast<int>(temp * 2.0);
+    else { NR_FATAL_ERROR("Unknown kernel type"); return 0; }
+}
+/* *************************************************************** */
+__device__ inline bool ConvVoxelActive(const float val) { return val == val; }
+__device__ inline bool ConvVoxelActive(const float4 val) { return val.x == val.x; }
+/* *************************************************************** */
+template<class T>
+__device__ inline void InitConvVoxel(const size_t index, const T val, const T zero,
+                                     const bool computeDensity, const int *maskCuda,
+                                     float *initDensity, bool *nanImagePtr, T *curIntensity) {
+    if (computeDensity) {
+        const bool inMask = maskCuda == nullptr || maskCuda[index] >= 0;
+        const bool active = inMask && ConvVoxelActive(val);
+        initDensity[index] = active ? 1.f : 0;
+        nanImagePtr[index] = !active;
+        curIntensity[index] = active ? val : zero;
+    } else {
+        curIntensity[index] = nanImagePtr[index] ? zero : val;
+    }
+}
+/* *************************************************************** */
 // Upload the kernel weights and return the device pointer. When a workspace is available the
 // upload is skipped if the same kernel (type, radius, spacing) is already resident - consecutive
 // convolutions of one LNCC call all share the same kernel, so only the first axis pays the copy.
@@ -191,7 +221,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                 double temp;
                 if (sigma[t] > 0) temp = sigma[t] / image->pixdim[n + 1];
                 else temp = fabs(sigma[t]);
-                const int radius = static_cast<int>(temp);
+                const int radius = KernelRadius<kernelType>(temp);
                 if (radius <= 0) continue;
 
                 int planeCount, lineOffset;
@@ -267,15 +297,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                 float *initDensity = curDensity;
                 thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
                     const float intensityVal = reinterpret_cast<float*>(&imageCuda[index])[t];
-                    if (computeDensity) {
-                        const bool inMask = maskCuda == nullptr || maskCuda[index] >= 0;
-                        const bool active = inMask && intensityVal == intensityVal;
-                        initDensity[index] = active ? 1.f : 0;
-                        nanImagePtr[index] = !active;
-                        curIntensity[index] = active ? intensityVal : 0;
-                    } else {
-                        curIntensity[index] = nanImagePtr[index] ? 0 : intensityVal;
-                    }
+                    InitConvVoxel<float>(index, intensityVal, 0.f, computeDensity, maskCuda, initDensity, nanImagePtr, curIntensity);
                 });
             }
 
@@ -285,14 +307,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                 double temp;
                 if (sigma[t] > 0) temp = sigma[t] / image->pixdim[n + 1]; // mm to voxel
                 else temp = fabs(sigma[t]); // voxel-based if negative value
-                int radius = 0;
-                if constexpr (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear)
-                    radius = static_cast<int>(temp);
-                else if constexpr (kernelType == ConvKernelType::Gaussian)
-                    radius = static_cast<int>(temp * 3.0);
-                else if constexpr (kernelType == ConvKernelType::Cubic)
-                    radius = static_cast<int>(temp * 2.0);
-                else NR_FATAL_ERROR("Unknown kernel type");
+                const int radius = KernelRadius<kernelType>(temp);
                 if (radius <= 0) continue;
 
                 // Fill the kernel (identical maths to the CPU reg_tools_kernelConvolution)
@@ -458,16 +473,8 @@ void NiftyReg::Cuda::KernelConvolutionPacked(const nifti_image *image,
     {
         float *initDensity = curDensity;
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
-            const float4 val = imageCuda[index];
-            if (computeDensity) {
-                const bool inMask = maskCuda == nullptr || maskCuda[index] >= 0;
-                const bool active = inMask && val.x == val.x;
-                initDensity[index] = active ? 1.f : 0;
-                nanImagePtr[index] = !active;
-                curIntensity[index] = active ? val : make_float4(0, 0, 0, 0);
-            } else {
-                curIntensity[index] = nanImagePtr[index] ? make_float4(0, 0, 0, 0) : val;
-            }
+            InitConvVoxel<float4>(index, imageCuda[index], make_float4(0, 0, 0, 0),
+                                  computeDensity, maskCuda, initDensity, nanImagePtr, curIntensity);
         });
     }
 
@@ -477,14 +484,7 @@ void NiftyReg::Cuda::KernelConvolutionPacked(const nifti_image *image,
         double temp;
         if (sigma[0] > 0) temp = sigma[0] / image->pixdim[n + 1]; // mm to voxel
         else temp = fabs(sigma[0]); // voxel-based if negative value
-        int radius = 0;
-        if constexpr (kernelType == ConvKernelType::Mean || kernelType == ConvKernelType::Linear)
-            radius = static_cast<int>(temp);
-        else if constexpr (kernelType == ConvKernelType::Gaussian)
-            radius = static_cast<int>(temp * 3.0);
-        else if constexpr (kernelType == ConvKernelType::Cubic)
-            radius = static_cast<int>(temp * 2.0);
-        else NR_FATAL_ERROR("Unknown kernel type");
+        const int radius = KernelRadius<kernelType>(temp);
         if (radius <= 0) continue;
 
         vector<float> kernel;
@@ -593,7 +593,7 @@ void NiftyReg::Cuda::KernelConvolutionPacked(const nifti_image *image,
     const float *finalDensity = curDensity;
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
         if (nanImagePtr[index]) {
-            const float nan = std::numeric_limits<float>::quiet_NaN();
+            constexpr float nan = std::numeric_limits<float>::quiet_NaN();
             imageCuda[index] = make_float4(nan, nan, nan, nan);
         } else {
             const float4 val = finalIntensity[index];

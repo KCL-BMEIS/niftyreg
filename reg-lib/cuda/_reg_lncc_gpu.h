@@ -1,15 +1,3 @@
-/*
- * @file _reg_lncc_gpu.h
- * @author Marc Modat
- * @date 10/11/2012
- *
- *  Copyright (c) 2009-2018, University College London
- *  Copyright (c) 2018, NiftyReg Developers.
- *  All rights reserved.
- * See the LICENSE.txt file in the nifty_reg root folder
- *
- */
-
 #pragma once
 
 #include "CudaTools.hpp"

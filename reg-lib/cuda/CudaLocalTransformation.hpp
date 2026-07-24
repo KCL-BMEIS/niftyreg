@@ -71,15 +71,18 @@ void DefFieldCompose(const nifti_image *deformationField,
  * and reused. Buffers only ever grow.
  */
 struct ExponentiationWorkspace {
-    thrust::device_vector<int> mask;                       // identity mask (filled once per size)
-    thrust::device_vector<float4> flowField;               // flow-field scratch
-    vector<thrust::device_vector<float4>> intermediates;   // gradient path: squaringNumber+1 fields
+public:
     /// Identity mask [0, 1, ...voxelNumber); (re)filled only when it must grow.
     const int* GetIdentityMask(const size_t voxelNumber);
     /// Flow-field scratch of at least voxelNumber float4 (grows only).
     float4* GetFlowField(const size_t voxelNumber);
     /// Ensure `count` intermediate buffers each holding at least voxelNumber float4 (grows only).
     vector<thrust::device_vector<float4>>& GetIntermediates(const size_t count, const size_t voxelNumber);
+
+private:
+    thrust::device_vector<int> mask;                       // identity mask (filled once per size)
+    thrust::device_vector<float4> flowField;               // flow-field scratch
+    vector<thrust::device_vector<float4>> intermediates;   // gradient path: squaringNumber+1 fields
 };
 /* *************************************************************** */
 void GetDefFieldFromVelocityGrid(nifti_image *velocityFieldGrid,

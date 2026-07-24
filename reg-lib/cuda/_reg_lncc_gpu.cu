@@ -1,15 +1,3 @@
-/*
- * @file _reg_lncc_gpu.cu
- * @author Marc Modat
- * @date 10/11/2012
- *
- *  Copyright (c) 2009-2018, University College London
- *  Copyright (c) 2018, NiftyReg Developers.
- *  All rights reserved.
- * See the LICENSE.txt file in the nifty_reg root folder
- *
- */
-
 #include "_reg_lncc_gpu.h"
 #include "CudaKernelConvolution.hpp"
 
@@ -71,27 +59,25 @@ void reg_lncc_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
 /* *************************************************************** */
 namespace {
 /* *************************************************************** */
+template<class F>
+void DispatchKernelType(const ConvKernelType kernelType, F&& f) {
+    switch (kernelType) {
+    case ConvKernelType::Mean:     f(std::integral_constant<ConvKernelType, ConvKernelType::Mean>{});     break;
+    case ConvKernelType::Linear:   f(std::integral_constant<ConvKernelType, ConvKernelType::Linear>{});   break;
+    case ConvKernelType::Gaussian: f(std::integral_constant<ConvKernelType, ConvKernelType::Gaussian>{}); break;
+    case ConvKernelType::Cubic:    f(std::integral_constant<ConvKernelType, ConvKernelType::Cubic>{});    break;
+    default:                       NR_FATAL_ERROR("Unsupported kernel type");
+    }
+}
+/* *************************************************************** */
 // Runtime dispatch to the compile-time templated packed convolution (all four float4 lanes in one
 // pass). LNCC accumulates in float (not double)
 void ConvolvePacked(const nifti_image *image, float4 *imageCuda, const float *sigma,
                     const ConvKernelType kernelType, const int *maskCuda,
                     NiftyReg::Cuda::KernelConvolutionWorkspace *workspace) {
-    switch (kernelType) {
-    case ConvKernelType::Mean:
-        NiftyReg::Cuda::KernelConvolutionPacked<ConvKernelType::Mean, float>(image, imageCuda, sigma, maskCuda, workspace);
-        break;
-    case ConvKernelType::Linear:
-        NiftyReg::Cuda::KernelConvolutionPacked<ConvKernelType::Linear, float>(image, imageCuda, sigma, maskCuda, workspace);
-        break;
-    case ConvKernelType::Gaussian:
-        NiftyReg::Cuda::KernelConvolutionPacked<ConvKernelType::Gaussian, float>(image, imageCuda, sigma, maskCuda, workspace);
-        break;
-    case ConvKernelType::Cubic:
-        NiftyReg::Cuda::KernelConvolutionPacked<ConvKernelType::Cubic, float>(image, imageCuda, sigma, maskCuda, workspace);
-        break;
-    default:
-        NR_FATAL_ERROR("Unsupported kernel type");
-    }
+    DispatchKernelType(kernelType, [&](auto kt) {
+        NiftyReg::Cuda::KernelConvolutionPacked<decltype(kt)::value, float>(image, imageCuda, sigma, maskCuda, workspace);
+    });
 }
 /* *************************************************************** */
 // Single-channel (.x) dispatch, used for the correlation image: a packed pass would read 16 bytes
@@ -100,22 +86,9 @@ void ConvolvePacked(const nifti_image *image, float4 *imageCuda, const float *si
 void Convolve(const nifti_image *image, float4 *imageCuda, const float *sigma,
               const ConvKernelType kernelType, const int *maskCuda,
               NiftyReg::Cuda::KernelConvolutionWorkspace *workspace) {
-    switch (kernelType) {
-    case ConvKernelType::Mean:
-        NiftyReg::Cuda::KernelConvolution<ConvKernelType::Mean, float>(image, imageCuda, sigma, nullptr, nullptr, maskCuda, workspace);
-        break;
-    case ConvKernelType::Linear:
-        NiftyReg::Cuda::KernelConvolution<ConvKernelType::Linear, float>(image, imageCuda, sigma, nullptr, nullptr, maskCuda, workspace);
-        break;
-    case ConvKernelType::Gaussian:
-        NiftyReg::Cuda::KernelConvolution<ConvKernelType::Gaussian, float>(image, imageCuda, sigma, nullptr, nullptr, maskCuda, workspace);
-        break;
-    case ConvKernelType::Cubic:
-        NiftyReg::Cuda::KernelConvolution<ConvKernelType::Cubic, float>(image, imageCuda, sigma, nullptr, nullptr, maskCuda, workspace);
-        break;
-    default:
-        NR_FATAL_ERROR("Unsupported kernel type");
-    }
+    DispatchKernelType(kernelType, [&](auto kt) {
+        NiftyReg::Cuda::KernelConvolution<decltype(kt)::value, float>(image, imageCuda, sigma, nullptr, nullptr, maskCuda, workspace);
+    });
 }
 /* *************************************************************** */
 // Build the per-voxel combined mask on the device in a single pass: start from the device-resident

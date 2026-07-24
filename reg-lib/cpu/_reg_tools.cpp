@@ -1151,8 +1151,12 @@ void reg_tools_kernelConvolutionMulti(nifti_image *const *images,
                                       const ConvKernelType kernelType,
                                       const int *mask,
                                       ConvolutionWorkspace *workspace) {
-    if (images[0]->nx > 2048 || images[0]->ny > 2048 || images[0]->nz > 2048)
-        NR_FATAL_ERROR("This function does not support images with dimensions larger than 2048");
+    for (int c = 0; c < NImages; ++c) {
+        if (images[c]->nx > 2048 || images[c]->ny > 2048 || images[c]->nz > 2048)
+            NR_FATAL_ERROR("This function does not support images with dimensions larger than 2048");
+        if (images[c]->nx != images[0]->nx || images[c]->ny != images[0]->ny || images[c]->nz != images[0]->nz)
+            NR_FATAL_ERROR("All images are expected to share the same dimensions");
+    }
 
 #ifdef WIN32
     long index;
