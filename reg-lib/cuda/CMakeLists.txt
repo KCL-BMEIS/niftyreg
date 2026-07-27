@@ -83,6 +83,7 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     CudaResampleImageKernel.cpp
     CudaResampling.cu
     CudaTools.cu
+    _reg_lncc_gpu.cu
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
 )

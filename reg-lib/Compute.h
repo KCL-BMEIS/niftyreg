@@ -2,11 +2,13 @@
 
 #include "Content.h"
 #include "Optimiser.hpp"
+#include "_reg_tools.h"
 
 class Compute {
 public:
     Compute() = delete;
     Compute(Content& conIn): con(conIn) {}
+    virtual ~Compute() = default;
 
     virtual void ResampleImage(int interpolation, float paddingValue);
     virtual double GetJacobianPenaltyTerm(bool approx);
@@ -46,4 +48,6 @@ public:
 private:
     void ConvolveImage(NiftiImage&);
     NiftiImage ScaleGradient(const NiftiImage&, float);
+    // Reusable scratch for the voxel-based-gradient smoothing convolutions
+    ConvolutionWorkspace convWorkspace;
 };

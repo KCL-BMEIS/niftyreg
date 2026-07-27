@@ -1,5 +1,6 @@
 #include "CudaMeasureCreator.hpp"
 #include "CudaDefContent.h"
+#include "_reg_lncc_gpu.h"
 #include "_reg_nmi_gpu.h"
 #include "_reg_ssd_gpu.h"
 
@@ -52,6 +53,7 @@ void CudaMeasureCreator::Initialise(reg_measure& measure, DefContent& con, DefCo
                                  cudaConBw ? static_cast<nifti_image*>(cudaConBw->DefContent::GetWarpedGradient()) : nullptr,
                                  cudaConBw ? cudaConBw->GetWarpedGradientCuda() : nullptr,
                                  cudaConBw ? static_cast<nifti_image*>(cudaConBw->DefContent::GetVoxelBasedMeasureGradient()) : nullptr,
-                                 cudaConBw ? cudaConBw->GetVoxelBasedMeasureGradientCuda() : nullptr);
+                                 cudaConBw ? cudaConBw->GetVoxelBasedMeasureGradientCuda() : nullptr,
+                                 cudaConBw ? cudaConBw->GetActiveVoxelNumber() : 0);
 }
 /* *************************************************************** */

@@ -1133,7 +1133,11 @@ __global__ void CorrectFolding3d(float4 *controlPointGrid,
     }
 }
 /* *************************************************************** */
-template<bool is3d>
+// pingPong: when false (default) the sampling position is read from the output buffer and the
+// result written back in place (used for a standalone composition). When true the position is read
+// from the lookup buffer via its texture (positions == lookup == the source field) and the result
+// written to a distinct output buffer, so the scaling-and-squaring loop can alternate two buffers.
+template<bool is3d, bool pingPong = false>
 __device__ void DefFieldComposeKernel(float4 *deformationField,
                                       cudaTextureObject_t deformationFieldTexture,
                                       const int3 referenceImageDims,
@@ -1141,7 +1145,7 @@ __device__ void DefFieldComposeKernel(float4 *deformationField,
                                       const mat44 affineMatrixC,
                                       const int index) {
     // Extract the original voxel position
-    float4 position = deformationField[index];
+    float4 position = pingPong ? tex1Dfetch<float4>(deformationFieldTexture, index) : deformationField[index];
 
     if constexpr (is3d) {
         // Conversion from real position to voxel coordinate

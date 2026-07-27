@@ -13,7 +13,7 @@
 class MeasureTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, MeasureType, bool>;
-    using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
+    using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
 
     inline static vector<TestCase> testCases;
 
@@ -62,9 +62,24 @@ public:
             localWeightSim3dPtr[i] = distr(gen);
         }
 
+        // Create floating images with a DIFFERENT size than the reference. The backward similarity
+        // of a symmetric registration runs in floating space, so a floating voxel count that differs
+        // from the reference's exercises the backward measure with a distinct active voxel number -
+        vector<NiftiImage::dim_t> dimBig{ size, size / 2, 1, timePoints };  // 2D: 128 voxels/time point
+        NiftiImage floatingBig2d(dimBig, NIFTI_TYPE_FLOAT32);
+        dimBig[1] = size;
+        dimBig[2] = size / 2;  // 3D: 16 x 16 x 8 = 2048 voxels/time point
+        NiftiImage floatingBig3d(dimBig, NIFTI_TYPE_FLOAT32);
+        auto floBig2dPtr = floatingBig2d.data();
+        for (size_t i = 0; i < floatingBig2d.nVoxels(); ++i)
+            floBig2dPtr[i] = distr(gen);
+        auto floBig3dPtr = floatingBig3d.data();
+        for (size_t i = 0; i < floatingBig3d.nVoxels(); ++i)
+            floBig3dPtr[i] = distr(gen);
+
         // Create the data container for the regression test
         const std::string measureNames[]{ "NMI"s, "SSD"s, "DTI"s, "LNCC"s, "KLD"s, "MIND"s, "MINDSSC"s };
-        constexpr MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd };
+        constexpr MeasureType testMeasures[]{ MeasureType::Nmi, MeasureType::Ssd, MeasureType::Lncc };
         vector<TestData> testData;
         for (auto&& measure : testMeasures) {
             for (int sym = 0; sym < 2; ++sym) {
@@ -89,6 +104,18 @@ public:
             }
         }
 
+        // Symmetric cases with reference and floating of different sizes (see floatingBig above).
+        // Only the measures that reused the forward voxel count on the backward path are affected.
+        constexpr MeasureType asymMeasures[]{ MeasureType::Nmi, MeasureType::Ssd };
+        for (auto&& measure : asymMeasures) {
+            testData.emplace_back(TestData(
+                measureNames[int(measure)] + " 2D Symmetric DifferentSize"s,
+                reference2d, floatingBig2d, controlPointGrid2d, localWeightSim2d, measure, true));
+            testData.emplace_back(TestData(
+                measureNames[int(measure)] + " 3D Symmetric DifferentSize"s,
+                reference3d, floatingBig3d, controlPointGrid3d, localWeightSim3d, measure, true));
+        }
+
         // Create the platforms
         Platform platformCpu(PlatformType::Cpu);
         Platform platformCuda(PlatformType::Cuda);
@@ -109,7 +136,10 @@ public:
             NiftiImage referenceCpu(reference), referenceCuda(reference);
             NiftiImage floatingCpu(floating), floatingCuda(floating);
             NiftiImage controlPointGridCpu(controlPointGrid), controlPointGridCuda(controlPointGrid);
-            NiftiImage controlPointGridCpuBw(controlPointGrid), controlPointGridCudaBw(controlPointGrid);
+            // The backward control point grid is parametrised in floating space, so build it from
+            // the floating image (identical to the forward grid when the two images share a size).
+            NiftiImage controlPointGridBw(CreateControlPointGrid(floating));
+            NiftiImage controlPointGridCpuBw(controlPointGridBw), controlPointGridCudaBw(controlPointGridBw);
             NiftiImage localWeightSimCpu(localWeightSim), localWeightSimCuda(localWeightSim);
 
             // Create the contents
@@ -184,9 +214,17 @@ public:
                 measureCuda->GetVoxelBasedSimilarityMeasureGradient(t);
             }
 
-            // Save the results for testing
+            // Save the results for testing. For symmetric registrations also keep the backward
+            // voxel-based gradient (computed in floating space) so its CPU/CUDA agreement is
+            // checked too; left empty otherwise.
+            NiftiImage voxelBasedGradCpuBw, voxelBasedGradCudaBw;
+            if (isSymmetric) {
+                voxelBasedGradCpuBw = std::move(contentCpuBw->GetVoxelBasedMeasureGradient());
+                voxelBasedGradCudaBw = std::move(contentCudaBw->GetVoxelBasedMeasureGradient());
+            }
             testCases.push_back({ testName, simMeasureCpu, simMeasureCuda, std::move(contentCpu->GetVoxelBasedMeasureGradient()),
-                                std::move(contentCuda->GetVoxelBasedMeasureGradient()) });
+                                std::move(contentCuda->GetVoxelBasedMeasureGradient()),
+                                std::move(voxelBasedGradCpuBw), std::move(voxelBasedGradCudaBw) });
         }
     }
 };
@@ -195,7 +233,8 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [testName, simMeasureCpu, simMeasureCuda, voxelBasedGradCpu, voxelBasedGradCuda] = testCase;
+        auto&& [testName, simMeasureCpu, simMeasureCuda, voxelBasedGradCpu, voxelBasedGradCuda,
+                voxelBasedGradCpuBw, voxelBasedGradCudaBw] = testCase;
 
         SECTION(testName) {
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
@@ -225,6 +264,19 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
             NR_COUT << "Value  |cpu-cuda|=" << fabs(simMeasureCpu - simMeasureCuda) << std::endl;
             NR_COUT << "Grad   max|cpu-cuda|=" << maxGradDiff << "  (max|cpu|=" << maxGradMag
                     << ", relative=" << (maxGradMag > 0 ? maxGradDiff / maxGradMag : 0) << ")" << std::endl;
+
+            // Check the backward voxel-based gradient too (symmetric cases only)
+            if (voxelBasedGradCpuBw) {
+                const auto voxelBasedGradCpuBwPtr = voxelBasedGradCpuBw.data();
+                const auto voxelBasedGradCudaBwPtr = voxelBasedGradCudaBw.data();
+                for (size_t i = 0; i < voxelBasedGradCpuBw.nVoxels(); ++i) {
+                    const float cpuVal = voxelBasedGradCpuBwPtr[i];
+                    const float cudaVal = voxelBasedGradCudaBwPtr[i];
+                    if (fabs(cpuVal - cudaVal) > 0)
+                        NR_COUT << "Bw " << i << " " << cpuVal << " " << cudaVal << std::endl;
+                    REQUIRE(fabs(cpuVal - cudaVal) == 0);
+                }
+            }
         }
     }
 }

@@ -215,45 +215,36 @@ void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
     Compute::GetApproximatedGradient(opt);
 }
 /* *************************************************************** */
+CudaCompute::CudaCompute(Content& con): Compute(con) {}
+CudaCompute::~CudaCompute() = default;
+/* *************************************************************** */
 void CudaCompute::GetDefFieldFromVelocityGrid(const bool updateStepNumber) {
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
+    if (!expWorkspace)
+        expWorkspace = std::make_unique<Cuda::ExponentiationWorkspace>();
     Cuda::GetDefFieldFromVelocityGrid(con.F3dContent::GetControlPointGrid(),
                                       con.F3dContent::GetDeformationField(),
                                       con.GetControlPointGridCuda(),
                                       con.GetDeformationFieldCuda(),
-                                      updateStepNumber);
+                                      updateStepNumber,
+                                      expWorkspace.get());
 }
 /* *************************************************************** */
 void CudaCompute::ConvolveImage(const NiftiImage& image, float4 *imageCuda) {
     const NiftiImage& controlPointGrid = dynamic_cast<F3dContent&>(con).F3dContent::GetControlPointGrid();
     constexpr ConvKernelType kernelType = ConvKernelType::Cubic;
-    float currentNodeSpacing[3];
-    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dx;
-    bool activeAxis[3] = { 1, 0, 0 };
-    Cuda::KernelConvolution<kernelType>(image,
-                                        imageCuda,
-                                        currentNodeSpacing,
-                                        nullptr, // all volumes are considered as active
-                                        activeAxis);
-    // Convolution along the y axis
-    currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dy;
-    activeAxis[0] = 0;
-    activeAxis[1] = 1;
-    Cuda::KernelConvolution<kernelType>(image,
-                                        imageCuda,
-                                        currentNodeSpacing,
-                                        nullptr, // all volumes are considered as active
-                                        activeAxis);
-    // Convolution along the z axis if required
-    if (image->nz > 1) {
-        currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = controlPointGrid->dz;
-        activeAxis[1] = 0;
-        activeAxis[2] = 1;
-        Cuda::KernelConvolution<kernelType>(image,
-                                            imageCuda,
-                                            currentNodeSpacing,
-                                            nullptr, // all volumes are considered as active
-                                            activeAxis);
+    // Reuse the workspace so the per-axis passes pool their scratch
+    if (!convWorkspace)
+        convWorkspace = std::make_unique<Cuda::KernelConvolutionWorkspace>();
+    const float nodeSpacings[3]{ controlPointGrid->dx, controlPointGrid->dy, controlPointGrid->dz };
+    const int axisCount = image->nz > 1 ? 3 : 2;
+    for (int axis = 0; axis < axisCount; ++axis) {
+        float currentNodeSpacing[3];
+        currentNodeSpacing[0] = currentNodeSpacing[1] = currentNodeSpacing[2] = nodeSpacings[axis];
+        bool activeAxis[3]{ axis == 0, axis == 1, axis == 2 };
+        convWorkspace->densityValid = false; // recompute the density for this pass
+        Cuda::KernelConvolution<kernelType, float>(image, imageCuda, currentNodeSpacing,
+                                                   nullptr, activeAxis, nullptr, convWorkspace.get());
     }
 }
 /* *************************************************************** */
@@ -297,10 +288,15 @@ void CudaCompute::ExponentiateGradient(Content& conBwIn) {
     // Create all deformation field images needed for resampling
     const size_t defFieldNumber = deformationField.nVoxelsPerVolume();
     vector<NiftiImage> defFields(compNum + 1, NiftiImage(deformationField, NiftiImage::Copy::ImageInfo));
-    vector<thrust::device_vector<float4>> defFieldCudaVecs(compNum + 1, thrust::device_vector<float4>(defFieldNumber));
+
+    // Reuse the persistent workspace for the intermediate device fields (compNum + 1 buffers) so
+    // they are not reallocated every gradient step; the flow-field/mask scratch is reused too.
+    if (!expWorkspace)
+        expWorkspace = std::make_unique<Cuda::ExponentiationWorkspace>();
+    vector<thrust::device_vector<float4>>& defFieldCudaVecs = expWorkspace->GetIntermediates(compNum + 1, defFieldNumber);
 
     // Generate all intermediate deformation fields
-    Cuda::GetIntermediateDefFieldFromVelGrid(controlPointGridBw, controlPointGridBwCuda, defFields, defFieldCudaVecs);
+    Cuda::GetIntermediateDefFieldFromVelGrid(controlPointGridBw, controlPointGridBwCuda, defFields, defFieldCudaVecs, expWorkspace.get());
 
     // Remove the affine component
     NiftiImage affineDisp;

@@ -33,6 +33,7 @@
 // It also does a quick CPU-vs-CUDA sanity check (flags a NaN mismatch between the platforms).
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -60,6 +61,7 @@
 #include "Platform.h"            // Platform / Content / Compute / Kernel / NiftiImage / Mat44Eye
 #include "DefContentCreator.h"   // DefContentCreator / DefContent (the NMI value benchmark content)
 #include "_reg_nmi.h"            // reg_nmi (ApproximatePw / SetTimePointWeight; NMI similarity value)
+#include "_reg_lncc.h"           // reg_lncc (SetTimePointWeight; LNCC similarity value, convolution-bound)
 
 using std::unique_ptr;
 using std::vector;
@@ -609,6 +611,114 @@ static void runNmiBenchmarks(Platform& cpu, Platform& cuda, int warmup, int runs
 }
 
 /* ---------------------------------------------------------------------------------------------- */
+// LNCC similarity-value benchmark.
+//
+// Times reg_lncc::GetSimilarityMeasureValue(). Unlike NMI, LNCC is convolution-bound: each call
+// builds the combined mask, then runs five separable Gaussian convolutions (local mean/sdev of the
+// reference and warped, plus the correlation) before the per-voxel reduction. On the CPU the
+// convolutions and the reduction are OpenMP-parallelised; the CUDA path reuses the shared
+// Cuda::KernelConvolution and is bit-identical to the CPU (USE_CUDA_FMA=OFF), so all three columns
+// compute the same thing. Setup mirrors buildNmi and goes through the base Platform virtuals - the
+// CUDA platform produces a CudaDefContent + reg_lncc_gpu automatically.
+//
+// NB: Cuda::KernelConvolution (and its CPU counterpart) hard-fail on any dimension > 2048, so the
+// LNCC sweep caps at 2048 (the NMI 4096 case is intentionally omitted here).
+
+struct LnccBuilt {
+    NiftiImage ref, flo, war;
+    unique_ptr<Content> content;
+    unique_ptr<MeasureCreator> measureCreator;
+    unique_ptr<reg_measure> measure;  // a reg_lncc (reg_lncc_gpu on CUDA), driven via the base pointer
+};
+
+static LnccBuilt buildLncc(Platform& platform, const NiftiImage& reference, const NiftiImage& warped) {
+    LnccBuilt b;
+    b.ref = reference;  // fresh per-platform copies (InitialiseMeasure rescales the reference in place)
+    b.flo = reference;  // floating is required by Create but unused by the value (warped drives it)
+    b.war = warped;
+    unique_ptr<ContentCreator> cc{ platform.CreateContentCreator(ContentType::Def) };
+    auto* defCreator = dynamic_cast<DefContentCreator*>(cc.get());
+    b.content.reset(defCreator->Create(b.ref, b.flo));   // CudaDefContent on the CUDA platform
+    b.content->SetWarped(NiftiImage(b.war));              // uploads host->device on CUDA
+    b.measureCreator.reset(platform.CreateMeasureCreator());
+    b.measure.reset(b.measureCreator->Create(MeasureType::Lncc));  // reg_lncc_gpu on the CUDA platform
+    auto* lncc = dynamic_cast<reg_lncc*>(b.measure.get());
+    for (int t = 0; t < b.ref->nt; ++t)
+        lncc->SetTimePointWeight(t, 1.0);
+    // Default Gaussian kernel, standard deviation -5 (voxel-based) - kept as-is on both platforms.
+    auto* defContent = dynamic_cast<DefContent*>(b.content.get());
+    b.measureCreator->Initialise(*b.measure, *defContent);
+    return b;
+}
+
+// Time one LNCC value computation (2D or 3D, cubic size n) on CPU (1 and max threads) and CUDA.
+static void runLnccBench(bool is3d, int n, Platform& cpu, Platform& cuda,
+                         int warmup, int runs, int maxThreads) {
+    const vector<dim_t> dims = is3d ? vector<dim_t>{ n, n, n } : vector<dim_t>{ n, n };
+    const unsigned seed = static_cast<unsigned>(n) * 2u + (is3d ? 1u : 0u);
+    const NiftiImage reference = makeNmiImage(dims, seed);
+    const NiftiImage warped = makeNmiImage(dims, seed + 100u);
+    const size_t voxels = reference.nVoxels();
+
+    // --- CPU (build once; time at 1 thread, then at max threads) ---
+    LnccBuilt cpuBuilt = buildLncc(cpu, reference, warped);
+#ifdef _OPENMP
+    omp_set_num_threads(1);
+#endif
+    const Stats cpu1 = timeIt(warmup, runs, [&] { cpuBuilt.measure->GetSimilarityMeasureValue(); });
+    const double cpuVal = cpuBuilt.measure->GetSimilarityMeasureValue();
+
+    Stats cpuN;
+#ifdef _OPENMP
+    if (maxThreads > 1) {
+        omp_set_num_threads(maxThreads);
+        cpuN = timeIt(warmup, runs, [&] { cpuBuilt.measure->GetSimilarityMeasureValue(); });
+    }
+    omp_set_num_threads(maxThreads);  // keep the GPU-path host work under the reg_aladin -platf 1 policy
+#endif
+
+    // --- CUDA (build once; the value call runs the device kernels and reduces to the host) ---
+    LnccBuilt gpuBuilt = buildLncc(cuda, reference, warped);
+    const Stats gpu = timeIt(warmup, runs, [&] {
+        gpuBuilt.measure->GetSimilarityMeasureValue();
+        cudaDeviceSynchronize();
+    });
+    const double gpuVal = gpuBuilt.measure->GetSimilarityMeasureValue();
+
+    // --- print one row ---
+    const double cpuNms = cpuN.available ? cpuN.meanMs : cpu1.meanMs;
+    const double ompSpeedup = cpuN.available && cpuN.meanMs > 0 ? cpu1.meanMs / cpuN.meanMs : 0;
+    const double gpuSpeedup = gpu.meanMs > 0 ? cpuNms / gpu.meanMs : 0;
+    const std::string size = is3d ? (std::to_string(n) + "^3") : (std::to_string(n) + "^2");
+    std::printf("%-8s %-10s %12zu %10.3f ", is3d ? "LNCC 3D" : "LNCC 2D", size.c_str(), voxels, cpu1.meanMs);
+    if (cpuN.available) std::printf("%10.3f %8.2fx ", cpuN.meanMs, ompSpeedup);
+    else                std::printf("%10s %9s ", "n/a", "n/a");
+    std::printf("%12.4f %10.2fx\n", gpu.meanMs, gpuSpeedup);
+    // Full-precision values: lets bit-exactness (CPU vs CUDA, and old vs new builds) be checked
+    // from the benchmark output alone.
+    std::printf("  value cpu=%.17g cuda=%.17g diff=%.3g\n", cpuVal, gpuVal, std::fabs(cpuVal - gpuVal));
+    if (std::fabs(cpuVal - gpuVal) > 1e-4)
+        std::printf("  ** WARNING: CPU/CUDA LNCC value diff %.3g (cpu=%.6f cuda=%.6f) **\n",
+                    std::fabs(cpuVal - gpuVal), cpuVal, gpuVal);
+    std::fflush(stdout);
+}
+
+static void runLnccBenchmarks(Platform& cpu, Platform& cuda, int warmup, int runs, int maxThreads) {
+    std::printf("\nLNCC similarity value (reg_lncc::GetSimilarityMeasureValue, default Gaussian kernel)\n");
+    std::printf("Convolution-bound: 5 separable Gaussian smoothings + a per-voxel reduction per call.\n");
+    std::printf("OMPspeedup = CPU-1 / CPU-N; GPUspeedup = CPU-N / GPU. GPU includes device sync.\n");
+    std::printf("%-8s %-10s %12s %10s %10s %8s %12s %10s\n",
+                "measure", "size", "voxels", "CPU-1", "CPU-N", "OMPspd", "GPU", "GPUspd");
+    std::printf("%-8s %-10s %12s %10s %10s %8s %12s %10s\n",
+                "-------", "----", "------", "-----", "-----", "------", "---", "------");
+    // KernelConvolution rejects any dimension > 2048, so the sweep stays at or below 2048.
+    const vector<int> sizes3d = { 64, 128, 256 };
+    const vector<int> sizes2d = { 512, 1024, 2048 };
+    for (int n : sizes3d) runLnccBench(/*is3d*/true, n, cpu, cuda, warmup, runs, maxThreads);
+    for (int n : sizes2d) runLnccBench(/*is3d*/false, n, cpu, cuda, warmup, runs, maxThreads);
+}
+
+/* ---------------------------------------------------------------------------------------------- */
 
 int main(int argc, char** argv) {
     int runs = 10, warmup = 2;
@@ -616,20 +726,41 @@ int main(int argc, char** argv) {
     // 3D and 2D cubic sizes to sweep (kept moderate; edit here to change the sweep).
     vector<int> sizes3d = {32, 128, 256};
     vector<int> sizes2d = {128, 1024, 4096};
+    // Which benchmark(s) to run. Empty = all. One of: resample, lts, nmi, lncc.
+    std::string only;
+    const char* kernelNames[] = { "resample", "lts", "nmi", "lncc" };
 
     for (int i = 1; i < argc; ++i) {
         if (!std::strcmp(argv[i], "-n") && i + 1 < argc) runs = std::atoi(argv[++i]);
         else if (!std::strcmp(argv[i], "-w") && i + 1 < argc) warmup = std::atoi(argv[++i]);
         else if ((!std::strcmp(argv[i], "-gpuid") || !std::strcmp(argv[i], "--gpuid")) && i + 1 < argc)
             gpuIdx = static_cast<unsigned>(std::atoi(argv[++i]));
-        else if (!std::strcmp(argv[i], "-h") || !std::strcmp(argv[i], "--help")) {
-            std::printf("Usage: %s [-n timed_runs] [-w warmup_runs] [-gpuid <int>]\n", argv[0]);
-            std::printf("  Benchmarks 2D and 3D linear resampling on CPU (1 and max threads) vs CUDA,\n");
-            std::printf("  then the LTS affine/rigid estimator (CPU thread-scaling + CUDA-path scaffolding).\n");
-            std::printf("  -gpuid <int>  Id of the GPU card to use [automatic]\n");
+        else if ((!std::strcmp(argv[i], "-only") || !std::strcmp(argv[i], "--only") || !std::strcmp(argv[i], "-k")) && i + 1 < argc) {
+            only = argv[++i];
+            for (char& c : only) c = static_cast<char>(std::tolower(c));
+        } else if (!std::strcmp(argv[i], "-h") || !std::strcmp(argv[i], "--help")) {
+            std::printf("Usage: %s [-n timed_runs] [-w warmup_runs] [-gpuid <int>] [-only <kernel>]\n", argv[0]);
+            std::printf("  Benchmarks (in order) 2D/3D linear resampling, the LTS affine/rigid estimator,\n");
+            std::printf("  the NMI similarity value, and the LNCC similarity value, on CPU (1 and max\n");
+            std::printf("  threads) vs CUDA.\n");
+            std::printf("  -gpuid <int>     Id of the GPU card to use [automatic]\n");
+            std::printf("  -only <kernel>   Run only one benchmark: resample | lts | nmi | lncc [all]\n");
+            std::printf("                   (aliases: -k, --only)\n");
             return 0;
+        } else {
+            // Fail loudly on unknown/misplaced arguments rather than silently ignoring them
+            // (a silent ignore of -only would run every kernel, which is confusing).
+            std::fprintf(stderr, "Unknown or incomplete argument '%s'. Use -h for usage.\n", argv[i]);
+            return 1;
         }
     }
+
+    // Validate the -only selection early so a typo fails before the CUDA context is created.
+    if (!only.empty() && std::find(std::begin(kernelNames), std::end(kernelNames), only) == std::end(kernelNames)) {
+        std::fprintf(stderr, "Unknown -only kernel '%s'. Valid values: resample, lts, nmi, lncc.\n", only.c_str());
+        return 1;
+    }
+    const auto shouldRun = [&](const char* name) { return only.empty() || only == name; };
 
     int maxThreads = 1;
 #ifdef _OPENMP
@@ -665,25 +796,38 @@ int main(int argc, char** argv) {
     std::printf("all timings are means in ms. GPU(kernel) = kernel only; GPU(+copy) adds the device->host\n");
     std::printf("download; GPU(app) = alloc + upload + kernel + download per call. A one-shot GPU run's\n");
     std::printf("latency ~ %.1f ms (init) + GPU(app).\n\n", cudaInitMs);
-    std::printf("%-20s %-18s %10s %10s %12s %12s %12s %11s\n",
-                "operation", "size", "CPU-1", "CPU-N", "GPU(kernel)", "GPU(+copy)", "GPU(app)", "speedup");
-    std::printf("%-20s %-18s %10s %10s %12s %12s %12s %11s\n",
-                "---------", "----", "-----", "-----", "-----------", "----------", "--------", "-------");
+    if (!only.empty())
+        std::printf("running only: %s\n", only.c_str());
 
-    // The functionality list. Extend by pushing more tasks (e.g. gradient, spline) here; runTask
-    // handles any BenchmarkTask uniformly.
-    vector<BenchmarkTask> tasks;
-    for (int n : sizes3d) tasks.push_back(makeResampleTask(/*is3d*/true, n));
-    for (int n : sizes2d) tasks.push_back(makeResampleTask(/*is3d*/false, n));
+    // Resampling: 2D/3D linear resampling. Its column layout is specific to this section, so the
+    // table header is printed here (the other sections print their own headers).
+    if (shouldRun("resample")) {
+        std::printf("%-20s %-18s %10s %10s %12s %12s %12s %11s\n",
+                    "operation", "size", "CPU-1", "CPU-N", "GPU(kernel)", "GPU(+copy)", "GPU(app)", "speedup");
+        std::printf("%-20s %-18s %10s %10s %12s %12s %12s %11s\n",
+                    "---------", "----", "-----", "-----", "-----------", "----------", "--------", "-------");
 
-    for (const BenchmarkTask& task : tasks)
-        runTask(task, cpu, cuda, warmup, runs, maxThreads);
+        // The functionality list. Extend by pushing more tasks (e.g. gradient, spline) here; runTask
+        // handles any BenchmarkTask uniformly.
+        vector<BenchmarkTask> tasks;
+        for (int n : sizes3d) tasks.push_back(makeResampleTask(/*is3d*/true, n));
+        for (int n : sizes2d) tasks.push_back(makeResampleTask(/*is3d*/false, n));
+
+        for (const BenchmarkTask& task : tasks)
+            runTask(task, cpu, cuda, warmup, runs, maxThreads);
+    }
 
     // LTS (reg_aladin affine/rigid fit): CPU thread-scaling + the CUDA-path baseline (scaffolding).
-    runLtsBenchmarks(cpu, cuda, warmup, runs, maxThreads);
+    if (shouldRun("lts"))
+        runLtsBenchmarks(cpu, cuda, warmup, runs, maxThreads);
 
     // NMI similarity value: CPU 1-thread vs N-threads (the OpenMP win) vs CUDA.
-    runNmiBenchmarks(cpu, cuda, warmup, runs, maxThreads);
+    if (shouldRun("nmi"))
+        runNmiBenchmarks(cpu, cuda, warmup, runs, maxThreads);
+
+    // LNCC similarity value: convolution-bound CPU thread-scaling vs the new CUDA port.
+    if (shouldRun("lncc"))
+        runLnccBenchmarks(cpu, cuda, warmup, runs, maxThreads);
 
     return 0;
 }
