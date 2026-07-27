@@ -82,7 +82,7 @@ __device__ inline bool ConvVoxelActive(const float val) { return val == val; }
 __device__ inline bool ConvVoxelActive(const float4 val) { return val.x == val.x; }
 /* *************************************************************** */
 template<class T>
-__device__ inline void InitConvVoxel(const size_t index, const T val, const T zero,
+__device__ inline void InitConvVoxel(const size_t index, const T val,
                                      const bool computeDensity, const int *maskCuda,
                                      float *initDensity, bool *nanImagePtr, T *curIntensity) {
     if (computeDensity) {
@@ -90,9 +90,9 @@ __device__ inline void InitConvVoxel(const size_t index, const T val, const T ze
         const bool active = inMask && ConvVoxelActive(val);
         initDensity[index] = active ? 1.f : 0;
         nanImagePtr[index] = !active;
-        curIntensity[index] = active ? val : zero;
+        curIntensity[index] = active ? val : T{};
     } else {
-        curIntensity[index] = nanImagePtr[index] ? zero : val;
+        curIntensity[index] = nanImagePtr[index] ? T{} : val;
     }
 }
 /* *************************************************************** */
@@ -297,7 +297,7 @@ void NiftyReg::Cuda::KernelConvolution(const nifti_image *image,
                 float *initDensity = curDensity;
                 thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
                     const float intensityVal = reinterpret_cast<float*>(&imageCuda[index])[t];
-                    InitConvVoxel<float>(index, intensityVal, 0.f, computeDensity, maskCuda, initDensity, nanImagePtr, curIntensity);
+                    InitConvVoxel<float>(index, intensityVal, computeDensity, maskCuda, initDensity, nanImagePtr, curIntensity);
                 });
             }
 
@@ -473,8 +473,8 @@ void NiftyReg::Cuda::KernelConvolutionPacked(const nifti_image *image,
     {
         float *initDensity = curDensity;
         thrust::for_each_n(thrust::device, thrust::make_counting_iterator<size_t>(0), voxelNumber, [=]__device__(const size_t index) {
-            InitConvVoxel<float4>(index, imageCuda[index], make_float4(0, 0, 0, 0),
-                                  computeDensity, maskCuda, initDensity, nanImagePtr, curIntensity);
+            InitConvVoxel<float4>(index, imageCuda[index], computeDensity, maskCuda,
+                                  initDensity, nanImagePtr, curIntensity);
         });
     }
 
