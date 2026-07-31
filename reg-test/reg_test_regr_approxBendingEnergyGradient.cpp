@@ -126,6 +126,8 @@ TEST_CASE_METHOD(ApproxBendingEnergyGradientTest, "Regression Approximate Bendin
         auto&& [testName, approxBendingEnergyCpu, approxBendingEnergyCuda, transGradCpu, transGradCuda] = testCase;
 
         SECTION(testName) {
+            // The comparison below is only meaningful if the operation ran at all
+            RequireNonZero(transGradCpu, "the bending energy gradient");
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Increase the precision for the output

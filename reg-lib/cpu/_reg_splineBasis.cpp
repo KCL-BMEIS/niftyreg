@@ -14,15 +14,18 @@
 #include "_reg_splineBasis.h"
 
 /* *************************************************************** */
+// Evaluated entirely in DataType, with no double intermediates: the float instantiation then rounds
+// identically to the CUDA kernels (Cuda::GetBasisSplineValues), which is what keeps the CPU and
+// CUDA platforms bit-exact. The double instantiation is unaffected.
 template<class DataType>
 void get_BSplineBasisValues(DataType basis, DataType *values) {
-    DataType FF = basis * basis;
-    DataType FFF = FF * basis;
-    DataType MF = static_cast<DataType>(1.0 - basis);
-    values[0] = static_cast<DataType>((MF) * (MF) * (MF) / (6.0));
-    values[1] = static_cast<DataType>((3.0 * FFF - 6.0 * FF + 4.0) / 6.0);
-    values[2] = static_cast<DataType>((-3.0 * FFF + 3.0 * FF + 3.0 * basis + 1.0) / 6.0);
-    values[3] = static_cast<DataType>(FFF / 6.0);
+    const DataType ff = basis * basis;
+    const DataType fff = ff * basis;
+    const DataType mf = DataType(1) - basis;
+    values[0] = mf * mf * mf / DataType(6);
+    values[1] = (DataType(3) * fff - DataType(6) * ff + DataType(4)) / DataType(6);
+    values[2] = (DataType(-3) * fff + DataType(3) * ff + DataType(3) * basis + DataType(1)) / DataType(6);
+    values[3] = fff / DataType(6);
 }
 template void get_BSplineBasisValues<float>(float, float *);
 template void get_BSplineBasisValues<double>(double, double *);
@@ -30,9 +33,9 @@ template void get_BSplineBasisValues<double>(double, double *);
 template<class DataType>
 void get_BSplineBasisValues(DataType basis, DataType *values, DataType *first) {
     get_BSplineBasisValues<DataType>(basis, values);
-    first[3] = static_cast<DataType>(basis * basis / 2.0);
-    first[0] = static_cast<DataType>(basis - 1.0 / 2.0 - first[3]);
-    first[2] = static_cast<DataType>(1.0 + first[0] - 2.0 * first[3]);
+    first[3] = basis * basis / DataType(2);
+    first[0] = basis - DataType(1) / DataType(2) - first[3];
+    first[2] = DataType(1) + first[0] - DataType(2) * first[3];
     first[1] = -first[0] - first[2] - first[3];
 }
 template void get_BSplineBasisValues<float>(float, float*, float *);
@@ -42,8 +45,8 @@ template<class DataType>
 void get_BSplineBasisValues(DataType basis, DataType *values, DataType *first, DataType *second) {
     get_BSplineBasisValues<DataType>(basis, values, first);
     second[3] = basis;
-    second[0] = static_cast<DataType>(1.0 - second[3]);
-    second[2] = static_cast<DataType>(second[0] - 2.0 * second[3]);
+    second[0] = DataType(1) - second[3];
+    second[2] = second[0] - DataType(2) * second[3];
     second[1] = -second[0] - second[2] - second[3];
 }
 template void get_BSplineBasisValues<float>(float, float*, float*, float *);
@@ -53,16 +56,16 @@ template<class DataType>
 void get_BSplineBasisValue(DataType basis, int index, DataType& value) {
     switch (index) {
     case 0:
-        value = (DataType)((1.0 - basis) * (1.0 - basis) * (1.0 - basis) / 6.0);
+        value = (DataType(1) - basis) * (DataType(1) - basis) * (DataType(1) - basis) / DataType(6);
         break;
     case 1:
-        value = (DataType)((3.0 * basis * basis * basis - 6.0 * basis * basis + 4.0) / 6.0);
+        value = (DataType(3) * basis * basis * basis - DataType(6) * basis * basis + DataType(4)) / DataType(6);
         break;
     case 2:
-        value = (DataType)((3.0 * basis * basis - 3.0 * basis * basis * basis + 3.0 * basis + 1.0) / 6.0);
+        value = (DataType(3) * basis * basis - DataType(3) * basis * basis * basis + DataType(3) * basis + DataType(1)) / DataType(6);
         break;
     case 3:
-        value = (DataType)(basis * basis * basis / 6.0);
+        value = basis * basis * basis / DataType(6);
         break;
     default:
         value = (DataType)0;
@@ -77,16 +80,16 @@ void get_BSplineBasisValue(DataType basis, int index, DataType& value, DataType&
     get_BSplineBasisValue<DataType>(basis, index, value);
     switch (index) {
     case 0:
-        first = (DataType)((2.0 * basis - basis * basis - 1.0) / 2.0);
+        first = (DataType(2) * basis - basis * basis - DataType(1)) / DataType(2);
         break;
     case 1:
-        first = (DataType)((3.0 * basis * basis - 4.0 * basis) / 2.0);
+        first = (DataType(3) * basis * basis - DataType(4) * basis) / DataType(2);
         break;
     case 2:
-        first = (DataType)((2.0 * basis - 3.0 * basis * basis + 1.0) / 2.0);
+        first = (DataType(2) * basis - DataType(3) * basis * basis + DataType(1)) / DataType(2);
         break;
     case 3:
-        first = (DataType)(basis * basis / 2.0);
+        first = basis * basis / DataType(2);
         break;
     default:
         first = (DataType)0;
@@ -101,16 +104,16 @@ void get_BSplineBasisValue(DataType basis, int index, DataType& value, DataType&
     get_BSplineBasisValue<DataType>(basis, index, value, first);
     switch (index) {
     case 0:
-        second = (DataType)(1.0 - basis);
+        second = DataType(1) - basis;
         break;
     case 1:
-        second = (DataType)(3.0 * basis - 2.0);
+        second = DataType(3) * basis - DataType(2);
         break;
     case 2:
-        second = (DataType)(1.0 - 3.0 * basis);
+        second = DataType(1) - DataType(3) * basis;
         break;
     case 3:
-        second = (DataType)(basis);
+        second = basis;
         break;
     default:
         second = (DataType)0;
@@ -120,13 +123,15 @@ void get_BSplineBasisValue(DataType basis, int index, DataType& value, DataType&
 template void get_BSplineBasisValue<float>(float, int, float&, float&, float&);
 template void get_BSplineBasisValue<double>(double, int, double&, double&, double&);
 /* *************************************************************** */
+// Evaluated entirely in DataType, for the reason given on get_BSplineBasisValues above, and kept
+// structurally identical to Cuda::GetBasisSplineValues<false>.
 template<class DataType>
 void get_SplineBasisValues(DataType basis, DataType *values) {
-    DataType FF = basis * basis;
-    values[0] = static_cast<DataType>((basis * ((2.0 - basis) * basis - 1.0)) / 2.0);
-    values[1] = static_cast<DataType>((FF * (3.0 * basis - 5.0) + 2.0) / 2.0);
-    values[2] = static_cast<DataType>((basis * ((4.0 - 3.0 * basis) * basis + 1.0)) / 2.0);
-    values[3] = static_cast<DataType>((basis - 1.0) * FF / 2.0);
+    const DataType ff = basis * basis;
+    values[0] = (basis * ((DataType(2) - basis) * basis - DataType(1))) / DataType(2);
+    values[1] = (ff * (DataType(3) * basis - DataType(5)) + DataType(2)) / DataType(2);
+    values[2] = (basis * ((DataType(4) - DataType(3) * basis) * basis + DataType(1))) / DataType(2);
+    values[3] = (basis - DataType(1)) * ff / DataType(2);
 }
 template void get_SplineBasisValues<float>(float, float *);
 template void get_SplineBasisValues<double>(double, double *);
@@ -134,11 +139,11 @@ template void get_SplineBasisValues<double>(double, double *);
 template<class DataType>
 void get_SplineBasisValues(DataType basis, DataType *values, DataType *first) {
     get_SplineBasisValues<DataType>(basis, values);
-    DataType FF = basis * basis;
-    first[0] = static_cast<DataType>((4.0 * basis - 3.0 * FF - 1.0) / 2.0);
-    first[1] = static_cast<DataType>((9.0 * basis - 10.0) * basis / 2.0);
-    first[2] = static_cast<DataType>((8.0 * basis - 9.0 * FF + 1.0) / 2.0);
-    first[3] = static_cast<DataType>((3.0 * basis - 2.0) * basis / 2.0);
+    const DataType ff = basis * basis;
+    first[0] = (DataType(4) * basis - DataType(3) * ff - DataType(1)) / DataType(2);
+    first[1] = (DataType(9) * basis - DataType(10)) * basis / DataType(2);
+    first[2] = (DataType(8) * basis - DataType(9) * ff + DataType(1)) / DataType(2);
+    first[3] = (DataType(3) * basis - DataType(2)) * basis / DataType(2);
 }
 template void get_SplineBasisValues<float>(float, float*, float *);
 template void get_SplineBasisValues<double>(double, double*, double *);
@@ -146,10 +151,10 @@ template void get_SplineBasisValues<double>(double, double*, double *);
 template<class DataType>
 void get_SplineBasisValues(DataType basis, DataType *values, DataType *first, DataType *second) {
     get_SplineBasisValues<DataType>(basis, values, first);
-    second[0] = static_cast<DataType>(2.0 - 3.0 * basis);
-    second[1] = static_cast<DataType>(9.0 * basis - 5.0);
-    second[2] = static_cast<DataType>(4.0 - 9.0 * basis);
-    second[3] = static_cast<DataType>(3.0 * basis - 1.0);
+    second[0] = DataType(2) - DataType(3) * basis;
+    second[1] = DataType(9) * basis - DataType(5);
+    second[2] = DataType(4) - DataType(9) * basis;
+    second[3] = DataType(3) * basis - DataType(1);
 }
 template void get_SplineBasisValues<float>(float, float*, float*, float *);
 template void get_SplineBasisValues<double>(double, double*, double*, double *);

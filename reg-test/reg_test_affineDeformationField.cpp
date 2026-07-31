@@ -232,3 +232,69 @@ TEST_CASE_METHOD(AffineDeformationFieldTest, "Affine Deformation Field", "[unit]
         }
     }
 }
+
+TEST_CASE("Affine deformation field composes with a non-identity sform", "[unit]") {
+    /*
+        Without composition the field is (A * S) * voxel, S being the deformation field's voxel-to-mm
+        matrix (production selects the sform when sform_code > 0, the qform otherwise). The cases
+        above all run with an
+        identity S, where a mishandled composition is invisible; this one installs an anisotropic,
+        sheared S and checks the product against the same expression evaluated independently - the
+        matrix product in float exactly as IEEE defines it, the per-voxel application in double.
+    */
+    for (const bool is3D : { false, true }) {
+        std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, 4);
+        NiftiImage reference(dims, NIFTI_TYPE_FLOAT32);
+        mat44 sform;
+        Mat44Eye(&sform);
+        sform.m[0][0] = 1.3f; sform.m[0][1] = 0.2f;  sform.m[0][3] = -3.f;
+        sform.m[1][0] = -0.1f; sform.m[1][1] = 0.85f; sform.m[1][3] = 2.f;
+        if (is3D) {
+            sform.m[0][2] = 0.05f; sform.m[1][2] = -0.07f;
+            sform.m[2][0] = 0.15f; sform.m[2][1] = -0.1f; sform.m[2][2] = 1.1f; sform.m[2][3] = 0.75f;
+        }
+        setSform(reference, sform);
+
+        mat44 affine;
+        Mat44Eye(&affine);
+        affine.m[0][0] = 1.05f; affine.m[0][1] = -0.12f; affine.m[0][3] = 1.5f;
+        affine.m[1][0] = 0.08f; affine.m[1][1] = 0.9f;   affine.m[1][3] = -0.5f;
+        if (is3D) { affine.m[2][2] = 1.15f; affine.m[2][3] = 0.25f; }
+
+        for (auto&& platformType : PlatformTypes) {
+            Platform platform(platformType);
+            if (platform.GetPlatformType() == PlatformType::OpenCl)
+                continue;
+            SECTION(std::string(is3D ? "3D" : "2D") + " " + platform.GetName()) {
+                NiftiImage ref(reference);
+                unique_ptr<ContentCreator> creator{ platform.CreateContentCreator() };
+                unique_ptr<Content> content{ creator->Create(ref, ref, nullptr, &affine, sizeof(float)) };
+                unique_ptr<Compute> compute{ platform.CreateCompute(*content) };
+                compute->GetAffineDeformationField(false);
+                NiftiImage& field = content->GetDeformationField();
+
+                // The composition the operation performs, evaluated independently: the mat44 product
+                // in float (as IEEE defines it), the application per voxel in double
+                const mat44 composed = affine * sform;
+                const size_t volume = field.nVoxelsPerVolume();
+                const auto ptr = field.data();
+                const int nx = field->nx, ny = field->ny, nz = field->nz;
+                const int components = is3D ? 3 : 2;
+                for (int k = 0; k < nz; ++k)
+                    for (int j = 0; j < ny; ++j)
+                        for (int i = 0; i < nx; ++i) {
+                            const size_t index = (static_cast<size_t>(k) * ny + j) * nx + i;
+                            for (int c = 0; c < components; ++c) {
+                                const double expected = double(composed.m[c][0]) * i +
+                                                        double(composed.m[c][1]) * j +
+                                                        double(composed.m[c][2]) * k +
+                                                        double(composed.m[c][3]);
+                                const float actual = ptr[c * volume + index];
+                                INFO("voxel (" << i << "," << j << "," << k << ") component " << c);
+                                REQUIRE(std::abs(actual - expected) < 1e-5);
+                            }
+                        }
+            }
+        }
+    }
+}

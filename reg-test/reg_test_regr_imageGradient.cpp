@@ -127,6 +127,8 @@ TEST_CASE_METHOD(ImageGradientRegrTest, "Regression Image Gradient", "[regressio
         auto&& [sectionName, gradCpu, gradCuda] = testCase;
 
         SECTION(sectionName) {
+            // The comparison below is only meaningful if the operation ran at all
+            RequireNonZero(gradCpu, "the warped image gradient");
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
             NR_COUT << std::fixed << std::setprecision(10);
 

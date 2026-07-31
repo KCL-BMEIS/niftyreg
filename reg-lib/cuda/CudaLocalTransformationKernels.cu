@@ -282,10 +282,42 @@ __device__ float4 GetSlidedValues(int x, int y, int z,
     return slidedValues + tex1Dfetch<float4>(deformationFieldTexture, (newZ * referenceImageDims.y + newY) * referenceImageDims.x + newX);
 }
 /* *************************************************************** */
+/* *************************************************************** */
+// Control point grid extrapolation lying outside the grid: the index is clamped into the grid and
+// the value shifted by the clamped-away offset, converted to real-world units.
+__device__ static float4 GetSlidedGridValue(const int x, const int y, const int z,
+                                            cudaTextureObject_t controlPointTexture,
+                                            const int3& cppDims,
+                                            const mat44& voxelToReal) {
+    const int newX = x < 0 ? 0 : (x >= cppDims.x ? cppDims.x - 1 : x);
+    const int newY = y < 0 ? 0 : (y >= cppDims.y ? cppDims.y - 1 : y);
+    const int newZ = z < 0 ? 0 : (z >= cppDims.z ? cppDims.z - 1 : z);
+    const int shiftX = x - newX, shiftY = y - newY, shiftZ = z - newZ;
+    float4 value = tex1Dfetch<float4>(controlPointTexture, (newZ * cppDims.y + newY) * cppDims.x + newX);
+    value.x += shiftX * voxelToReal.m[0][0] + shiftY * voxelToReal.m[0][1] + shiftZ * voxelToReal.m[0][2];
+    value.y += shiftX * voxelToReal.m[1][0] + shiftY * voxelToReal.m[1][1] + shiftZ * voxelToReal.m[1][2];
+    value.z += shiftX * voxelToReal.m[2][0] + shiftY * voxelToReal.m[2][1] + shiftZ * voxelToReal.m[2][2];
+    return value;
+}
+/* *************************************************************** */
+__device__ static float4 GetSlidedGridValue(const int x, const int y,
+                                            cudaTextureObject_t controlPointTexture,
+                                            const int3& cppDims,
+                                            const mat44& voxelToReal) {
+    const int newX = x < 0 ? 0 : (x >= cppDims.x ? cppDims.x - 1 : x);
+    const int newY = y < 0 ? 0 : (y >= cppDims.y ? cppDims.y - 1 : y);
+    const int shiftX = x - newX, shiftY = y - newY;
+    float4 value = tex1Dfetch<float4>(controlPointTexture, newY * cppDims.x + newX);
+    value.x += shiftX * voxelToReal.m[0][0] + shiftY * voxelToReal.m[0][1];
+    value.y += shiftX * voxelToReal.m[1][0] + shiftY * voxelToReal.m[1][1];
+    return value;
+}
+/* *************************************************************** */
 template<bool composition, bool bspline>
 __device__ void GetDeformationField3d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
                                       const mat44 *realToVoxel,
+                                      const mat44 *voxelToReal,
                                       const int3 referenceImageDims,
                                       const int3 controlPointImageDims,
                                       const float3 controlPointVoxelSpacing,
@@ -311,12 +343,12 @@ __device__ void GetDeformationField3d(float4 *deformationField,
                               realToVoxel->m[2][2] * node.z +
                               realToVoxel->m[2][3]);
 
-        if (xVoxel < 0 || xVoxel >= referenceImageDims.x ||
-            yVoxel < 0 || yVoxel >= referenceImageDims.y ||
-            zVoxel < 0 || zVoxel >= referenceImageDims.z) return;
-
         nodePre = { Floor<int>(xVoxel), Floor<int>(yVoxel), Floor<int>(zVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--), zVoxel - float(nodePre.z--) };
+        // Rounding-error clamp
+        if (basis.x < 0) basis.x = 0;
+        if (basis.y < 0) basis.y = 0;
+        if (basis.z < 0) basis.z = 0;
     } else { // starting deformation field is blank - !composition
         const auto [x, y, z] = IndexToDims<true>(index, referenceImageDims);
         // The "nearest previous" node is determined [0,0,0]
@@ -334,18 +366,42 @@ __device__ void GetDeformationField3d(float4 *deformationField,
     GetBasisSplineValues<bspline>(basis.z, zBasis);
 
     float4 displacement{};
-    for (char c = 0; c < 4; c++) {
-        int indexYZ = ((nodePre.z + c) * controlPointImageDims.y + nodePre.y) * controlPointImageDims.x;
-        const float basisZ = zBasis[c];
-        for (char b = 0; b < 4; b++, indexYZ += controlPointImageDims.x) {
-            int indexXYZ = indexYZ + nodePre.x;
-            const float basisY = yBasis[b];
-            for (char a = 0; a < 4; a++, indexXYZ++) {
-                const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
-                const float xyzBasis = xBasis[a] * basisY * basisZ;
-                displacement.x += xyzBasis * nodeCoeff.x;
-                displacement.y += xyzBasis * nodeCoeff.y;
-                displacement.z += xyzBasis * nodeCoeff.z;
+    if constexpr (composition) {
+        for (char c = 0; c < 4; c++) {
+            const int z = nodePre.z + c;
+            bool out = !(z > -1 && z < controlPointImageDims.z);
+            for (char b = 0; b < 4; b++) {
+                const int y = nodePre.y + b;
+                if (out || !(y > -1 && y < controlPointImageDims.y)) out = true;
+                const float basisY = yBasis[b];
+                const float basisZ = zBasis[c];
+                for (char a = 0; a < 4; a++) {
+                    const int x = nodePre.x + a;
+                    const float4 nodeCoeff = !out && x > -1 && x < controlPointImageDims.x ?
+                        tex1Dfetch<float4>(controlPointTexture,
+                                           (z * controlPointImageDims.y + y) * controlPointImageDims.x + x) :
+                        GetSlidedGridValue(x, y, z, controlPointTexture, controlPointImageDims, *voxelToReal);
+                    const float xyzBasis = xBasis[a] * basisY * basisZ;
+                    displacement.x += xyzBasis * nodeCoeff.x;
+                    displacement.y += xyzBasis * nodeCoeff.y;
+                    displacement.z += xyzBasis * nodeCoeff.z;
+                }
+            }
+        }
+    } else {
+        for (char c = 0; c < 4; c++) {
+            int indexYZ = ((nodePre.z + c) * controlPointImageDims.y + nodePre.y) * controlPointImageDims.x;
+            const float basisZ = zBasis[c];
+            for (char b = 0; b < 4; b++, indexYZ += controlPointImageDims.x) {
+                int indexXYZ = indexYZ + nodePre.x;
+                const float basisYZ = yBasis[b] * basisZ;
+                for (char a = 0; a < 4; a++, indexXYZ++) {
+                    const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, indexXYZ);
+                    const float xyzBasis = xBasis[a] * basisYZ;
+                    displacement.x += xyzBasis * nodeCoeff.x;
+                    displacement.y += xyzBasis * nodeCoeff.y;
+                    displacement.z += xyzBasis * nodeCoeff.z;
+                }
             }
         }
     }
@@ -356,6 +412,7 @@ template<bool composition, bool bspline>
 __device__ void GetDeformationField2d(float4 *deformationField,
                                       cudaTextureObject_t controlPointTexture,
                                       const mat44 *realToVoxel,
+                                      const mat44 *voxelToReal,
                                       const int3 referenceImageDims,
                                       const int3 controlPointImageDims,
                                       const float3 controlPointVoxelSpacing,
@@ -375,11 +432,11 @@ __device__ void GetDeformationField2d(float4 *deformationField,
                               realToVoxel->m[1][1] * node.y +
                               realToVoxel->m[1][3]);
 
-        if (xVoxel < 0 || xVoxel >= referenceImageDims.x ||
-            yVoxel < 0 || yVoxel >= referenceImageDims.y) return;
-
         nodePre = { Floor<int>(xVoxel), Floor<int>(yVoxel) };
         basis = { xVoxel - float(nodePre.x--), yVoxel - float(nodePre.y--) };
+        // Rounding-error clamp
+        if (basis.x < 0) basis.x = 0;
+        if (basis.y < 0) basis.y = 0;
     } else { // starting deformation field is blank - !composition
         const auto [x, y, z] = IndexToDims<false>(index, referenceImageDims);
         // The "nearest previous" node is determined [0,0,0]
@@ -395,14 +452,31 @@ __device__ void GetDeformationField2d(float4 *deformationField,
     GetBasisSplineValues<bspline>(basis.y, yBasis);
 
     float4 displacement{};
-    for (char b = 0; b < 4; b++) {
-        int index = (nodePre.y + b) * controlPointImageDims.x + nodePre.x;
-        const float basis = yBasis[b];
-        for (char a = 0; a < 4; a++, index++) {
-            const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, index);
-            const float xyBasis = xBasis[a] * basis;
-            displacement.x += xyBasis * nodeCoeff.x;
-            displacement.y += xyBasis * nodeCoeff.y;
+    if constexpr (composition) {
+        for (char b = 0; b < 4; b++) {
+            const int y = nodePre.y + b;
+            const bool out = !(y > -1 && y < controlPointImageDims.y);
+            const float basisY = yBasis[b];
+            for (char a = 0; a < 4; a++) {
+                const int x = nodePre.x + a;
+                const float4 nodeCoeff = !out && x > -1 && x < controlPointImageDims.x ?
+                    tex1Dfetch<float4>(controlPointTexture, y * controlPointImageDims.x + x) :
+                    GetSlidedGridValue(x, y, controlPointTexture, controlPointImageDims, *voxelToReal);
+                const float xyBasis = xBasis[a] * basisY;
+                displacement.x += xyBasis * nodeCoeff.x;
+                displacement.y += xyBasis * nodeCoeff.y;
+            }
+        }
+    } else {
+        for (char b = 0; b < 4; b++) {
+            int idx = (nodePre.y + b) * controlPointImageDims.x + nodePre.x;
+            const float basis = yBasis[b];
+            for (char a = 0; a < 4; a++, idx++) {
+                const float4 nodeCoeff = tex1Dfetch<float4>(controlPointTexture, idx);
+                const float xyBasis = xBasis[a] * basis;
+                displacement.x += xyBasis * nodeCoeff.x;
+                displacement.y += xyBasis * nodeCoeff.y;
+            }
         }
     }
     deformationField[index] = displacement;
@@ -1165,6 +1239,7 @@ __device__ void DefFieldComposeKernel(float4 *deformationField,
         position = make_float4(0.f, 0.f, 0.f, 0.f);
         for (short c = 0; c < 2; ++c) {
             for (short b = 0; b < 2; ++b) {
+                const float tempBasis = relY[b] * relZ[c];
                 for (short a = 0; a < 2; ++a) {
                     float4 deformation;
                     if (-1 < ante.x + a && ante.x + a < referenceImageDims.x &&
@@ -1175,7 +1250,7 @@ __device__ void DefFieldComposeKernel(float4 *deformationField,
                     } else {
                         deformation = GetSlidedValues(ante.x + a, ante.y + b, ante.z + c, deformationFieldTexture, referenceImageDims, affineMatrixC);
                     }
-                    const float basis = relX[a] * relY[b] * relZ[c];
+                    const float basis = relX[a] * tempBasis;
                     position = position + basis * deformation;
                 }
             }
@@ -1281,6 +1356,89 @@ __device__ static mat33 CreateDisplacementMatrix(const int index,
     matrix.m[0][0]--; matrix.m[1][1]--;
     if constexpr (is3d) matrix.m[2][2]--;
     return matrix;
+}
+/* *************************************************************** */
+/** @brief Derivative of the linear energy at one control point, with respect to the coefficient
+ * matrix the first-order basis contracts against.
+ *
+ * The energy removes the rotation by polar decomposition, M = R P, and sums the squared entries of
+ * P - I. P's eigenvalues are M's singular values, so that is sum_i (sigma_i - 1)^2, and with
+ * d(sigma_i)/dM = u_i v_i^T the derivative collapses to
+ *
+ *     dE/dM = U diag(2(sigma_i - 1)) V^T = 2 (M - R)
+ *
+ * which needs nothing the energy did not already compute. M = reorientation * G, so the derivative
+ * with respect to G - the quantity linear in the control point coefficients - is
+ * reorientation^T dE/dM. Mirrors reg_linearEnergyGradientWrtMatrix on the CPU side.
+ */
+template<bool is3d>
+__device__ static mat33 CreateLinearEnergyGradientMatrix(const int index,
+                                                         cudaTextureObject_t controlPointGridTexture,
+                                                         const int3& cppDims,
+                                                         const Basis1st<is3d>& basis,
+                                                         const mat33& reorientation) {
+    const auto [x, y, z] = IndexToDims<is3d>(index, cppDims);
+    if (x < 1 || x >= cppDims.x - 1 || y < 1 || y >= cppDims.y - 1 ||
+        (is3d && (z < 1 || z >= cppDims.z - 1))) return {};
+
+    // The rotation-removed displacement, and the rotation that removing it used
+    mat33 matrix{};
+    if constexpr (is3d) {
+        for (int c = -1, basInd = 0; c < 2; c++) {
+            const int zInd = (z + c) * cppDims.y;
+            for (int b = -1; b < 2; b++) {
+                const int yInd = (zInd + y + b) * cppDims.x;
+                for (int a = -1; a < 2; a++, basInd++) {
+                    const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, yInd + x + a);
+                    matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
+                    matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
+                    matrix.m[2][0] += basis.z[basInd] * splineCoeff.x;
+                    matrix.m[0][1] += basis.x[basInd] * splineCoeff.y;
+                    matrix.m[1][1] += basis.y[basInd] * splineCoeff.y;
+                    matrix.m[2][1] += basis.z[basInd] * splineCoeff.y;
+                    matrix.m[0][2] += basis.x[basInd] * splineCoeff.z;
+                    matrix.m[1][2] += basis.y[basInd] * splineCoeff.z;
+                    matrix.m[2][2] += basis.z[basInd] * splineCoeff.z;
+                }
+            }
+        }
+    } else {
+        matrix.m[2][2] = 1;
+        for (int b = -1, basInd = 0; b < 2; b++) {
+            const int yInd = (y + b) * cppDims.x;
+            for (int a = -1; a < 2; a++, basInd++) {
+                const float4 splineCoeff = tex1Dfetch<float4>(controlPointGridTexture, yInd + x + a);
+                matrix.m[0][0] += basis.x[basInd] * splineCoeff.x;
+                matrix.m[1][0] += basis.y[basInd] * splineCoeff.x;
+                matrix.m[0][1] += basis.x[basInd] * splineCoeff.y;
+                matrix.m[1][1] += basis.y[basInd] * splineCoeff.y;
+            }
+        }
+    }
+    matrix = NiftiMat33Mul(reorientation, matrix);
+
+    const mat33 rotation = Mat33Polar(matrix);
+    mat33 dEdMatrix{};
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c)
+            dEdMatrix.m[r][c] = 2.f * (matrix.m[r][c] - rotation.m[r][c]);
+    if constexpr (!is3d) {
+        // The value sums the upper-left 2x2 block only, so the out-of-plane scaling the reorientation
+        // introduces has to be left out of the derivative as well
+        dEdMatrix.m[0][2] = dEdMatrix.m[1][2] = 0;
+        dEdMatrix.m[2][0] = dEdMatrix.m[2][1] = dEdMatrix.m[2][2] = 0;
+    }
+
+    // reorientation^T * dEdMatrix
+    mat33 dEdG{};
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c) {
+            float sum = 0;
+            for (int k = 0; k < 3; ++k)
+                sum += reorientation.m[k][r] * dEdMatrix.m[k][c];
+            dEdG.m[r][c] = sum;
+        }
+    return dEdG;
 }
 /* *************************************************************** */
 } // namespace NiftyReg::Cuda

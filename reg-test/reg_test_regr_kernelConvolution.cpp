@@ -1,6 +1,7 @@
 #include "reg_test_common.h"
 #include "CudaContent.h"
 #include "CudaKernelConvolution.hpp"
+#include "CudaF3dContent.h"
 
 /**
  *  Kernel convolution regression test to ensure the CPU and CUDA versions yield the same output
@@ -358,6 +359,178 @@ TEST_CASE_METHOD(KernelConvolutionTest, "Regression Kernel Convolution", "[regre
                     NR_COUT << i << " " << cpuVal << " " << cudaVal << std::endl;
                 REQUIRE(diff == 0);
             }
+        }
+    }
+}
+
+namespace {
+
+// A control point grid and a filled voxel-based gradient, which is what the two convolution wrappers
+// below operate on
+struct GradientFixture {
+    Platform platformCpu{ PlatformType::Cpu };
+    Platform platformCuda{ PlatformType::Cuda };
+    NiftiImage refCpu, floCpu, gridCpu, refCuda, floCuda, gridCuda;
+    unique_ptr<F3dContent> contentCpu, contentCuda;
+    unique_ptr<Compute> computeCpu, computeCuda;
+
+    GradientFixture(bool is3D, float gridSpacingInVoxels, bool anisotropic) {
+        const NiftiImage reference = MakeReferenceImage(is3D, anisotropic);
+        refCpu = reference; floCpu = reference; refCuda = reference; floCuda = reference;
+        NiftiImage grid;
+        const float spacing[3]{ reference->dx * gridSpacingInVoxels, reference->dy * gridSpacingInVoxels,
+                                reference->dz * gridSpacingInVoxels };
+        reg_createControlPointGrid<float>(grid, reference, spacing);
+        gridCpu = grid; gridCuda = grid;
+        contentCpu.reset(new F3dContent(refCpu, floCpu, gridCpu));
+        contentCuda.reset(new CudaF3dContent(refCuda, floCuda, gridCuda));
+        computeCpu.reset(platformCpu.CreateCompute(*contentCpu));
+        computeCuda.reset(platformCuda.CreateCompute(*contentCuda));
+    }
+
+    static NiftiImage MakeReferenceImage(bool is3D, bool anisotropic) {
+        const NiftiImage::dim_t size = 12;
+        std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, size);
+        NiftiImage img(dims, NIFTI_TYPE_FLOAT32);
+        if (anisotropic) setAnisotropicSform(img);
+        else {
+            setIdentitySform(img);
+            img->dx = img->pixdim[1] = 1.f; img->dy = img->pixdim[2] = 1.f; img->dz = img->pixdim[3] = 1.f;
+        }
+        auto ptr = img.data();
+        for (size_t i = 0; i < img.nVoxels(); ++i)
+            ptr[i] = static_cast<float>(100.0 * (1.5 + std::sin(0.31 * double(i))));
+        return img;
+    }
+
+    void FillVoxelBasedGradient() {
+        const auto fill = [](NiftiImage& image) {
+            auto ptr = image.data();
+            for (size_t i = 0; i < image.nVoxels(); ++i)
+                ptr[i] = static_cast<float>(std::sin(0.41 * double(i)) * 0.05);
+        };
+        fill(contentCpu->GetVoxelBasedMeasureGradient());
+        contentCpu->UpdateVoxelBasedMeasureGradient();
+        fill(contentCuda->DefContent::GetVoxelBasedMeasureGradient());
+        contentCuda->UpdateVoxelBasedMeasureGradient();
+    }
+
+    void FillTransformationGradient() {
+        const auto fill = [](NiftiImage& image) {
+            auto ptr = image.data();
+            for (size_t i = 0; i < image.nVoxels(); ++i)
+                ptr[i] = static_cast<float>(std::cos(0.23 * double(i)) * 0.4);
+        };
+        fill(contentCpu->GetTransformationGradient());
+        contentCpu->UpdateTransformationGradient();
+        fill(contentCuda->F3dContent::GetTransformationGradient());
+        contentCuda->UpdateTransformationGradient();
+    }
+};
+
+} // namespace
+
+TEST_CASE("Regression Kernel Convolution - voxel-based gradient smoothing", "[regression]") {
+    /*
+        ConvolveVoxelBasedMeasureGradient, as opposed to the KernelConvolution primitive above.
+
+        The wrapper is not a single convolution: it makes three passes, one per axis, each with a
+        cubic kernel whose width is that axis's control point spacing, and each renormalising by its
+        own smoothed density. It also carries a scratch workspace across the three. So the axes are
+        smoothed with different kernel widths and the passes are not interchangeable - none of which
+        the primitive's own test can reach, since that one convolves an image with a sigma it is
+        handed.
+
+        Anisotropic spacings are included precisely because they make the three passes differ from
+        each other; an isotropic grid would let a pass that used the wrong axis's width still agree.
+    */
+    for (const bool is3D : { false, true })
+        for (const auto& [label, spacing, anisotropic] : { std::tuple{ "grid 2 voxels", 2.f, false },
+                                                           std::tuple{ "grid 2 voxels, anisotropic", 2.f, true },
+                                                           std::tuple{ "grid 5 voxels", 5.f, false } }) {
+            const std::string name = std::string(is3D ? "3D" : "2D") + ", " + label;
+            SECTION(name) {
+                GradientFixture f(is3D, spacing, anisotropic);
+                f.FillVoxelBasedGradient();
+                const NiftiImage before(f.contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
+
+                f.computeCpu->ConvolveVoxelBasedMeasureGradient(1.f);
+                f.computeCuda->ConvolveVoxelBasedMeasureGradient(1.f);
+
+                RequireChanged(before, f.contentCpu->GetVoxelBasedMeasureGradient(),
+                               "the CPU voxel-based measure gradient");
+                const Deviation deviation = CompareImages(f.contentCpu->GetVoxelBasedMeasureGradient(),
+                                                          f.contentCuda->GetVoxelBasedMeasureGradient());
+                ReportDeviation(name, deviation);
+                INFO(name << ": " << deviation.differing << " values differ, max " << deviation.max);
+                REQUIRE(deviation.max == 0);
+            }
+        }
+}
+
+TEST_CASE("Regression Kernel Convolution - transformation gradient smoothing", "[regression]") {
+    /*
+        SmoothGradient, the Gaussian smoothing applied to the control point gradient under -smoothGrad.
+
+        Its own wrinkle is the sigma argument: the convolution reads one sigma per time point, and a
+        control point gradient always has two or three components, so a caller passing a single value
+        reads past the end of what it supplied.
+
+        The cross-backend comparison cannot see that. Both backends would read the same out-of-bounds
+        value and agree with each other while both being wrong - which is the general limit of
+        comparing two implementations rather than checking a result. So the last section compares the
+        wrapper against the primitive called with a correctly sized sigma array, which is an
+        expectation the wrapper has to meet on its own.
+    */
+    for (const bool is3D : { false, true })
+        for (const bool anisotropic : { false, true }) {
+            const std::string name = std::string(is3D ? "3D" : "2D") +
+                (anisotropic ? ", anisotropic" : ", identity sform");
+            SECTION(name) {
+                GradientFixture f(is3D, 2.f, anisotropic);
+                f.FillTransformationGradient();
+                const NiftiImage before(f.contentCpu->GetTransformationGradient(), NiftiImage::Copy::Image);
+
+                f.computeCpu->SmoothGradient(1.5f);
+                f.computeCuda->SmoothGradient(1.5f);
+
+                RequireChanged(before, f.contentCpu->GetTransformationGradient(),
+                               "the CPU transformation gradient");
+                const Deviation deviation = CompareImages(f.contentCpu->GetTransformationGradient(),
+                                                          f.contentCuda->GetTransformationGradient());
+                ReportDeviation(name, deviation);
+                INFO(name << ": " << deviation.differing << " values differ, max " << deviation.max);
+                REQUIRE(deviation.max == 0);
+            }
+        }
+}
+
+TEST_CASE("Regression Kernel Convolution - gradient smoothing applies its sigma to every component",
+          "[regression]") {
+    /*
+        SmoothGradient(s) has to equal a Gaussian convolution with s supplied for every time point.
+        Anything the wrapper does with its sigma argument other than broadcasting it - passing the
+        scalar straight through, so that components after the first take whatever follows it in
+        memory - shows up here, and shows up nowhere in a comparison of two backends that would both
+        read the same wrong value.
+    */
+    for (const bool is3D : { false, true }) {
+        SECTION(is3D ? "3D" : "2D") {
+            constexpr float sigma = 1.5f;
+            GradientFixture f(is3D, 2.f, false);
+            f.FillTransformationGradient();
+
+            // The expectation: the same convolution, with the sigma array the primitive expects
+            NiftiImage expected(f.contentCpu->GetTransformationGradient(), NiftiImage::Copy::Image);
+            const std::vector<float> sigmaPerTimePoint(expected->nt * expected->nu, sigma);
+            reg_tools_kernelConvolution(expected, sigmaPerTimePoint.data(), ConvKernelType::Gaussian);
+
+            f.computeCpu->SmoothGradient(sigma);
+
+            const Deviation deviation = CompareImages(f.contentCpu->GetTransformationGradient(), expected);
+            ReportDeviation(std::string(is3D ? "3D" : "2D") + ", sigma per component", deviation);
+            INFO("max deviation " << deviation.max << " over " << deviation.differing << " values");
+            REQUIRE(deviation.max == 0);
         }
     }
 }

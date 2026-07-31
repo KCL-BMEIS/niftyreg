@@ -167,7 +167,10 @@ public:
 
 protected:
     struct Kernel {
-        unique_ptr<float> ptr;
+        // float[] not float: the buffer below is allocated with new[], so a unique_ptr<float> would
+        // destroy it with delete rather than delete[] - undefined behaviour, and what AddressSanitizer
+        // reports as an alloc-dealloc-mismatch
+        unique_ptr<float[]> ptr;
         int radius[3];
         int size[3];
     };
@@ -202,7 +205,7 @@ protected:
         kernel.size[0] = kernel.radius[0] * 2 + 1;
         kernel.size[1] = kernel.radius[1] * 2 + 1;
         kernel.size[2] = kernel.radius[2] * 2 + 1;
-        kernel.ptr = unique_ptr<float>(new float[kernel.size[0] * kernel.size[1] * kernel.size[2]]);
+        kernel.ptr = unique_ptr<float[]>(new float[kernel.size[0] * kernel.size[1] * kernel.size[2]]);
         float *kernelPtr = kernel.ptr.get();
 
         for (int z = -kernel.radius[2]; z <= kernel.radius[2]; z++) {
@@ -307,6 +310,133 @@ TEST_CASE_METHOD(LnccTest, "LNCC", "[unit][GetSimilarityMeasureValue]") {
             if (diff > 0)
                 NR_COUT << lncc << " " << expLncc << std::endl;
             REQUIRE(diff < EPS);
+        }
+    }
+}
+
+namespace {
+
+// Compute the LNCC value for a reference/warped pair through the public measure API
+double LnccValue(const NiftiImage& reference, const NiftiImage& warped, float sigma,
+                 int *mask = nullptr, ConvKernelType kernelType = ConvKernelType::Gaussian) {
+    NiftiImage ref(reference), flo(warped);
+    Platform platform(PlatformType::Cpu);
+    unique_ptr<DefContentCreator> creator{
+        dynamic_cast<DefContentCreator*>(platform.CreateContentCreator(ContentType::Def)) };
+    unique_ptr<DefContent> content{ creator->Create(ref, flo, nullptr, mask) };
+    content->SetWarped(NiftiImage(warped));
+    unique_ptr<MeasureCreator> measureCreator{ platform.CreateMeasureCreator() };
+    unique_ptr<reg_lncc> measure{ dynamic_cast<reg_lncc*>(measureCreator->Create(MeasureType::Lncc)) };
+    measure->SetKernelStandardDeviation(0, sigma);
+    measure->SetKernelType(kernelType);
+    measure->SetTimePointWeight(0, 1.0);
+    measureCreator->Initialise(*measure, *content);
+    return measure->GetSimilarityMeasureValue();
+}
+
+NiftiImage MakeLnccImage(bool is3D, unsigned seed) {
+    std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, 16);
+    NiftiImage img(dims, NIFTI_TYPE_FLOAT32);
+    setIdentitySform(img);
+    std::mt19937 gen(seed);
+    std::uniform_real_distribution<float> distr(0.f, 1.f);
+    auto ptr = img.data();
+    for (size_t i = 0; i < img.nVoxels(); ++i)
+        ptr[i] = distr(gen);
+    return img;
+}
+
+} // namespace
+
+TEST_CASE("LNCC is invariant to affine intensity rescaling", "[unit]") {
+    /*
+        The defining property of a correlation measure, and one no reference implementation is needed
+        for: replacing the reference by a*ref + b rescales the local means and deviations by the same
+        factors the covariance gains, so the value must not move (beyond convolution rounding on the
+        rescaled intensities). A negative `a` flips the correlation's sign, which the measure's
+        absolute value absorbs.
+    */
+    for (const bool is3D : { false, true })
+        for (const float a : { 2.5f, -1.5f }) {
+            SECTION(std::string(is3D ? "3D" : "2D") + " a=" + std::to_string(a)) {
+                const NiftiImage reference = MakeLnccImage(is3D, 1);
+                const NiftiImage warped = MakeLnccImage(is3D, 2);
+                NiftiImage rescaled(reference, NiftiImage::Copy::Image);
+                {
+                    auto ptr = rescaled.data();
+                    for (size_t i = 0; i < rescaled.nVoxels(); ++i)
+                        ptr[i] = a * static_cast<float>(ptr[i]) + 10.f;
+                }
+                const double plain = LnccValue(reference, warped, -3.f);
+                const double scaled = LnccValue(rescaled, warped, -3.f);
+                NR_COUT << "  " << (is3D ? "3D" : "2D") << " a=" << a << ": " << std::fixed
+                        << std::setprecision(10) << plain << " vs " << scaled << std::endl;
+                REQUIRE(plain > 0.01);   // vacuity: the measure saw real structure
+                REQUIRE(std::abs(plain - scaled) < 1e-5);
+            }
+        }
+}
+
+TEST_CASE("LNCC excludes NaN voxels exactly as masked voxels", "[unit]") {
+    // The combined mask drops a voxel when any input holds NaN there; dropping the same voxels via
+    // the reference mask must give the same value, or padded and masked runs would score differently
+    for (const bool is3D : { false, true }) {
+        SECTION(is3D ? "3D" : "2D") {
+            const NiftiImage reference = MakeLnccImage(is3D, 3);
+            const NiftiImage warped = MakeLnccImage(is3D, 4);
+            NiftiImage warpedWithNan(warped, NiftiImage::Copy::Image);
+            std::vector<int> mask(reference.nVoxelsPerVolume(), 0);
+            {
+                auto ptr = warpedWithNan.data();
+                for (size_t i = 0; i < warpedWithNan.nVoxels(); ++i)
+                    if (i % 7 == 0) {
+                        ptr[i] = std::numeric_limits<float>::quiet_NaN();
+                        mask[i] = -1;
+                    }
+            }
+            const double viaNan = LnccValue(reference, warpedWithNan, -3.f);
+            const double viaMask = LnccValue(reference, warped, -3.f, mask.data());
+            const double unrestricted = LnccValue(reference, warped, -3.f);
+            NR_COUT << "  " << (is3D ? "3D" : "2D") << ": NaN " << std::fixed << std::setprecision(10)
+                    << viaNan << ", mask " << viaMask << ", neither " << unrestricted << std::endl;
+            REQUIRE(viaNan != unrestricted);   // the exclusion did something
+            REQUIRE(viaNan == viaMask);        // and both routes agree exactly
+        }
+    }
+}
+
+TEST_CASE("LNCC of a constant image is excluded by the zero-variance guard", "[unit]") {
+    /*
+        A constant reference has zero local variance everywhere, so every voxel's correlation is
+        0/0; production skips non-finite voxels (lncc == lncc && !isinf) and divides by the count of
+        those that survived. With NO surviving voxel that is 0/0 again - the returned value is NaN,
+        and that IS the current contract, pinned here so a change to the guard is a decision. The
+        objective function is protected upstream (a constant image inside the mask does not occur in
+        a real registration's overlap), but any caller feeding a flat region a small kernel should
+        know the measure can return NaN rather than 0.
+    */
+    for (const bool is3D : { false, true }) {
+        SECTION(is3D ? "3D" : "2D") {
+            NiftiImage reference = MakeLnccImage(is3D, 5);
+            { auto ptr = reference.data(); for (size_t i = 0; i < reference.nVoxels(); ++i) ptr[i] = 1.f; }
+            const NiftiImage warped = MakeLnccImage(is3D, 6);
+            const double value = LnccValue(reference, warped, -3.f);
+            NR_COUT << "  " << (is3D ? "3D" : "2D") << " constant reference: " << value << std::endl;
+            REQUIRE(std::isnan(value));
+        }
+    }
+}
+
+TEST_CASE("LNCC with a box kernel keeps the closed-form properties", "[unit]") {
+    // The mean (box) kernel is the -lnccMean variant: same measure, different smoothing. The
+    // identical-image and intensity-invariance closed forms hold for any kernel.
+    for (const bool is3D : { false, true }) {
+        SECTION(is3D ? "3D" : "2D") {
+            const NiftiImage reference = MakeLnccImage(is3D, 7);
+            const double same = LnccValue(reference, reference, -3.f, nullptr, ConvKernelType::Mean);
+            NR_COUT << "  " << (is3D ? "3D" : "2D") << " box kernel, same image: " << std::fixed
+                    << std::setprecision(10) << same << std::endl;
+            REQUIRE(std::abs(same - 1.0) < 1e-5);
         }
     }
 }

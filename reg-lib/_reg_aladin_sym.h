@@ -19,7 +19,7 @@ template <class T>
 class reg_aladin_sym: public reg_aladin<T> {
 private:
     unique_ptr<AladinContent> backCon;
-    unique_ptr<Kernel> bAffineTransformation3DKernel, bConvolutionKernel, bBlockMatchingKernel, bLtsKernel, bResamplingKernel;
+    unique_ptr<Kernel> bAffineTransformation3DKernel, bBlockMatchingKernel, bLtsKernel, bResamplingKernel;
 
     virtual void InitAladinContent(NiftiImage& ref,
                                    NiftiImage& flo,

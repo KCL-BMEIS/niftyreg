@@ -4,220 +4,176 @@
 #include "reg_test_common.h"
 
 /*
-    This test file contains the following unit tests:
-    test functions:
-    In 2D and 3D
-    Maximal length
-    Normalise gradient
+    GetMaximalLength and NormaliseGradient, checked against planted values rather than a
+    reimplementation.
+
+    GetMaximalLength returns the largest Euclidean norm over the nodes, built from only the optimised
+    components; NormaliseGradient divides the optimised components by the given length and - the part
+    worth stating out loud - writes ZERO to the components that are not optimised, rather than leaving
+    them alone (Compute::NormaliseGradient). Every case below therefore plants vectors whose norms are known by
+    construction:
+
+      - the maximum under each flag combination is a different planted vector, with a different
+        hand-known norm, so a wrong component entering (or missing from) the norm changes the answer.
+        Norms are chosen exact in float (3-4-5 triples scaled by powers of two, single-component
+        vectors), so equality is required, not closeness;
+      - after normalising by the returned length, re-measuring must give exactly 1 when the planted
+        maximum divides exactly (a power of two), and the planted maximum's node must hold the unit
+        version of itself;
+      - non-optimised components are asserted to be zeroed, deliberately, as the production contract;
+      - all-flags-false: GetMaximalLength = 0 and NormaliseGradient(0,...) leaves the field untouched.
+
+    The PlatformTypes sweep is kept: the same closed forms gate the CPU and CUDA implementations.
 */
 
+namespace {
 
-class NormaliseGradientTest {
-protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage>;
-    using TestCase = std::tuple<std::string, double, double, NiftiImage, NiftiImage>;
+// Distinct planted vectors, integer-valued so every square and sum of squares is exact in float.
+// The maximal norm then differs per flag combination and is computable independently. (A vector
+// whose norm is integral under EVERY flag subset would be a perfect cuboid, which is an open
+// problem - so the expectation below uses the IEEE float sqrt of the exact integer sum instead of
+// demanding integer norms.)
+struct Planted { size_t node; float v[3]; };
 
-    inline static vector<TestCase> testCases;
+// The largest norm for a flag combination over the planted set, in the same arithmetic the float
+// instantiation performs: exact integer sums of squares, float sqrt. This is IEEE arithmetic on
+// hand-chosen integers, not a restatement of the production loop.
+double ExpectedMax(const std::vector<Planted>& planted, bool x, bool y, bool z) {
+    float best = 0;
+    for (const auto& p : planted) {
+        const float vx = x ? p.v[0] : 0.f, vy = y ? p.v[1] : 0.f, vz = z ? p.v[2] : 0.f;
+        best = std::max(best, std::sqrt(vx * vx + vy * vy + vz * vz));
+    }
+    return best;
+}
 
-public:
-    NormaliseGradientTest() {
-        if (!testCases.empty())
-            return;
+} // namespace
 
-        // Create a random number generator
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<float> distr(0, 100);
+TEST_CASE("Normalise Gradient", "[unit]") {
+    for (auto&& platformType : PlatformTypes)
+        for (const bool is3D : { false, true }) {
+            Platform platform(platformType);
 
-        // Create a reference 2D image
-        vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
-        NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
+            std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, 8);
+            NiftiImage reference(dims, NIFTI_TYPE_FLOAT32);
+            setIdentitySform(reference);
+            NiftiImage controlPointGrid = CreateControlPointGrid(reference);
 
-        // Fill image with distance from identity
-        const auto ref2dPtr = reference2d.data();
-        auto ref2dItr = ref2dPtr.begin();
-        for (int y = 0; y < reference2d->ny; ++y)
-            for (int x = 0; x < reference2d->nx; ++x)
-                *ref2dItr++ = sqrtf(static_cast<float>(x * x + y * y));
+            // Plant the vectors at distinct nodes on an otherwise small smooth background
+            const size_t volume = controlPointGrid.nVoxelsPerVolume();
+            std::vector<Planted> planted{
+                { 3,               { -24.f, 0.f, 0.f } },
+                { 5,               { 0.f, 20.f, 0.f } },
+                { 7,               { 3.f, 0.f, is3D ? 16.f : 0.f } },
+                { 9,               { 18.f, 24.f, 0.f } },
+                { 11,              { 24.f, 0.f, is3D ? 10.f : 0.f } },
+                { 13,              { 0.f, 15.f, is3D ? 20.f : 0.f } },
+                { volume - 2,      { 12.f, 16.f, is3D ? 21.f : 0.f } },
+            };
 
-        // Create a reference 3D image
-        dimFlo.push_back(4);
-        NiftiImage reference3d(dimFlo, NIFTI_TYPE_FLOAT32);
+            const int components = is3D ? 3 : 2;
+            NiftiImage inputGradient(controlPointGrid, NiftiImage::Copy::ImageInfoAndAllocData);
+            {
+                auto ptr = inputGradient.data();
+                for (size_t i = 0; i < inputGradient.nVoxels(); ++i)
+                    ptr[i] = static_cast<float>(std::sin(0.37 * double(i)));   // |background| < 1
+                for (const auto& p : planted)
+                    for (int c = 0; c < components; ++c)
+                        ptr[c * volume + p.node] = p.v[c];
+            }
 
-        // Fill image with distance from identity
-        const auto ref3dPtr = reference3d.data();
-        auto ref3dItr = ref3dPtr.begin();
-        for (int z = 0; z < reference3d->nz; ++z)
-            for (int y = 0; y < reference3d->ny; ++y)
-                for (int x = 0; x < reference3d->nx; ++x)
-                    *ref3dItr++ = sqrtf(static_cast<float>(x * x + y * y + z * z));
-
-        // Generate the different test cases
-        // Test 2D
-        NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
-        NiftiImage transformationGradient2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
-        auto transGrad2dPtr = transformationGradient2d.data();
-        for (size_t i = 0; i < transformationGradient2d.nVoxels(); ++i)
-            transGrad2dPtr[i] = distr(gen);
-
-        // Add the test data
-        vector<TestData> testData;
-        testData.emplace_back(TestData(
-            "2D",
-            std::move(reference2d),
-            std::move(controlPointGrid2d),
-            std::move(transformationGradient2d)
-        ));
-
-        // Test 3D
-        NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
-        NiftiImage transformationGradient3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
-        auto transGrad3dPtr = transformationGradient3d.data();
-        for (size_t i = 0; i < transformationGradient3d.nVoxels(); ++i)
-            transGrad3dPtr[i] = distr(gen);
-
-        // Add the test data
-        testData.emplace_back(TestData(
-            "3D",
-            std::move(reference3d),
-            std::move(controlPointGrid3d),
-            std::move(transformationGradient3d)
-        ));
-
-        // Add platforms and optimise* to the test data
-        for (auto&& testData : testData) {
-            for (auto&& platformType : PlatformTypes) {
-                shared_ptr<Platform> platform{ new Platform(platformType) };
-                unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
-                for (int optimiseX = 0; optimiseX < 2; optimiseX++) {
-                    for (int optimiseY = 0; optimiseY < 2; optimiseY++) {
-                        for (int optimiseZ = 0; optimiseZ < 2; optimiseZ++) {
-                            // Make a copy of the test data
-                            auto [testName, reference, controlPointGrid, expTransGrad] = testData;
-                            testName += " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ");
-                            // Create the content
-                            unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
-
-                            // Set the transformation gradient image to host the computation
-                            content->F3dContent::GetTransformationGradient().copyData(expTransGrad);
+            for (int optimiseX = 0; optimiseX < 2; optimiseX++)
+                for (int optimiseY = 0; optimiseY < 2; optimiseY++)
+                    for (int optimiseZ = 0; optimiseZ < 2; optimiseZ++) {
+                        const std::string name = std::string(is3D ? "3D" : "2D") + " " + platform.GetName() +
+                            (optimiseX ? " X" : " noX") + (optimiseY ? " Y" : " noY") + (optimiseZ ? " Z" : " noZ");
+                        SECTION(name) {
+                            NiftiImage ref(reference), cpg(controlPointGrid);
+                            unique_ptr<F3dContentCreator> contentCreator{
+                                dynamic_cast<F3dContentCreator*>(platform.CreateContentCreator(ContentType::F3d)) };
+                            unique_ptr<F3dContent> content{ contentCreator->Create(ref, ref, cpg) };
+                            content->F3dContent::GetTransformationGradient().copyData(inputGradient);
                             content->UpdateTransformationGradient();
+                            unique_ptr<Compute> compute{ platform.CreateCompute(*content) };
 
-                            // Calculate the maximal length
-                            unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
+                            // In 2D the Z flag must be inert: production forces optimiseZ off when
+                            // nz == 1, so the expected value never includes a Z term - and 2D with
+                            // only Z requested is effectively the no-flag case
+                            const bool effX = optimiseX, effY = optimiseY, effZ = optimiseZ && is3D;
+                            const bool anyActive = effX || effY || effZ;
+                            const double expectedMax = ExpectedMax(planted, effX, effY, effZ);
+
                             const double maxLength = compute->GetMaximalLength(optimiseX, optimiseY, optimiseZ);
-                            const double expMaxLength = GetMaximalLength<float>(expTransGrad, optimiseX, optimiseY, optimiseZ);
+                            NR_COUT << "  " << std::setw(28) << std::left << name
+                                    << " max length = " << maxLength << " expected = " << expectedMax << std::endl;
 
-                            // Normalise the gradient
-                            compute->NormaliseGradient(expMaxLength, optimiseX, optimiseY, optimiseZ);
-                            NormaliseGradient<float>(expTransGrad, expMaxLength, optimiseX, optimiseY, optimiseZ);
+                            if (!anyActive) {
+                                // Contract: no active component (including 2D-with-only-Z, where the
+                                // Z flag is forced off) -> maximal length 0, and normalising by a
+                                // zero length is a no-op - the field is left untouched, NOT zeroed.
+                                // (No early return: Catch2 discovers the later sections by executing
+                                // the body, so returning here would silently drop every one of them.)
+                                REQUIRE(maxLength == 0);
+                                compute->NormaliseGradient(0, optimiseX, optimiseY, optimiseZ);
+                                const Deviation deviation = CompareImages(content->GetTransformationGradient(),
+                                                                          inputGradient);
+                                REQUIRE(deviation.differing == 0);
+                                continue;
+                            }
 
-                            // Save the results for testing
-                            testCases.push_back({ testName, maxLength, expMaxLength, std::move(content->GetTransformationGradient()), std::move(expTransGrad) });
+                            // The planted norms are exact in float and dominate the background, so
+                            // the reduction must return them exactly
+                            INFO(name << ": expected " << expectedMax << ", got " << maxLength);
+                            REQUIRE(maxLength == expectedMax);
+
+                            // GetMaximalLength must not have modified the gradient
+                            {
+                                const Deviation deviation = CompareImages(content->GetTransformationGradient(),
+                                                                          inputGradient);
+                                REQUIRE(deviation.differing == 0);
+                            }
+
+                            compute->NormaliseGradient(maxLength, optimiseX, optimiseY, optimiseZ);
+                            NiftiImage& normalised = content->GetTransformationGradient();
+                            const auto nPtr = normalised.data();
+                            const auto iPtr = inputGradient.data();
+
+                            // 1. Non-optimised components are ZEROED - the production contract
+                            //    (every component is written as value/maxLength with
+                            //    value = 0 when the flag is off), not left at their input values
+                            for (size_t i = 0; i < volume; ++i) {
+                                if (!effX) REQUIRE(static_cast<float>(nPtr[i]) == 0.f);
+                                if (!effY) REQUIRE(static_cast<float>(nPtr[volume + i]) == 0.f);
+                                if (is3D && !effZ) REQUIRE(static_cast<float>(nPtr[2 * volume + i]) == 0.f);
+                            }
+
+                            // 2. Optimised components are the input divided by the returned length
+                            //    (double division, rounded to float - checked exactly at the planted
+                            //    nodes where the quotient is representable)
+                            for (const auto& p : planted)
+                                for (int c = 0; c < components; ++c) {
+                                    const bool active = c == 0 ? effX : (c == 1 ? effY : effZ);
+                                    if (!active) continue;
+                                    const float expected = static_cast<float>(double(p.v[c]) / maxLength);
+                                    INFO(name << ": planted node " << p.node << " component " << c);
+                                    REQUIRE(static_cast<float>(nPtr[c * volume + p.node]) == expected);
+                                }
+
+                            // 3. Re-measuring the normalised field returns 1 up to rounding: the
+                            //    planted maximum maps to a unit vector
+                            const double remeasured = compute->GetMaximalLength(optimiseX, optimiseY, optimiseZ);
+                            INFO(name << ": re-measured max " << remeasured);
+                            REQUIRE(std::abs(remeasured - 1.0) < 1e-6);
+
+                            // 4. And every other node is <= 1: nothing grew past the maximum
+                            for (size_t i = 0; i < volume; ++i) {
+                                const double vx = effX ? static_cast<float>(nPtr[i]) : 0.0;
+                                const double vy = effY ? static_cast<float>(nPtr[volume + i]) : 0.0;
+                                const double vz = effZ ? static_cast<float>(nPtr[2 * volume + i]) : 0.0;
+                                REQUIRE(std::sqrt(vx * vx + vy * vy + vz * vz) <= 1.0 + 1e-6);
+                            }
+                            (void)iPtr;
                         }
                     }
-                }
-            }
         }
-    }
-
-    template<typename T>
-    T GetMaximalLength(const nifti_image* transformationGradient, const bool optimiseX, const bool optimiseY, const bool optimiseZ) {
-        if (!optimiseX && !optimiseY && !optimiseZ) return 0;
-        const size_t nVoxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
-        const T *ptrX = static_cast<T*>(transformationGradient->data);
-        const T *ptrY = &ptrX[nVoxelsPerVolume];
-        const T *ptrZ = &ptrY[nVoxelsPerVolume];
-        T maxGradLength = 0;
-
-        if (transformationGradient->nz > 1) {
-            for (size_t i = 0; i < nVoxelsPerVolume; i++) {
-                T valX = 0, valY = 0, valZ = 0;
-                if (optimiseX)
-                    valX = *ptrX++;
-                if (optimiseY)
-                    valY = *ptrY++;
-                if (optimiseZ)
-                    valZ = *ptrZ++;
-                maxGradLength = std::max(sqrt(valX * valX + valY * valY + valZ * valZ), maxGradLength);
-            }
-        } else {
-            for (size_t i = 0; i < nVoxelsPerVolume; i++) {
-                T valX = 0, valY = 0;
-                if (optimiseX)
-                    valX = *ptrX++;
-                if (optimiseY)
-                    valY = *ptrY++;
-                maxGradLength = std::max(sqrt(valX * valX + valY * valY), maxGradLength);
-            }
-        }
-
-        return maxGradLength;
-    }
-
-    template<typename T>
-    void NormaliseGradient(nifti_image *transformationGradient, const double maxGradLength, const bool optimiseX, const bool optimiseY, const bool optimiseZ) {
-        if (maxGradLength == 0 || (!optimiseX && !optimiseY && !optimiseZ)) return;
-        const size_t nVoxelsPerVolume = NiftiImage::calcVoxelNumber(transformationGradient, 3);
-        T *ptrX = static_cast<T*>(transformationGradient->data);
-        T *ptrY = &ptrX[nVoxelsPerVolume];
-        T *ptrZ = &ptrY[nVoxelsPerVolume];
-        if (transformationGradient->nz > 1) {
-            for (size_t i = 0; i < nVoxelsPerVolume; ++i) {
-                double valX = 0, valY = 0, valZ = 0;
-                if (optimiseX)
-                    valX = ptrX[i];
-                if (optimiseY)
-                    valY = ptrY[i];
-                if (optimiseZ)
-                    valZ = ptrZ[i];
-                ptrX[i] = static_cast<T>(valX / maxGradLength);
-                ptrY[i] = static_cast<T>(valY / maxGradLength);
-                ptrZ[i] = static_cast<T>(valZ / maxGradLength);
-            }
-        } else {
-            for (size_t i = 0; i < nVoxelsPerVolume; ++i) {
-                double valX = 0, valY = 0;
-                if (optimiseX)
-                    valX = ptrX[i];
-                if (optimiseY)
-                    valY = ptrY[i];
-                ptrX[i] = static_cast<T>(valX / maxGradLength);
-                ptrY[i] = static_cast<T>(valY / maxGradLength);
-            }
-        }
-    }
-};
-
-TEST_CASE_METHOD(NormaliseGradientTest, "Normalise Gradient", "[unit]") {
-    // Loop over all generated test cases
-    for (auto&& testCase : testCases) {
-        // Retrieve test information
-        auto&& [sectionName, maxLength, expMaxLength, transGrad, expTransGrad] = testCase;
-
-        SECTION(sectionName) {
-            NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
-
-            // Increase the precision for the output
-            NR_COUT << std::fixed << std::setprecision(10);
-
-            // Check the results
-            NR_COUT << "Maximal Length=" << maxLength << " | Expected=" << expMaxLength << std::endl;
-            REQUIRE(fabs(maxLength - expMaxLength) == 0);
-
-            // Check the results
-            const auto transGradPtr = transGrad.data();
-            const auto expTransGradPtr = expTransGrad.data();
-            for (size_t i = 0; i < expTransGrad.nVoxels(); ++i) {
-                const float transGradVal = transGradPtr[i];
-                const float expTransGradVal = expTransGradPtr[i];
-                const float diff = abs(transGradVal - expTransGradVal);
-                if (diff > 0) {
-                    NR_COUT << "[i]=" << i;
-                    NR_COUT << " | diff=" << diff;
-                    NR_COUT << " | Result=" << transGradVal;
-                    NR_COUT << " | Expected=" << expTransGradVal << std::endl;
-                }
-                REQUIRE(diff == 0);
-            }
-        }
-    }
 }

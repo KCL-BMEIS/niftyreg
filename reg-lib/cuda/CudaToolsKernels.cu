@@ -26,7 +26,7 @@ __device__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
     const auto [x, y, z] = IndexToDims<is3d>(index, nodeImageDims);
     // Transform into voxel coordinates
     float voxelCoord[3], nodeCoord[3] = { static_cast<float>(x), static_cast<float>(y), static_cast<float>(z) };
-    Mat44Mul<float, is3d>(transformation, nodeCoord, voxelCoord);
+    Mat44Mul<float>(transformation, nodeCoord, voxelCoord);
 
     // Linear interpolation
     float basisX[2], basisY[2], basisZ[2], interpolatedValue[3]{};
@@ -63,7 +63,7 @@ __device__ void VoxelCentricToNodeCentricKernel(float4 *nodeImageCuda,
         }
     }
 
-    float reorientedValue[3];
+    float reorientedValue[3]{};
     Mat33Mul<is3d>(reorientation, interpolatedValue, weight, reorientedValue);
     nodeImageCuda[index] = { reorientedValue[0], reorientedValue[1], reorientedValue[2], 0 };
 }

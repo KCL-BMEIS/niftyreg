@@ -286,12 +286,23 @@ public:
     }
 };
 
-// Tagged [!mayfail]: this documents a *separate*, currently-deferred CPU-side issue - the analytical
-// -le gradient is not the derivative of the -le energy (diagonal-only vs full symmetric tensor, and a
-// value/gradient normalisation mismatch). It is identical on CPU and CUDA, so it is not a CPU/CUDA
-// alignment problem. The tag records the inconsistency without failing the suite; remove it if/when
-// the gradient definition is reconciled with the energy.
-TEST_CASE_METHOD(LinearElasticityGradientFiniteDiffTest, "Linear Elasticity Gradient Finite Difference", "[unit][!mayfail]") {
+/*
+    The analytical linear-energy gradient against central finite differences of the energy itself.
+
+    This is the check that the gradient is the derivative of the value the objective reports, which no
+    comparison between backends can establish - both could descend the same wrong direction and agree
+    perfectly while doing it.
+
+    The energy removes the rotation from the local matrix by polar decomposition, M = R P, and sums the
+    squared entries of P - I. Differentiating that looks as though it needs the derivative of the polar
+    factor, but P's eigenvalues are M's singular values, so the energy is sum_i (sigma_i - 1)^2 and the
+    derivative collapses to 2(M - R): every entry of the matrix contributes, not only the diagonal, and
+    the rotation is the one the energy already computed.
+
+    The agreement is limited by the finite-difference truncation error, not by the gradient, which is
+    why the bound below is relative to the gradient's own magnitude rather than absolute.
+*/
+TEST_CASE_METHOD(LinearElasticityGradientFiniteDiffTest, "Linear Elasticity Gradient Finite Difference", "[unit]") {
     for (auto&& testCase : testCases) {
         auto&& [testName, analytical, numerical] = testCase;
 
@@ -328,9 +339,15 @@ TEST_CASE_METHOD(LinearElasticityGradientFiniteDiffTest, "Linear Elasticity Grad
             NR_COUT << "FD   mean(analytical/numerical) over significant entries = " << meanRatio
                     << " (over " << ratioCount << " entries)" << std::endl;
 
-            // Diagnostic: a correct gradient has ratio ~1 and small residual. We report but do not
-            // hard-fail here, so the run characterises the mismatch.
-            CHECK(maxAbsDiff <= 1e-3 * (maxAbs + 1.0));
+            // A gradient that is the derivative of the value has ratio 1 and a residual at the
+            // finite-difference truncation level. Both are gated: the ratio catches a wrong scale
+            // (a normalisation that does not match the value's), the residual catches a wrong shape
+            // (terms of the derivative that are missing or spurious), and neither alone would.
+            INFO("mean analytical/numerical = " << meanRatio << " over " << ratioCount << " entries");
+            REQUIRE(ratioCount > 0);
+            REQUIRE(std::abs(meanRatio - 1.0) < 1e-2);
+            INFO("max|analytical-numerical| = " << maxAbsDiff << ", max|numerical| = " << maxAbs);
+            REQUIRE(maxAbsDiff <= 5e-3 * maxAbs);
         }
     }
 }

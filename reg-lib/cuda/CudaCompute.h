@@ -34,7 +34,6 @@ public:
     virtual void ConvolveVoxelBasedMeasureGradient(float weight) override;
     virtual void ExponentiateGradient(Content& conBw) override;
     virtual void UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, bool optimiseZ) override;
-    virtual void BchUpdate(float scale, int bchUpdateValue) override;
     virtual void SymmetriseVelocityFields(Content& conBw) override;
     virtual void GetAffineDeformationField(bool compose) override;
 
