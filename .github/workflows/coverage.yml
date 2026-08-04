@@ -5,7 +5,13 @@ jobs:
     runs-on: ubuntu-24.04-gpu
     steps:
       - uses: actions/checkout@v3
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@master
         with:
+          cuda: '12.4.1'
+          method: network
+          use-github-cache: false
+          use-local-cache: false
           fetch-depth: 0
 
       - name: Install dependencies
