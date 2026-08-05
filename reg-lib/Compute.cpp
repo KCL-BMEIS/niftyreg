@@ -187,7 +187,10 @@ void Compute::SmoothGradient(float sigma) {
         sigma = fabs(sigma);
         NiftiImage& transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
         // One sigma per time point is required
-        const std::vector<float> sigmaPerTimePoint(transformationGradient->nt * transformationGradient->nu, sigma);
+        const std::vector<float>::size_type sigmaCount =
+            static_cast<std::vector<float>::size_type>(transformationGradient->nt) *
+            static_cast<std::vector<float>::size_type>(transformationGradient->nu);
+        const std::vector<float> sigmaPerTimePoint(sigmaCount, sigma);
         reg_tools_kernelConvolution(transformationGradient, sigmaPerTimePoint.data(), ConvKernelType::Gaussian);
     }
 }
