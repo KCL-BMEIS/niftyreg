@@ -4,18 +4,18 @@ jobs:
   Coverage:
     runs-on: ubuntu-24.04-gpu
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Install CUDA Toolkit
         uses: Jimver/cuda-toolkit@master
         with:
-          cuda: '12.4.1'
+          cuda: '12.6.3'
           method: network
+          sub-packages: '["toolkit"]'
           use-github-cache: false
           use-local-cache: false
-          fetch-depth: 0
-
-      - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake git lcov
 
       - name: Install Catch2
         run:  |
@@ -51,7 +51,7 @@ jobs:
         run: make coverage
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           directory: build
         env:
