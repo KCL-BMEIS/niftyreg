@@ -102,26 +102,6 @@ void reg_voxelCentricToNodeCentric(nifti_image *nodeImage,
 void reg_spline_refineControlPointGrid(nifti_image *controlPointGridImage,
                                        nifti_image *referenceImage = nullptr);
 /* *************************************************************** */
-/** @brief This function compose the a first control point image with a second one:
- * Grid2(x) <= Grid1(Grid2(x)).
- * Grid1 and Grid2 have to contain either displacement or deformation.
- * The output will be a deformation field if grid1 is a deformation,
- * The output will be a displacement field if grid1 is a displacement.
- * @param grid1 Image that contains the first grid of control points
- * @param grid2 Image that contains the second grid of control points
- * @param displacement1 The first grid is a displacement field if this
- * value is set to true, a deformation field otherwise
- * @param displacement2 The second grid is a displacement field if this
- * value is set to true, a deformation field otherwise
- * @param Cubic B-Spline can be used (bspline==true)
- * or cubic Spline (bspline==false)
- */
-int reg_spline_cppComposition(nifti_image *grid1,
-                              nifti_image *grid2,
-                              bool displacement1,
-                              bool displacement2,
-                              bool bspline);
-/* *************************************************************** */
 /** @brief Preforms the composition of two deformation fields
  * The deformation field image is applied to the second image:
  * dfToUpdate. Both images are expected to contain deformation
@@ -177,25 +157,4 @@ void reg_spline_getIntermediateDefFieldFromVelGrid(NiftiImage& velocityFieldGrid
 /* *************************************************************** */
 void reg_spline_getFlowFieldFromVelocityGrid(nifti_image *velocityFieldGrid,
                                              nifti_image *flowField);
-/* *************************************************************** */
-/* *************************************************************** */
-/* ****                    OTHER FUNCTIONS                    **** */
-/* *************************************************************** */
-/* *************************************************************** */
-/** @brief This function compute the BCH update using an initial velocity field
- * and its gradient.
- * @param img1 Image that contains the velocity field parametrisation
- * This image is updated
- * @param img2 This image contains the gradient to use
- * @param type The type encodes the number of component of the series
- * to be considered:
- * 0 - w=u+v
- * 1 - w=u+v+0.5*[u,v]
- * 2 - w=u+v+0.5*[u,v]+[u,[u,v]]/12
- * 3 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12
- * 4 - w=u+v+0.5*[u,v]+[u,[u,v]]/12-[v,[u,v]]/12-[v,[u,[u,g]]]/24
- */
-void compute_BCH_update(nifti_image *img1,
-                        nifti_image *img2,
-                        int type);
 /* *************************************************************** */

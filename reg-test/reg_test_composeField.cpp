@@ -176,3 +176,67 @@ TEST_CASE_METHOD(ComposeDeformationFieldTest, "Compose Deformation Field", "[uni
         }
     }
 }
+
+TEST_CASE("Composing two affine deformation fields gives their product", "[unit]") {
+    /*
+        result(v) = fieldA(fieldB(v)): with fieldA holding affine A and fieldB holding affine B, the
+        result must be the field of A*B - linear interpolation reproduces A's linear field exactly at
+        any position B produces, provided that position stays inside the sampled grid (B is a mild
+        contraction towards the centre to guarantee it; outside the grid the sliding extrapolation is
+        only exact for translations, which is its own documented property).
+
+        Run with an identity sform and with an anisotropic, sheared one: the composition converts
+        positions through the field's real-to-voxel matrix, which the identity geometry cannot check.
+    */
+    mat44 a;
+    Mat44Eye(&a);
+    a.m[0][0] = 1.1f;  a.m[0][1] = 0.15f; a.m[0][3] = -2.f;
+    a.m[1][0] = -0.05f; a.m[1][1] = 0.9f; a.m[1][3] = 1.5f;
+    a.m[2][2] = 1.05f; a.m[2][3] = 0.5f;
+
+    for (const bool is3D : { false, true })
+        for (const bool anisotropic : { false, true }) {
+            SECTION(std::string(is3D ? "3D" : "2D") + (anisotropic ? ", anisotropic sform" : ", identity sform")) {
+                std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, 8);
+                NiftiImage reference(dims, NIFTI_TYPE_FLOAT32);
+                if (anisotropic) setAnisotropicSform(reference);
+                else setIdentitySform(reference);
+
+                // B: contraction towards the domain centre, so every B(v) stays well inside
+                const mat44 sform = reference->sform_code > 0 ? reference->sto_xyz : reference->qto_xyz;
+                mat44 b;
+                Mat44Eye(&b);
+                float centre[3] = { 3.5f, 3.5f, is3D ? 3.5f : 0.f }, centreReal[3];
+                Mat44Mul(sform, centre, centreReal);
+                for (int c = 0; c < 3; ++c) {
+                    b.m[c][c] = 0.5f;
+                    b.m[c][3] = 0.5f * centreReal[c];
+                }
+
+                NiftiImage fieldA = CreateDeformationField(reference);
+                NiftiImage fieldB = CreateDeformationField(reference);
+                reg_affine_getDeformationField(&a, fieldA, false, nullptr);
+                reg_affine_getDeformationField(&b, fieldB, false, nullptr);
+
+                Platform platform(PlatformType::Cpu);
+                unique_ptr<ContentCreator> creator{ platform.CreateContentCreator() };
+                NiftiImage ref(reference);
+                unique_ptr<Content> content{ creator->Create(ref, ref) };
+                content->SetDeformationField(std::move(fieldB));
+                unique_ptr<Compute> compute{ platform.CreateCompute(*content) };
+                compute->DefFieldCompose(fieldA);
+                NiftiImage& result = content->GetDeformationField();
+
+                // Expected: the field of A*B (float matrix product, double application)
+                mat44 ab = a * b;
+                NiftiImage expected = CreateDeformationField(reference);
+                reg_affine_getDeformationField(&ab, expected, false, nullptr);
+
+                const Deviation deviation = CompareImages(result, expected);
+                ReportDeviation(std::string(is3D ? "3D" : "2D") +
+                                (anisotropic ? ", anisotropic" : ", identity sform"), deviation);
+                INFO("max deviation " << deviation.max);
+                REQUIRE(deviation.max < 1e-4);
+            }
+        }
+}

@@ -79,9 +79,6 @@ public:
 
     // F3D2 specific options
     virtual NiftiImage GetBackwardControlPointPositionImage() { return {}; }
-    virtual void UseBCHUpdate(int) {}
-    virtual void UseGradientCumulativeExp() {}
-    virtual void DoNotUseGradientCumulativeExp() {}
     virtual void SetFloatingMask(NiftiImage) {}
     virtual void SetInverseConsistencyWeight(T) {}
 };

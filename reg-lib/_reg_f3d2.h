@@ -23,9 +23,6 @@ protected:
     NiftiImage controlPointGridBw;
     unique_ptr<mat44> affineTransformationBw;
     T inverseConsistencyWeight;
-    bool bchUpdate;
-    bool useGradientCumulativeExp;
-    int bchUpdateValue;
 
     // Content backwards
     unique_ptr<F3dContent> conBw;
@@ -74,7 +71,4 @@ public:
 
     virtual void SetFloatingMask(NiftiImage) override;
     virtual void SetInverseConsistencyWeight(T) override;
-    virtual void UseBCHUpdate(int) override;
-    virtual void UseGradientCumulativeExp() override;
-    virtual void DoNotUseGradientCumulativeExp() override;
 };

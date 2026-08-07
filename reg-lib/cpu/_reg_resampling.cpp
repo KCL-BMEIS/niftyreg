@@ -2098,6 +2098,20 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
             previous[1]--;
             previous[2]--;
 
+            // Kernel sums, for the out-of-range row/slice shortcuts below: a fully-padded row or
+            // slice must contribute exactly what per-tap padding substitution would, i.e. the
+            // padding value weighted by the product of the axis kernel sums - the derivative kernel
+            // sums to ~0, so a padded row contributes ~nothing to the derivative along that axis.
+            // (The previous shortcut added the bare padding value to every component, which made
+            // the gradient of a constant image non-zero at the boundary.)
+            FieldType sumXBasis = 0, sumXDeriv = 0, sumYBasis = 0, sumYDeriv = 0;
+            for (a = 0; a < 4; a++) {
+                sumXBasis += static_cast<FieldType>(xBasis[a]);
+                sumXDeriv += static_cast<FieldType>(xDeriv[a]);
+                sumYBasis += static_cast<FieldType>(yBasis[a]);
+                sumYDeriv += static_cast<FieldType>(yDeriv[a]);
+            }
+
             for (c = 0; c < 4; c++) {
                 Z = previous[2] + c;
                 if (-1 < Z && Z < floatingImage->nz) {
@@ -2129,9 +2143,9 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
                             zzTempNewValue += static_cast<FieldType>(yTempNewValue * yBasis[b]);
                         } // Y in range
                         else {
-                            xxTempNewValue += static_cast<FieldType>(paddingValue * yBasis[b]);
-                            yyTempNewValue += static_cast<FieldType>(paddingValue * yDeriv[b]);
-                            zzTempNewValue += static_cast<FieldType>(paddingValue * yBasis[b]);
+                            xxTempNewValue += static_cast<FieldType>(paddingValue * sumXDeriv * yBasis[b]);
+                            yyTempNewValue += static_cast<FieldType>(paddingValue * sumXBasis * yDeriv[b]);
+                            zzTempNewValue += static_cast<FieldType>(paddingValue * sumXBasis * yBasis[b]);
                         }
                     } // b
                     grad[0] += static_cast<FieldType>(xxTempNewValue * zBasis[c]);
@@ -2139,9 +2153,9 @@ void CubicSplineImageGradient3D(const nifti_image *floatingImage,
                     grad[2] += static_cast<FieldType>(zzTempNewValue * zDeriv[c]);
                 } // Z in range
                 else {
-                    grad[0] += static_cast<FieldType>(paddingValue * zBasis[c]);
-                    grad[1] += static_cast<FieldType>(paddingValue * zBasis[c]);
-                    grad[2] += static_cast<FieldType>(paddingValue * zDeriv[c]);
+                    grad[0] += static_cast<FieldType>(paddingValue * sumXDeriv * sumYBasis * zBasis[c]);
+                    grad[1] += static_cast<FieldType>(paddingValue * sumXBasis * sumYDeriv * zBasis[c]);
+                    grad[2] += static_cast<FieldType>(paddingValue * sumXBasis * sumYBasis * zDeriv[c]);
                 }
             } // c
 
@@ -2229,6 +2243,14 @@ void CubicSplineImageGradient2D(const nifti_image *floatingImage,
             previous[0]--;
             previous[1]--;
 
+            // See the 3D variant: a fully-padded row contributes the padding weighted by the x
+            // kernel sums, not the bare padding value
+            FieldType sumXBasis = 0, sumXDeriv = 0;
+            for (a = 0; a < 4; a++) {
+                sumXBasis += static_cast<FieldType>(xBasis[a]);
+                sumXDeriv += static_cast<FieldType>(xDeriv[a]);
+            }
+
             for (b = 0; b < 4; b++) {
                 Y = previous[1] + b;
                 yPointer = &floatingIntensity[Y * floatingImage->nx];
@@ -2252,8 +2274,8 @@ void CubicSplineImageGradient2D(const nifti_image *floatingImage,
                     grad[1] += static_cast<FieldType>(yTempNewValue * yDeriv[b]);
                 } // Y in range
                 else {
-                    grad[0] += static_cast<FieldType>(paddingValue * yBasis[b]);
-                    grad[1] += static_cast<FieldType>(paddingValue * yDeriv[b]);
+                    grad[0] += static_cast<FieldType>(paddingValue * sumXDeriv * yBasis[b]);
+                    grad[1] += static_cast<FieldType>(paddingValue * sumXBasis * yDeriv[b]);
                 }
             } // b
 

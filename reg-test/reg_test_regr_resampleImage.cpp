@@ -22,9 +22,9 @@
         active-voxel list), and the CUDA warped buffer is uninitialised cudaMalloc while the CPU
         buffer is untouched host memory - so masked-out voxels are undefined and platform-specific.
         Masked cases therefore compare ACTIVE voxels only; "masked-out left untouched" is a
-        per-platform property already pinned by the CPU-only reg_test_resampleImage.
+        per-platform property already pinned by the CPU-only unit tests.
 
-    The CUDA resampler is linear-only (CudaResampling.cu fatal-errors otherwise), so interpolation
+    The CUDA resampler is linear-only (it fatal-errors otherwise), so interpolation
     is fixed at 1 here
 */
 

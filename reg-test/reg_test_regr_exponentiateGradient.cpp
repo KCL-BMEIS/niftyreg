@@ -2,13 +2,27 @@
 #include "CudaF3dContent.h"
 
 /**
- *  Exponentiate gradient regression test to ensure the CPU and CUDA versions yield the same output
+ *  Gradient accumulation through exponentiation, CPU against CUDA
+ *  (reg_f3d2::ExponentiateGradient, implemented by Compute::ExponentiateGradient).
+ *
+ *  The backward velocity grid's intent_p2 sets the number of squaring steps, and therefore how many
+ *  times the composition loop runs. It has to be set explicitly: at its default of 0 the loop body
+ *  never executes and the function collapses to a division by 2^0, leaving the gradient untouched on
+ *  both backends and comparing equal for the wrong reason. Each case sets it to 6, the value reg_f3d2
+ *  uses, and asserts the gradient actually changed before comparing the two.
+ *
+ *  Each backend is also run twice, resetting the gradient in between, so that the second call has to
+ *  reproduce the first. Both implementations pool scratch buffers across calls, and a field left dirty
+ *  by one call can only show up in a later one.
 **/
 
 class ExponentiateGradientTest {
 protected:
     using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
-    using TestCase = std::tuple<std::string, NiftiImage, NiftiImage>;
+    // name, input gradient, cpu 1st call, cpu 2nd call, cuda 1st call, cuda 2nd call
+    using TestCase = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
+
+    static constexpr int squaringSteps = 6;   // what reg_f3d2 sets on the velocity grid
 
     inline static vector<TestCase> testCases;
 
@@ -37,6 +51,11 @@ public:
         NiftiImage controlPointGridBw3d = CreateControlPointGrid(reference3d);
         controlPointGridBw2d->intent_p1 = SPLINE_VEL_GRID;
         controlPointGridBw3d->intent_p1 = SPLINE_VEL_GRID;
+        // The number of squaring steps drives the composition loop in Compute::ExponentiateGradient.
+        // It has to be set: intent_p2 defaults to 0, which makes the loop body run zero times and the
+        // whole function collapse to a division by 2^0, i.e. this test would compare a no-op.
+        controlPointGridBw2d->intent_p2 = squaringSteps;
+        controlPointGridBw3d->intent_p2 = squaringSteps;
         auto cpp2dPtr = controlPointGrid2d.data();
         auto cppBw2dPtr = controlPointGridBw2d.data();
         auto cpp3dPtr = controlPointGrid3d.data();
@@ -140,12 +159,28 @@ public:
             unique_ptr<Compute> computeCpu{ platformCpu.CreateCompute(*contentCpu) };
             unique_ptr<Compute> computeCuda{ platformCuda.CreateCompute(*contentCuda) };
 
-            // Resample gradient
+            // Exponentiate the gradient
+            computeCpu->ExponentiateGradient(*contentBwCpu);
+            computeCuda->ExponentiateGradient(*contentBwCuda);
+            NiftiImage gradCpu1(contentCpu->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
+            NiftiImage gradCuda1(contentCuda->GetVoxelBasedMeasureGradient(), NiftiImage::Copy::Image);
+
+            // Reset the gradient and run again, so the second call has to reproduce the first while
+            // reusing whatever scratch the first one pooled
+            contentCpu->GetVoxelBasedMeasureGradient().copyData(voxelBasedGrad);
+            contentCpu->UpdateVoxelBasedMeasureGradient();
+            contentCuda->DefContent::GetVoxelBasedMeasureGradient().copyData(voxelBasedGrad);
+            contentCuda->UpdateVoxelBasedMeasureGradient();
             computeCpu->ExponentiateGradient(*contentBwCpu);
             computeCuda->ExponentiateGradient(*contentBwCuda);
 
             // Save the results for testing
-            testCases.push_back({ testName, std::move(contentCpu->GetVoxelBasedMeasureGradient()), std::move(contentCuda->GetVoxelBasedMeasureGradient()) });
+            testCases.push_back({ testName,
+                                  NiftiImage(voxelBasedGrad, NiftiImage::Copy::Image),
+                                  std::move(gradCpu1),
+                                  std::move(contentCpu->GetVoxelBasedMeasureGradient()),
+                                  std::move(gradCuda1),
+                                  std::move(contentCuda->GetVoxelBasedMeasureGradient()) });
         }
     }
 };
@@ -154,7 +189,7 @@ TEST_CASE_METHOD(ExponentiateGradientTest, "Regression Exponentiate Gradient", "
     // Loop over all generated test cases
     for (auto&& testCase : testCases) {
         // Retrieve test information
-        auto&& [sectionName, voxelGradCpu, voxelGradCuda] = testCase;
+        auto&& [sectionName, inputGrad, voxelGradCpu, voxelGradCpu2, voxelGradCuda, voxelGradCuda2] = testCase;
 
         SECTION(sectionName) {
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
@@ -162,9 +197,20 @@ TEST_CASE_METHOD(ExponentiateGradientTest, "Regression Exponentiate Gradient", "
             // Increase the precision for the output
             NR_COUT << std::fixed << std::setprecision(10);
 
-            // Check the results
+            const auto inputPtr = inputGrad.data();
             const auto voxelGradCpuPtr = voxelGradCpu.data();
+            const auto voxelGradCpu2Ptr = voxelGradCpu2.data();
             const auto voxelGradCudaPtr = voxelGradCuda.data();
+            const auto voxelGradCuda2Ptr = voxelGradCuda2.data();
+
+            // The exponentiation has to have done something: with intent_p2 left at 0 the loop body
+            // never runs and every check below would pass on an untouched gradient
+            bool changed = false;
+            for (size_t i = 0; i < voxelGradCpu.nVoxels() && !changed; i++)
+                changed = static_cast<float>(voxelGradCpuPtr[i]) != static_cast<float>(inputPtr[i]);
+            REQUIRE(changed);
+
+            // Check the results
             for (size_t i = 0; i < voxelGradCpu.nVoxels(); i++) {
                 const float voxelGradCpuVal = voxelGradCpuPtr[i];
                 const float voxelGradCudaVal = voxelGradCudaPtr[i];
@@ -176,6 +222,10 @@ TEST_CASE_METHOD(ExponentiateGradientTest, "Regression Exponentiate Gradient", "
                     NR_COUT << " | CUDA=" << voxelGradCudaVal << std::endl;
                 }
                 REQUIRE(diff == 0);
+
+                // Repeating the call has to give the same answer, whatever scratch was pooled
+                REQUIRE(static_cast<float>(voxelGradCpu2Ptr[i]) == voxelGradCpuVal);
+                REQUIRE(static_cast<float>(voxelGradCuda2Ptr[i]) == voxelGradCudaVal);
             }
         }
     }

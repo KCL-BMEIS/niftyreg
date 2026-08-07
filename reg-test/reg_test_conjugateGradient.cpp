@@ -4,416 +4,249 @@
 #include "reg_test_common.h"
 
 /*
-    This test file contains the following unit tests:
-    test functions: conjugate gradient
-    In 2D and 3D
-    Update control point grid
-    Update transformation gradient
+    The conjugate gradient optimiser, checked against hand-computed Polak-Ribiere updates rather than
+    a transcription of the production loop.
+
+    The production update (ConjugateGradient::UpdateGradientValues) keeps two state arrays and computes
+
+        first call:  array1 = array2 = -g,   gradient unchanged
+        update:      beta   = sum((g_new + array1) . g_new) / sum(array2 . array1)
+                     array1 = -g_new
+                     array2 = -g_new + beta * array2_old
+                     g_out  = -array2 = g_new + beta * (previous direction)
+
+    Feeding UNIFORM gradient fields makes every sum a closed form: with the field set to a then b,
+    beta = b(b-a)/a^2 and every output element is b + beta*a. The values below are chosen so beta and
+    the outputs are exact binary fractions, so the checks are equalities - including on CUDA, where a
+    reduction order can differ but sums of identical dyadic values are exact in any order.
+
+    What each case pins:
+      - first call leaves the gradient untouched (steepest descent);
+      - a REPEATED gradient leaves it untouched again: b == a gives beta = 0 exactly, which any sign
+        or association error in the beta sums breaks;
+      - one general update matches b + beta*a per element;
+      - a second consecutive update matches the two-step closed form, pinning the state carry
+        (array2 must hold the previous direction, not the previous gradient);
+      - the symmetric variant pools the sums: beta = (b(b-a) + d(d-c)) / (a^2 + c^2) with the
+        backward field at c then d, applied to BOTH sides;
+      - RestartOptimisation() discards the direction history (next update behaves as a first call)
+        but keeps the iteration count; Perturbation(0) does the same and resets the count.
+
+    UpdateControlPointPosition is asserted against its definition, best + scale * gradient, per
+    optimise flag - the only arithmetic involved.
 */
 
+namespace {
 
-class ConjugateGradientTest: public InterfaceOptimiser {
-protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
-    using TestCase = std::tuple<shared_ptr<Platform>, unique_ptr<F3dContent>, unique_ptr<F3dContent>, TestData, bool, bool, bool, float>;
+struct CgFixture {
+    NiftiImage reference, controlPointGrid, controlPointGridBw;
+    unique_ptr<F3dContent> content, contentBw;
+    unique_ptr<Optimiser<float>> optimiser;
+    size_t volume = 0;
+    int components = 0;
 
-    inline static vector<TestCase> testCases;
+    struct NullOptimisable: public InterfaceOptimiser {
+        virtual double GetObjectiveFunctionValue() override { return 0; }
+        virtual void UpdateParameters(float) override {}
+        virtual void UpdateBestObjFunctionValue() override {}
+    };
+    NullOptimisable callbacks;
 
-public:
-    ConjugateGradientTest() {
-        if (!testCases.empty())
-            return;
+    CgFixture(Platform& platform, bool is3D, bool isSymmetric) {
+        std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, 4);
+        reference = NiftiImage(dims, NIFTI_TYPE_FLOAT32);
+        setIdentitySform(reference);
+        controlPointGrid = CreateControlPointGrid(reference);
+        controlPointGridBw = controlPointGrid;
+        components = is3D ? 3 : 2;
 
-        // Create a random number generator
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<float> distr(0, 1);
-
-        // Create a reference 2D image
-        vector<NiftiImage::dim_t> dimFlo{ 4, 4 };
-        NiftiImage reference2d(dimFlo, NIFTI_TYPE_FLOAT32);
-
-        // Fill image with distance from identity
-        const auto ref2dPtr = reference2d.data();
-        auto ref2dItr = ref2dPtr.begin();
-        for (int y = 0; y < reference2d->ny; ++y)
-            for (int x = 0; x < reference2d->nx; ++x)
-                *ref2dItr++ = sqrtf(static_cast<float>(x * x + y * y));
-
-        // Create a reference 3D image
-        dimFlo.push_back(4);
-        NiftiImage reference3d(dimFlo, NIFTI_TYPE_FLOAT32);
-
-        // Fill image with distance from identity
-        const auto ref3dPtr = reference3d.data();
-        auto ref3dItr = ref3dPtr.begin();
-        for (int z = 0; z < reference3d->nz; ++z)
-            for (int y = 0; y < reference3d->ny; ++y)
-                for (int x = 0; x < reference3d->nx; ++x)
-                    *ref3dItr++ = sqrtf(static_cast<float>(x * x + y * y + z * z));
-
-        // Generate the different test cases
-        // Test 2D
-        NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
-        NiftiImage controlPointGridBw2d(controlPointGrid2d);
-        NiftiImage bestControlPointGrid2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
-        NiftiImage transformationGradient2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
-        NiftiImage transformationGradientBw2d(controlPointGrid2d, NiftiImage::Copy::ImageInfoAndAllocData);
-        auto bestCpp2dPtr = bestControlPointGrid2d.data();
-        auto transGrad2dPtr = transformationGradient2d.data();
-        auto transGradBw2dPtr = transformationGradientBw2d.data();
-        for (size_t i = 0; i < transformationGradient2d.nVoxels(); ++i) {
-            bestCpp2dPtr[i] = distr(gen);
-            transGrad2dPtr[i] = distr(gen);
-            transGradBw2dPtr[i] = distr(gen);
-        }
-
-        // Add the test data
-        vector<TestData> testData;
-        testData.emplace_back(TestData(
-            "2D",
-            std::move(reference2d),
-            std::move(controlPointGrid2d),
-            std::move(controlPointGridBw2d),
-            std::move(bestControlPointGrid2d),
-            std::move(transformationGradient2d),
-            std::move(transformationGradientBw2d)
-        ));
-
-        // Test 3D
-        NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
-        NiftiImage controlPointGridBw3d(controlPointGrid3d);
-        NiftiImage bestControlPointGrid3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
-        NiftiImage transformationGradient3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
-        NiftiImage transformationGradientBw3d(controlPointGrid3d, NiftiImage::Copy::ImageInfoAndAllocData);
-        auto bestCpp3dPtr = bestControlPointGrid3d.data();
-        auto transGrad3dPtr = transformationGradient3d.data();
-        auto transGradBw3dPtr = transformationGradientBw3d.data();
-        for (size_t i = 0; i < transformationGradient3d.nVoxels(); ++i) {
-            bestCpp3dPtr[i] = distr(gen);
-            transGrad3dPtr[i] = distr(gen);
-            transGradBw3dPtr[i] = distr(gen);
-        }
-
-        // Add the test data
-        testData.emplace_back(TestData(
-            "3D",
-            std::move(reference3d),
-            std::move(controlPointGrid3d),
-            std::move(controlPointGridBw3d),
-            std::move(bestControlPointGrid3d),
-            std::move(transformationGradient3d),
-            std::move(transformationGradientBw3d)
-        ));
-
-        // Add platforms, optimise*, and scale to the test data
-        distr = std::uniform_real_distribution<float>(0, 10);
-        for (auto&& testData : testData) {
-            for (auto&& platformType : PlatformTypes) {
-                shared_ptr<Platform> platform{ new Platform(platformType) };
-                unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
-                for (int optimiseX = 0; optimiseX < 2; optimiseX++) {
-                    for (int optimiseY = 0; optimiseY < 2; optimiseY++) {
-                        for (int optimiseZ = 0; optimiseZ < 2; optimiseZ++) {
-                            // Make a copy of the test data
-                            auto td = testData;
-                            auto&& [testName, reference, controlPointGrid, controlPointGridBw, bestControlPointGrid, transGrad, transGradBw] = td;
-                            // Add content
-                            unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
-                            unique_ptr<F3dContent> contentBw{ contentCreator->Create(reference, reference, controlPointGridBw) };
-                            testCases.push_back({ platform, std::move(content), std::move(contentBw), std::move(td), optimiseX, optimiseY, optimiseZ, distr(gen) });
-                        }
-                    }
-                }
-            }
-        }
+        unique_ptr<F3dContentCreator> creator{
+            dynamic_cast<F3dContentCreator*>(platform.CreateContentCreator(ContentType::F3d)) };
+        content.reset(creator->Create(reference, reference, controlPointGrid));
+        volume = content->F3dContent::GetTransformationGradient().nVoxelsPerVolume();
+        if (isSymmetric)
+            contentBw.reset(creator->Create(reference, reference, controlPointGridBw));
+        optimiser.reset(platform.CreateOptimiser<float>(*content, callbacks, 0, true, true, true, true,
+                                                        contentBw.get()));
     }
 
-    void UpdateControlPointPosition(NiftiImage& currentDof,
-                                    const NiftiImage& bestDof,
-                                    const NiftiImage& gradient,
-                                    const float scale,
-                                    const bool optimiseX,
-                                    const bool optimiseY,
-                                    const bool optimiseZ) {
-        // Update the values for the x-axis displacement
-        if (optimiseX) {
-            auto currentDofPtr = currentDof.data(0);
-            const auto bestDofPtr = bestDof.data(0);
-            const auto gradientPtr = gradient.data(0);
-            for (size_t i = 0; i < currentDofPtr.length(); ++i)
-                currentDofPtr[i] = static_cast<float>(bestDofPtr[i]) + scale * static_cast<float>(gradientPtr[i]);
-        }
-        // Update the values for the y-axis displacement
-        if (optimiseY) {
-            auto currentDofPtr = currentDof.data(1);
-            const auto bestDofPtr = bestDof.data(1);
-            const auto gradientPtr = gradient.data(1);
-            for (size_t i = 0; i < currentDofPtr.length(); ++i)
-                currentDofPtr[i] = static_cast<float>(bestDofPtr[i]) + scale * static_cast<float>(gradientPtr[i]);
-        }
-        // Update the values for the z-axis displacement
-        if (optimiseZ && currentDof->nz > 1) {
-            auto currentDofPtr = currentDof.data(2);
-            const auto bestDofPtr = bestDof.data(2);
-            const auto gradientPtr = gradient.data(2);
-            for (size_t i = 0; i < currentDofPtr.length(); ++i)
-                currentDofPtr[i] = static_cast<float>(bestDofPtr[i]) + scale * static_cast<float>(gradientPtr[i]);
-        }
+    void SetGradient(F3dContent& con, float value) {
+        NiftiImage& gradient = con.F3dContent::GetTransformationGradient();
+        auto ptr = gradient.data();
+        for (size_t i = 0; i < gradient.nVoxels(); ++i)
+            ptr[i] = value;
+        con.UpdateTransformationGradient();
     }
 
-    void UpdateGradientValues(NiftiImage& gradient, const bool firstCall, const bool isSymmetric, NiftiImage *gradientBw) {
-        // Create array1 and array2
-        static NiftiImage array1, array1Bw;
-        static NiftiImage array2, array2Bw;
-        if (firstCall) {
-            array1 = array2 = NiftiImage(gradient, NiftiImage::Copy::ImageInfoAndAllocData);
-            if (isSymmetric)
-                array1Bw = array2Bw = NiftiImage(*gradientBw, NiftiImage::Copy::ImageInfoAndAllocData);
-        }
-
-        auto gradientPtr = gradient.data();
-        auto array1Ptr = array1.data();
-        auto array2Ptr = array2.data();
-        NiftiImageData gradientBwPtr, array1BwPtr, array2BwPtr;
-        if (isSymmetric) {
-            gradientBwPtr = gradientBw->data();
-            array1BwPtr = array1Bw.data();
-            array2BwPtr = array2Bw.data();
-        }
-
-        if (firstCall) {
-            // Initialise array1 and array2
-            for (size_t i = 0; i < gradient.nVoxels(); i++)
-                array2Ptr[i] = array1Ptr[i] = -static_cast<float>(gradientPtr[i]);
-            if (isSymmetric) {
-                for (size_t i = 0; i < gradientBw->nVoxels(); i++)
-                    array2BwPtr[i] = array1BwPtr[i] = -static_cast<float>(gradientBwPtr[i]);
-            }
-        } else {
-            // Calculate gam
-            double dgg = 0, gg = 0;
-            for (size_t i = 0; i < gradient.nVoxels(); i++) {
-                gg += static_cast<float>(array2Ptr[i]) * static_cast<float>(array1Ptr[i]);
-                dgg += (static_cast<float>(gradientPtr[i]) + static_cast<float>(array1Ptr[i])) * static_cast<float>(gradientPtr[i]);
-            }
-            double gam = dgg / gg;
-            if (isSymmetric) {
-                double dggBw = 0, ggBw = 0;
-                for (size_t i = 0; i < gradientBw->nVoxels(); i++) {
-                    ggBw += static_cast<float>(array2BwPtr[i]) * static_cast<float>(array1BwPtr[i]);
-                    dggBw += (static_cast<float>(gradientBwPtr[i]) + static_cast<float>(array1BwPtr[i])) * static_cast<float>(gradientBwPtr[i]);
-                }
-                gam = (dgg + dggBw) / (gg + ggBw);
-            }
-
-            // Update gradient values
-            for (size_t i = 0; i < gradient.nVoxels(); i++) {
-                array1Ptr[i] = -static_cast<float>(gradientPtr[i]);
-                array2Ptr[i] = static_cast<float>(array1Ptr[i]) + gam * static_cast<float>(array2Ptr[i]);
-                gradientPtr[i] = -static_cast<float>(array2Ptr[i]);
-            }
-            if (isSymmetric) {
-                for (size_t i = 0; i < gradientBw->nVoxels(); i++) {
-                    array1BwPtr[i] = -static_cast<float>(gradientBwPtr[i]);
-                    array2BwPtr[i] = static_cast<float>(array1BwPtr[i]) + gam * static_cast<float>(array2BwPtr[i]);
-                    gradientBwPtr[i] = -static_cast<float>(array2BwPtr[i]);
-                }
-            }
-        }
+    void RequireGradientIs(F3dContent& con, float expected, const std::string& what) {
+        NiftiImage& gradient = con.GetTransformationGradient();
+        const auto ptr = gradient.data();
+        size_t differing = 0;
+        for (size_t i = 0; i < gradient.nVoxels(); ++i)
+            if (static_cast<float>(ptr[i]) != expected) ++differing;
+        INFO(what << ": expected every element == " << expected << ", " << differing << " differ, first is "
+             << static_cast<float>(ptr[0]));
+        REQUIRE(differing == 0);
     }
-
-    // Required for InterfaceOptimiser
-    virtual double GetObjectiveFunctionValue() { return 0; }
-    virtual void UpdateParameters(float) {}
-    virtual void UpdateBestObjFunctionValue() {}
 };
 
-TEST_CASE_METHOD(ConjugateGradientTest, "Conjugate Gradient", "[unit]") {
-    // Loop over all generated test cases
-    for (auto&& testCase : testCases) {
-        // Retrieve test information
-        auto&& [platform, content, contentBw, testData, optimiseX, optimiseY, optimiseZ, scale] = testCase;
-        auto&& [testName, reference, controlPointGrid, controlPointGridBw, bestControlPointGrid, transGrad, transGradBw] = testData;
-        const std::string sectionName = testName + " " + platform->GetName() + " " + (optimiseX ? "X" : "noX") + " " + (optimiseY ? "Y" : "noY") + " " + (optimiseZ ? "Z" : "noZ") + " scale = " + std::to_string(scale);
+} // namespace
 
-        SECTION(sectionName) {
-            NR_COUT << "\n**************** UpdateControlPointPosition " << sectionName << " ****************" << std::endl;
+TEST_CASE("Conjugate gradient closed-form updates", "[unit]") {
+    for (auto&& platformType : PlatformTypes)
+        for (const bool is3D : { false, true }) {
+            Platform platform(platformType);
 
-            // Increase the precision for the output
-            NR_COUT << std::fixed << std::setprecision(10);
+            SECTION(std::string(is3D ? "3D" : "2D") + " " + platform.GetName() + " forward-only") {
+                CgFixture f(platform, is3D, false);
 
-            // Set the control point grid by using bestControlPointGrid to store bestDof during initialisation of the optimiser
-            content->F3dContent::GetControlPointGrid().copyData(bestControlPointGrid);
-            content->UpdateControlPointGrid();
+                // First call: steepest descent, gradient untouched
+                f.SetGradient(*f.content, 2.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 2.f, "first call");
 
-            // Set the transformation gradients
-            content->F3dContent::GetTransformationGradient().copyData(transGrad);
-            content->UpdateTransformationGradient();
-            contentBw->F3dContent::GetTransformationGradient().copyData(transGradBw);
-            contentBw->UpdateTransformationGradient();
+                // Repeated gradient: beta = a(a-a)/a^2 = 0, direction re-initialises to -g
+                f.SetGradient(*f.content, 2.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 2.f, "repeated gradient");
 
-            // Create a copy of the control point grid for expected results
-            NiftiImage controlPointGridExpected = bestControlPointGrid;
+                // General update: a = 2 (state now holds direction -2), b = 3
+                // beta = 3(3-2)/2^2 = 0.75; out = 3 + 0.75*2 = 4.5
+                f.SetGradient(*f.content, 3.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 4.5f, "update a=2, b=3");
 
-            // Update the control point position
-            unique_ptr<Optimiser<float>> optimiser{ platform->template CreateOptimiser<float>(*content, *this, 0, true, optimiseX, optimiseY, optimiseZ) };
-            unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-            compute->UpdateControlPointPosition(optimiser->GetCurrentDof(), optimiser->GetBestDof(), optimiser->GetGradient(), scale, optimiseX, optimiseY, optimiseZ);
-            UpdateControlPointPosition(controlPointGridExpected, bestControlPointGrid, transGrad, scale, optimiseX, optimiseY, optimiseZ);
-
-            // Check the results
-            const auto cppPtr = content->GetControlPointGrid().data();
-            const auto cppExpPtr = controlPointGridExpected.data();
-            for (size_t i = 0; i < controlPointGridExpected.nVoxels(); ++i) {
-                const float cppVal = cppPtr[i];
-                const float cppExpVal = cppExpPtr[i];
-                const auto diff = abs(cppVal - cppExpVal);
-                if (diff > 0)
-                    NR_COUT << i << " " << cppVal << " " << cppExpVal << std::endl;
-                REQUIRE(diff == 0);
+                // Second consecutive update, pinning the state carry: the previous direction is
+                // -4.5 (not the previous gradient -3), so with e = -4.5:
+                // beta = sum((e - 3) e) / sum((-4.5)(-3)) = 33.75 / 13.5 = 2.5
+                // out = e + 2.5 * 4.5 * ... = -array2 = -( -e + 2.5 * (-4.5) ) = e + 11.25 = 6.75
+                f.SetGradient(*f.content, -4.5f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 6.75f, "chained update e=-4.5");
             }
 
-            // Update the gradient values
-            // Only run once by discarding other optimiseX, optimiseY, optimiseZ combinations
-            if (!optimiseX && !optimiseY && !optimiseZ) {
-                for (int isSymmetric = 0; isSymmetric < 2; isSymmetric++) {
-                    NR_COUT << "\n**************** UpdateGradientValues " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
+            SECTION(std::string(is3D ? "3D" : "2D") + " " + platform.GetName() + " symmetric") {
+                CgFixture f(platform, is3D, true);
 
-                    // Create a random number generator
-                    std::random_device rd;
-                    std::mt19937 gen(rd());
-                    std::uniform_real_distribution<float> distr(0, 1);
+                // Initialise both sides: forward a = 2, backward c = 2
+                f.SetGradient(*f.content, 2.f);
+                f.SetGradient(*f.contentBw, 2.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 2.f, "symmetric first call, forward");
+                f.RequireGradientIs(*f.contentBw, 2.f, "symmetric first call, backward");
 
-                    // Create a symmetric optimiser if required
-                    if (isSymmetric)
-                        optimiser.reset(platform->template CreateOptimiser<float>(*content, *this, 0, true, optimiseX, optimiseY, optimiseZ, contentBw.get()));
-
-                    // Initialise the conjugate gradients
-                    optimiser->UpdateGradientValues();
-                    UpdateGradientValues(transGrad, true, isSymmetric, &transGradBw);
-
-                    // Fill the gradients with random values
-                    auto gradientPtr = transGrad.data();
-                    auto gradientBwPtr = transGradBw.data();
-                    for (size_t i = 0; i < transGrad.nVoxels(); i++) {
-                        gradientPtr[i] = distr(gen);
-                        if (isSymmetric)
-                            gradientBwPtr[i] = distr(gen);
-                    }
-                    // Update the transformation gradients
-                    content->F3dContent::GetTransformationGradient().copyData(transGrad);
-                    content->UpdateTransformationGradient();
-                    if (isSymmetric) {
-                        contentBw->F3dContent::GetTransformationGradient().copyData(transGradBw);
-                        contentBw->UpdateTransformationGradient();
-                    }
-
-                    // Get the gradient values
-                    optimiser->UpdateGradientValues();
-                    UpdateGradientValues(transGrad, false, isSymmetric, &transGradBw);
-
-                    // Check the results
-                    const auto gradPtr = content->GetTransformationGradient().data();
-                    const auto gradExpPtr = transGrad.data();
-                    NiftiImageData gradBwPtr, gradExpBwPtr;
-                    if (isSymmetric) {
-                        gradBwPtr = contentBw->GetTransformationGradient().data();
-                        gradExpBwPtr = transGradBw.data();
-                    }
-                    for (size_t i = 0; i < transGrad.nVoxels(); ++i) {
-                        const float gradVal = gradPtr[i];
-                        const float gradExpVal = gradExpPtr[i];
-                        const auto diff = abs(gradVal - gradExpVal);
-                        if (diff > EPS)
-                            NR_COUT << i << " " << gradVal << " " << gradExpVal << std::endl;
-                        REQUIRE(diff < EPS);
-                        if (isSymmetric) {
-                            const float gradBwVal = gradBwPtr[i];
-                            const float gradExpBwVal = gradExpBwPtr[i];
-                            const auto diff = abs(gradBwVal - gradExpBwVal);
-                            if (diff > EPS)
-                                NR_COUT << i << " " << gradBwVal << " " << gradExpBwVal << " backwards" << std::endl;
-                            REQUIRE(diff < EPS);
-                        }
-                    }
-
-                    // Helpers to drive a further conjugate-gradient update and compare the
-                    // device/CPU optimiser against the in-test reference implementation.
-                    auto fillRandomGradients = [&]() {
-                        auto gradPtr = transGrad.data();
-                        auto gradBwPtr = transGradBw.data();
-                        for (size_t i = 0; i < transGrad.nVoxels(); i++) {
-                            gradPtr[i] = distr(gen);
-                            if (isSymmetric)
-                                gradBwPtr[i] = distr(gen);
-                        }
-                        content->F3dContent::GetTransformationGradient().copyData(transGrad);
-                        content->UpdateTransformationGradient();
-                        if (isSymmetric) {
-                            contentBw->F3dContent::GetTransformationGradient().copyData(transGradBw);
-                            contentBw->UpdateTransformationGradient();
-                        }
-                    };
-                    auto requireGradientsMatchReference = [&]() {
-                        const auto gradPtr = content->GetTransformationGradient().data();
-                        const auto gradExpPtr = transGrad.data();
-                        NiftiImageData gradBwPtr, gradExpBwPtr;
-                        if (isSymmetric) {
-                            gradBwPtr = contentBw->GetTransformationGradient().data();
-                            gradExpBwPtr = transGradBw.data();
-                        }
-                        for (size_t i = 0; i < transGrad.nVoxels(); ++i) {
-                            REQUIRE(abs(static_cast<float>(gradPtr[i]) - static_cast<float>(gradExpPtr[i])) < EPS);
-                            if (isSymmetric)
-                                REQUIRE(abs(static_cast<float>(gradBwPtr[i]) - static_cast<float>(gradExpBwPtr[i])) < EPS);
-                        }
-                    };
-
-                    // RestartOptimisation(): a restart must discard the
-                    // conjugate-direction history so the optimiser behaves as if freshly
-                    // initialised, while leaving the iteration counter untouched (unlike
-                    // Perturbation)
-                    NR_COUT << "\n**************** RestartOptimisation " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
-                    constexpr size_t iterAdvance = 3;
-                    for (size_t it = 0; it < iterAdvance; ++it)
-                        optimiser->IncrementCurrentIterationNumber();
-                    optimiser->RestartOptimisation();
-                    REQUIRE(optimiser->GetCurrentIterationNumber() == iterAdvance);  // restart leaves iterations alone
-
-                    // First update after the restart re-initialises to steepest descent
-                    // (first-call behaviour: the gradient is left unchanged).
-                    fillRandomGradients();
-                    optimiser->UpdateGradientValues();
-                    UpdateGradientValues(transGrad, true, isSymmetric, &transGradBw);
-                    requireGradientsMatchReference();
-
-                    // The subsequent update rebuilds the conjugate direction from the
-                    // restart - identical to a freshly-initialised optimiser.
-                    fillRandomGradients();
-                    optimiser->UpdateGradientValues();
-                    UpdateGradientValues(transGrad, false, isSymmetric, &transGradBw);
-                    requireGradientsMatchReference();
-
-                    // Perturbation(): it also resets the conjugate direction
-                    // and additionally resets the iteration counter to zero. A zero-length
-                    // perturbation leaves the control points untouched, isolating the state
-                    // reset from the (platform-dependent, random) displacement kick.
-                    NR_COUT << "\n**************** Perturbation " << sectionName + (isSymmetric ? " Symmetric" : "") << " ****************" << std::endl;
-                    for (size_t it = 0; it < iterAdvance; ++it)
-                        optimiser->IncrementCurrentIterationNumber();
-                    optimiser->Perturbation(0);
-                    REQUIRE(optimiser->GetCurrentIterationNumber() == 0);  // perturbation resets iterations
-
-                    // After a perturbation the next update behaves as a first call again.
-                    fillRandomGradients();
-                    optimiser->UpdateGradientValues();
-                    UpdateGradientValues(transGrad, true, isSymmetric, &transGradBw);
-                    requireGradientsMatchReference();
-                }
+                // Update with forward b = 3, backward d = 1 (equal DOF counts):
+                // beta = (b(b-a) + d(d-c)) / (a^2 + c^2) = (3 - 1) / 8 = 0.25
+                // forward out = 3 + 0.25*2 = 3.5; backward out = 1 + 0.25*2 = 1.5
+                f.SetGradient(*f.content, 3.f);
+                f.SetGradient(*f.contentBw, 1.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 3.5f, "symmetric update, forward");
+                f.RequireGradientIs(*f.contentBw, 1.5f, "symmetric update, backward");
             }
-            // Ensure the termination of content before CudaContext
-            content.reset();
-            contentBw.reset();
+
+            SECTION(std::string(is3D ? "3D" : "2D") + " " + platform.GetName() + " restart and perturbation") {
+                CgFixture f(platform, is3D, false);
+
+                // Build up direction state
+                f.SetGradient(*f.content, 2.f);
+                f.optimiser->UpdateGradientValues();
+                f.SetGradient(*f.content, 3.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 4.5f, "pre-restart update");
+
+                // Restart discards the direction history but keeps the iteration count
+                constexpr size_t iterAdvance = 3;
+                for (size_t it = 0; it < iterAdvance; ++it)
+                    f.optimiser->IncrementCurrentIterationNumber();
+                f.optimiser->RestartOptimisation();
+                REQUIRE(f.optimiser->GetCurrentIterationNumber() == iterAdvance);
+
+                // Next update behaves as a first call: gradient untouched
+                f.SetGradient(*f.content, 5.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 5.f, "first update after restart");
+
+                // And the one after that is a first-order update from the fresh state:
+                // a = 5, b = 10: beta = 10*5/25 = 2; out = 10 + 2*5 = 20
+                f.SetGradient(*f.content, 10.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 20.f, "second update after restart");
+
+                // Perturbation(0) also resets the direction state and additionally zeroes the
+                // iteration count; a zero-length perturbation leaves the control points untouched
+                for (size_t it = 0; it < iterAdvance; ++it)
+                    f.optimiser->IncrementCurrentIterationNumber();
+                f.optimiser->Perturbation(0);
+                REQUIRE(f.optimiser->GetCurrentIterationNumber() == 0);
+
+                f.SetGradient(*f.content, 7.f);
+                f.optimiser->UpdateGradientValues();
+                f.RequireGradientIs(*f.content, 7.f, "first update after perturbation");
+            }
         }
-    }
+}
+
+TEST_CASE("Conjugate gradient control point update", "[unit]") {
+    /*
+        UpdateControlPointPosition writes best + scale * gradient into the optimised components and
+        leaves the others at their current values. That IS the definition, so the expectation is the
+        same expression evaluated in double on the same inputs - with a fixed non-uniform best/gradient
+        pair so a component mix-up cannot cancel.
+    */
+    for (auto&& platformType : PlatformTypes)
+        for (const bool is3D : { false, true })
+            for (const bool optimiseX : { true, false })
+                for (const bool optimiseY : { true, false })
+                    for (const bool optimiseZ : { true, false }) {
+                        Platform platform(platformType);
+                        const std::string name = std::string(is3D ? "3D" : "2D") + " " + platform.GetName() +
+                            (optimiseX ? " X" : " noX") + (optimiseY ? " Y" : " noY") + (optimiseZ ? " Z" : " noZ");
+                        SECTION(name) {
+                            constexpr float scale = 0.75f;   // exact in float
+                            CgFixture f(platform, is3D, false);
+
+                            // Distinct per-element best DOF and gradient
+                            NiftiImage& cpg = f.content->F3dContent::GetControlPointGrid();
+                            NiftiImage best(cpg, NiftiImage::Copy::Image);
+                            {
+                                auto bPtr = best.data();
+                                for (size_t i = 0; i < best.nVoxels(); ++i)
+                                    bPtr[i] = static_cast<float>(0.5 + 0.25 * (i % 7));
+                                cpg.copyData(best);
+                                f.content->UpdateControlPointGrid();
+                            }
+                            NiftiImage gradient(cpg, NiftiImage::Copy::ImageInfoAndAllocData);
+                            {
+                                auto gPtr = gradient.data();
+                                for (size_t i = 0; i < gradient.nVoxels(); ++i)
+                                    gPtr[i] = static_cast<float>(2.0 - 0.5 * (i % 5));
+                                f.content->F3dContent::GetTransformationGradient().copyData(gradient);
+                                f.content->UpdateTransformationGradient();
+                            }
+
+                            // Recreate the optimiser so it snapshots this best DOF
+                            f.optimiser.reset(platform.CreateOptimiser<float>(*f.content, f.callbacks, 0, true,
+                                                                              optimiseX, optimiseY, optimiseZ));
+                            unique_ptr<Compute> compute{ platform.CreateCompute(*f.content) };
+                            compute->UpdateControlPointPosition(f.optimiser->GetCurrentDof(),
+                                                                f.optimiser->GetBestDof(),
+                                                                f.optimiser->GetGradient(),
+                                                                scale, optimiseX, optimiseY, optimiseZ);
+
+                            const auto resultPtr = f.content->GetControlPointGrid().data();
+                            const auto bestPtr = best.data();
+                            const auto gradPtr = gradient.data();
+                            const bool flags[3] = { optimiseX, optimiseY, optimiseZ && is3D };
+                            for (int c = 0; c < f.components; ++c)
+                                for (size_t i = 0; i < f.volume; ++i) {
+                                    const size_t index = c * f.volume + i;
+                                    const float expected = flags[c]
+                                        ? static_cast<float>(bestPtr[index]) + scale * static_cast<float>(gradPtr[index])
+                                        : static_cast<float>(bestPtr[index]);
+                                    INFO(name << ": component " << c << " element " << i);
+                                    REQUIRE(static_cast<float>(resultPtr[index]) == expected);
+                                }
+                        }
+                    }
 }

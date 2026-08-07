@@ -120,6 +120,8 @@ TEST_CASE_METHOD(SymmetriseVelocityFieldsTest, "Regression Symmetrise Velocity F
         auto&& [sectionName, cppCpu, cppBwCpu, cppCuda, cppBwCuda] = testCase;
 
         SECTION(sectionName) {
+            // The comparison below is only meaningful if the operation ran at all
+            RequireNonZero(cppCpu, "the symmetrised velocity field");
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
 
             // Increase the precision for the output

@@ -8,6 +8,13 @@
  *  Test classes:
  *   - NMI
  *   - SSD
+ *   - LNCC
+ *
+ *  The case above compares the measures at one small image size. The second case in this file sweeps
+ *  the NMI value over image size instead, because that is the axis along which the two backends part
+ *  company: the joint histogram and the entropies are accumulated in different orders, so the
+ *  difference grows with the number of contributing voxels and a single small image cannot see it.
+ *  It also covers the NaN-padded case, which an identity transformation never produces.
  */
 
 class MeasureTest {
@@ -237,6 +244,8 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
                 voxelBasedGradCpuBw, voxelBasedGradCudaBw] = testCase;
 
         SECTION(testName) {
+            // The comparison below is only meaningful if the operation ran at all
+            RequireNonZero(voxelBasedGradCpu, "the voxel-based measure gradient");
             NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
 
             // Increase the precision for the output
@@ -279,4 +288,93 @@ TEST_CASE_METHOD(MeasureTest, "Regression Measure", "[regression]") {
             }
         }
     }
+}
+
+namespace {
+
+// An image with intensity content spread over enough distinct values to fill an NMI histogram.
+// Quantised, with a large zero background, as a real acquisition is: the intensity rescaling NMI
+// applies before binning then lands many voxels on bin boundaries.
+NiftiImage MakeSizedImage(NiftiImage::dim_t size, bool is3D, double phase) {
+    std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, size);
+    NiftiImage img(dims, NIFTI_TYPE_FLOAT32);
+    setIdentitySform(img);
+    const int nx = img->nx, ny = img->ny, nz = img->nz;
+    auto ptr = img.data();
+    for (int k = 0; k < nz; ++k)
+        for (int j = 0; j < ny; ++j)
+            for (int i = 0; i < nx; ++i) {
+                const double x = 6.0 * M_PI * i / nx, y = 6.0 * M_PI * j / ny;
+                const double z = nz > 1 ? 6.0 * M_PI * k / nz : 0.0;
+                const double wave = 120.0 * (1.0 + std::sin(x + phase) * std::cos(y) * std::cos(z));
+                const double radius = std::sqrt(std::pow(i - nx / 2.0, 2) + std::pow(j - ny / 2.0, 2) +
+                                                (nz > 1 ? std::pow(k - nz / 2.0, 2) : 0.0));
+                ptr[(static_cast<size_t>(k) * ny + j) * nx + i] =
+                    radius > 0.42 * nx ? 0.f : static_cast<float>(std::round(wave));
+            }
+    return img;
+}
+
+double NmiValueForSize(Platform& platform, MeasureCreator *measureCreator, const NiftiImage& reference,
+                       const NiftiImage& floating, bool cuda, float shift) {
+    NiftiImage ref(reference), flo(floating), grid = CreateControlPointGrid(reference);
+    if (shift != 0.f) {
+        // Push the transform partly off the field of view so the warped image carries NaN padding,
+        // which NMI has to exclude from its histogram. An identity grid never produces a single NaN.
+        auto gridPtr = grid.data();
+        for (size_t i = 0; i < grid.nVoxels(); ++i)
+            gridPtr[i] = static_cast<float>(gridPtr[i]) + shift;
+    }
+    unique_ptr<F3dContent> content{ cuda ? new CudaF3dContent(ref, flo, grid) : new F3dContent(ref, flo, grid) };
+    unique_ptr<Compute> compute{ platform.CreateCompute(*content) };
+    unique_ptr<reg_measure> measure{ measureCreator->Create(MeasureType::Nmi) };
+    for (int t = 0; t < ref->nt; ++t)
+        measure->SetTimePointWeight(t, 1.0);
+    measureCreator->Initialise(*measure, *content, nullptr);
+    compute->GetDeformationField(false, true);
+    compute->ResampleImage(1, std::numeric_limits<float>::quiet_NaN());
+    return measure->GetSimilarityMeasureValue();
+}
+
+} // namespace
+
+TEST_CASE("Regression Measure - NMI value against image size", "[regression]") {
+    /*
+        The NMI value is the last thing keeping plain reg_f3d from being bit-exact across the backends:
+        every operation in the iteration chain is exact and the regularisation terms match, but the
+        first objective evaluation of a full-resolution run already differs in the similarity term, and
+        the line search eventually turns that into a different trajectory.
+
+        The gate is the same tolerance the case above applies to this value, deliberately: the point is
+        to record how the difference scales, not to fail on a number that is expected to be non-zero.
+        The printed table is the output that matters.
+    */
+    Platform platformCpu(PlatformType::Cpu);
+    Platform platformCuda(PlatformType::Cuda);
+    unique_ptr<MeasureCreator> measureCreatorCpu{ new MeasureCreator() };
+    unique_ptr<MeasureCreator> measureCreatorCuda{ new CudaMeasureCreator() };
+
+    for (const bool is3D : { false, true })
+        for (const float shift : { 0.f, 3.5f }) {
+            const std::string name = std::string(is3D ? "3D" : "2D") +
+                (shift == 0.f ? ", identity" : ", NaN padding");
+            SECTION(name) {
+                NR_COUT << "\n**************** NMI value vs size, " << name << " ****************" << std::endl;
+                for (const NiftiImage::dim_t size : { 8, 16, 32, 48 }) {
+                    const NiftiImage reference = MakeSizedImage(size, is3D, 0.0);
+                    const NiftiImage floating = MakeSizedImage(size, is3D, 0.7);
+                    const double cpu = NmiValueForSize(platformCpu, measureCreatorCpu.get(), reference,
+                                                       floating, false, shift);
+                    const double cuda = NmiValueForSize(platformCuda, measureCreatorCuda.get(), reference,
+                                                        floating, true, shift);
+                    const double difference = std::abs(cpu - cuda);
+                    NR_COUT << "  size " << std::setw(3) << size << (is3D ? "^3" : "^2")
+                            << ": CPU = " << std::fixed << std::setprecision(12) << cpu
+                            << ", CUDA = " << cuda << ", |diff| = " << std::scientific << difference
+                            << (difference == 0 ? "  (bit-exact)" : "") << std::endl;
+                    INFO("image size " << size << ", |cpu - cuda| = " << difference);
+                    REQUIRE(difference < EPS);
+                }
+            }
+        }
 }

@@ -64,23 +64,28 @@ void GetDeformationField(const nifti_image *controlPointImage,
     auto controlPointTexturePtr = Cuda::CreateTextureObject(controlPointImageCuda, controlPointNumber, cudaChannelFormatKindFloat, 4);
     auto controlPointTexture = *controlPointTexturePtr;
 
-    // Get the reference matrix if composition is required
-    thrust::device_vector<mat44> realToVoxelCudaVec;
+    // Get the reference matrices if composition is required: real-to-voxel to locate the position in
+    // the grid, and voxel-to-real for the out-of-grid extrapolation
+    thrust::device_vector<mat44> compositionMatricesCudaVec;
     if constexpr (composition) {
-        const mat44 *matPtr = controlPointImage->sform_code > 0 ? &controlPointImage->sto_ijk : &controlPointImage->qto_ijk;
-        realToVoxelCudaVec = thrust::device_vector<mat44>(matPtr, matPtr + 1);
+        const mat44 matrices[2]{ controlPointImage->sform_code > 0 ? controlPointImage->sto_ijk : controlPointImage->qto_ijk,
+                                 controlPointImage->sform_code > 0 ? controlPointImage->sto_xyz : controlPointImage->qto_xyz };
+        compositionMatricesCudaVec = thrust::device_vector<mat44>(matrices, matrices + 2);
     }
-    const auto realToVoxelCuda = composition ? realToVoxelCudaVec.data().get() : nullptr;
+    const auto realToVoxelCuda = composition ? compositionMatricesCudaVec.data().get() : nullptr;
+    const auto voxelToRealCuda = composition ? compositionMatricesCudaVec.data().get() + 1 : nullptr;
 
     if (referenceImage->nz > 1) {
         thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
             GetDeformationField3d<composition, bspline>(deformationFieldCuda, controlPointTexture, realToVoxelCuda,
-                                                        referenceImageDims, controlPointImageDims, controlPointVoxelSpacing, index);
+                                                        voxelToRealCuda, referenceImageDims, controlPointImageDims,
+                                                        controlPointVoxelSpacing, index);
         });
     } else {
         thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
             GetDeformationField2d<composition, bspline>(deformationFieldCuda, controlPointTexture, realToVoxelCuda,
-                                                        referenceImageDims, controlPointImageDims, controlPointVoxelSpacing, index);
+                                                        voxelToRealCuda, referenceImageDims, controlPointImageDims,
+                                                        controlPointVoxelSpacing, index);
         });
     }
 }
@@ -108,26 +113,26 @@ struct SecondDerivative<false> {
     Type xx, yy, xy;
 };
 /* *************************************************************** */
-template<bool is3d, bool isGradient>
+// Interior nodes only: the energy sums the interior alone, and the gradient's first pass must match
+// it exactly for the gradient to be the value's derivative - so boundary nodes return zero on both
+// paths, and interior stencils need no tap guard.
+template<bool is3d>
 __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
                                                             cudaTextureObject_t controlPointTexture,
                                                             const int3 controlPointImageDims,
                                                             const Basis2nd<is3d> basis) {
     const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDims);
-    if (!isGradient && (x < 1 || x >= controlPointImageDims.x - 1 ||
-                        y < 1 || y >= controlPointImageDims.y - 1 ||
-                        (is3d && (z < 1 || z >= controlPointImageDims.z - 1)))) return {};
+    if (x < 1 || x >= controlPointImageDims.x - 1 ||
+        y < 1 || y >= controlPointImageDims.y - 1 ||
+        (is3d && (z < 1 || z >= controlPointImageDims.z - 1))) return {};
 
     SecondDerivative<is3d> secondDerivative{};
     if constexpr (is3d) {
         for (int c = z - 1, basInd = 0; c < z + 2; c++) {
-            if (isGradient && (c < 0 || c >= controlPointImageDims.z)) { basInd += 9; continue; }
             const int indexZ = c * controlPointImageDims.y;
             for (int b = y - 1; b < y + 2; b++) {
-                if (isGradient && (b < 0 || b >= controlPointImageDims.y)) { basInd += 3; continue; }
                 int indexXYZ = (indexZ + b) * controlPointImageDims.x + x - 1;
                 for (int a = x - 1; a < x + 2; a++, basInd++, indexXYZ++) {
-                    if (isGradient && (a < 0 || a >= controlPointImageDims.x)) continue;
                     const float3 controlPointValue = make_float3(tex1Dfetch<float4>(controlPointTexture, indexXYZ));
                     secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
                     secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
@@ -140,10 +145,8 @@ __device__ SecondDerivative<is3d> GetApproxSecondDerivative(const int index,
         }
     } else {
         for (int b = y - 1, basInd = 0; b < y + 2; b++) {
-            if (isGradient && (b < 0 || b >= controlPointImageDims.y)) { basInd += 3; continue; }
             int indexXY = b * controlPointImageDims.x + x - 1;
             for (int a = x - 1; a < x + 2; a++, basInd++, indexXY++) {
-                if (isGradient && (a < 0 || a >= controlPointImageDims.x)) continue;
                 const float2 controlPointValue = make_float2(tex1Dfetch<float4>(controlPointTexture, indexXY));
                 secondDerivative.xx = secondDerivative.xx + basis.xx[basInd] * controlPointValue;
                 secondDerivative.yy = secondDerivative.yy + basis.yy[basInd] * controlPointValue;
@@ -170,7 +173,7 @@ double ApproxBendingEnergy(const nifti_image *controlPointImage, const float4 *c
 
     thrust::counting_iterator index(0);
     return thrust::transform_reduce(thrust::device, index, index + controlPointNumber, [=]__device__(const int index) -> double {
-        const auto secondDerivative = GetApproxSecondDerivative<is3d, false>(index, controlPointTexture, controlPointImageDims, basis);
+        const auto secondDerivative = GetApproxSecondDerivative<is3d>(index, controlPointTexture, controlPointImageDims, basis);
         if constexpr (is3d)
             return (Square(secondDerivative.xx.x) + Square(secondDerivative.yy.x) + Square(secondDerivative.zz.x) +
                     2.0 * (Square(secondDerivative.xy.x) + Square(secondDerivative.yz.x) + Square(secondDerivative.xz.x)) +
@@ -210,7 +213,7 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
     auto secondDerivativesCuda = secondDerivativesCudaVec.data().get();
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
                        [controlPointTexture, controlPointImageDims, basis, secondDerivativesCuda]__device__(const int index) {
-        const auto secondDerivative = GetApproxSecondDerivative<is3d, true>(index, controlPointTexture, controlPointImageDims, basis);
+        const auto secondDerivative = GetApproxSecondDerivative<is3d>(index, controlPointTexture, controlPointImageDims, basis);
         if constexpr (is3d) {
             int derInd = 6 * index;
             secondDerivativesCuda[derInd++] = make_float4(secondDerivative.xx);
@@ -231,8 +234,9 @@ void ApproxBendingEnergyGradient(nifti_image *controlPointImage,
                                                                  sizeof(typename SecondDerivative<is3d>::TextureType) / sizeof(float));
     auto secondDerivativesTexture = *secondDerivativesTexturePtr;
 
-    // Compute the gradient
-    const float approxRatio = bendingEnergyWeight / (float)controlPointNumber;
+    // Compute the gradient. The value divides by nvox and each squared term contributes twice its
+    // factor, so 2/nvox is what makes this the derivative of that value.
+    const float approxRatio = static_cast<float>(2.0 * bendingEnergyWeight / static_cast<double>(controlPointImage->nvox));
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), controlPointNumber,
                        [controlPointImageDims, basis, secondDerivativesTexture, transGradientCuda, approxRatio]__device__(const int index) {
         const auto [x, y, z] = IndexToDims<is3d>(index, controlPointImageDims);
@@ -982,11 +986,11 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
                                 const float weight) {
     const int3 cppDims = make_int3(controlPointGrid->nx, controlPointGrid->ny, controlPointGrid->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(controlPointGrid, 3);
-    const float approxRatio = weight / static_cast<float>(voxelNumber);
+    // The value divides by nvox, so the gradient has to as well for it to be that value's derivative
+    const float approxRatio = weight / static_cast<float>(controlPointGrid->nvox);
 
     // Matrix to use to convert the gradient from mm to voxel
     const mat33 reorientation = Mat44ToMat33(controlPointGrid->sform_code > 0 ? &controlPointGrid->sto_ijk : &controlPointGrid->qto_ijk);
-    const mat33 invReorientation = nifti_mat33_inverse(reorientation);
 
     // Store the basis values since they are constant as the value is approximated at the control point positions only
     Basis1st<is3d> basis;
@@ -1005,14 +1009,17 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
     auto controlPointTexture = *controlPointTexturePtr;
     auto dispMatricesTexture = *dispMatricesTexturePtr;
 
-    // Create the displacement matrices
+    // Create the per-node derivative matrices
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [=]__device__(const int index) {
-        dispMatricesCuda[index] = CreateDisplacementMatrix<is3d>(index, controlPointTexture, cppDims, basis, reorientation);
+        dispMatricesCuda[index] = CreateLinearEnergyGradientMatrix<is3d>(index, controlPointTexture, cppDims, basis, reorientation);
     });
 
-    // Compute the gradient
+    // Compute the gradient. This gathers: the node at `index` collects, from each neighbour, that
+    // neighbour's derivative weighted by the basis at the node's position relative to it. The
+    // first-order basis is antisymmetric about the stencil centre, so that mirrored weight is the
+    // negative of basis[basInd] - which is where the minus signs below come from.
     thrust::for_each_n(thrust::device, thrust::make_counting_iterator(0), voxelNumber, [
-        transGradCuda, dispMatricesTexture, cppDims, approxRatio, basis, invReorientation
+        transGradCuda, dispMatricesTexture, cppDims, approxRatio, basis
     ]__device__(const int index) {
         const auto [x, y, z] = IndexToDims<is3d>(index, cppDims);
         auto gradVal = transGradCuda[index];
@@ -1024,22 +1031,25 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
                     const int yInd = (zInd + y + b) * cppDims.x;
                     for (int a = -1; a < 2; a++, basInd++) {
                         const int matInd = (yInd + x + a) * 9;   // Multiply with the item count of mat33
-                        const float dispMatrix[3]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
-                                                   tex1Dfetch<float>(dispMatricesTexture, matInd + 4),   // m[1][1]
-                                                   tex1Dfetch<float>(dispMatricesTexture, matInd + 8) }; // m[2][2]
-                        const float gradValues[3]{ -2.f * dispMatrix[0] * basis.x[basInd],
-                                                   -2.f * dispMatrix[1] * basis.y[basInd],
-                                                   -2.f * dispMatrix[2] * basis.z[basInd] };
-
-                        gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
-                                                    invReorientation.m[0][1] * gradValues[1] +
-                                                    invReorientation.m[0][2] * gradValues[2]);
-                        gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
-                                                    invReorientation.m[1][1] * gradValues[1] +
-                                                    invReorientation.m[1][2] * gradValues[2]);
-                        gradVal.z += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
-                                                    invReorientation.m[2][1] * gradValues[1] +
-                                                    invReorientation.m[2][2] * gradValues[2]);
+                        // dEdG rows are derivative directions, columns displacement components
+                        const float dEdG[9]{ tex1Dfetch<float>(dispMatricesTexture, matInd),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 1),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 2),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 3),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 4),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 5),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 6),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 7),
+                                             tex1Dfetch<float>(dispMatricesTexture, matInd + 8) };
+                        gradVal.x -= approxRatio * (basis.x[basInd] * dEdG[0] +
+                                                    basis.y[basInd] * dEdG[3] +
+                                                    basis.z[basInd] * dEdG[6]);
+                        gradVal.y -= approxRatio * (basis.x[basInd] * dEdG[1] +
+                                                    basis.y[basInd] * dEdG[4] +
+                                                    basis.z[basInd] * dEdG[7]);
+                        gradVal.z -= approxRatio * (basis.x[basInd] * dEdG[2] +
+                                                    basis.y[basInd] * dEdG[5] +
+                                                    basis.z[basInd] * dEdG[8]);
                     }
                 }
             }
@@ -1048,15 +1058,12 @@ void ApproxLinearEnergyGradient(const nifti_image *controlPointGrid,
                 const int yInd = (y + b) * cppDims.x;
                 for (int a = -1; a < 2; a++, basInd++) {
                     const int matInd = (yInd + x + a) * 9;   // Multiply with the item count of mat33
-                    const float dispMatrix[2]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
-                                               tex1Dfetch<float>(dispMatricesTexture, matInd + 4) }; // m[1][1]
-                    const float gradValues[2]{ -2.f * dispMatrix[0] * basis.x[basInd],
-                                               -2.f * dispMatrix[1] * basis.y[basInd] };
-
-                    gradVal.x += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
-                                                invReorientation.m[0][1] * gradValues[1]);
-                    gradVal.y += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
-                                                invReorientation.m[1][1] * gradValues[1]);
+                    const float dEdG[4]{ tex1Dfetch<float>(dispMatricesTexture, matInd),       // m[0][0]
+                                         tex1Dfetch<float>(dispMatricesTexture, matInd + 1),   // m[0][1]
+                                         tex1Dfetch<float>(dispMatricesTexture, matInd + 3),   // m[1][0]
+                                         tex1Dfetch<float>(dispMatricesTexture, matInd + 4) }; // m[1][1]
+                    gradVal.x -= approxRatio * (basis.x[basInd] * dEdG[0] + basis.y[basInd] * dEdG[2]);
+                    gradVal.y -= approxRatio * (basis.x[basInd] * dEdG[1] + basis.y[basInd] * dEdG[3]);
                 }
             }
         }

@@ -77,7 +77,7 @@ void Usage(char *exec) {
     NR_INFO("");
     NR_INFO("*** Regularisation options:");
     NR_INFO("\t-be <float>\t\tWeight of the bending energy (second derivative of the transformation) penalty term [0.001]");
-    NR_INFO("\t-le <float>\t\tWeight of first order penalty term (symmetric and anti-symmetric part of the Jacobian) [0.01]");
+    NR_INFO("\t-le <float>\t\tWeight of first order penalty term (deviation of the local Jacobian from a rotation) [0.01]");
     NR_INFO("\t-jl <float>\t\tWeight of log of the Jacobian determinant penalty term [0.0]");
     NR_INFO("\t-noAppJL\t\tTo not approximate the JL value only at the control point position");
     NR_INFO("\t-land <float> <file>\tUse of a set of landmarks which distance should be minimised");
@@ -126,7 +126,6 @@ void Usage(char *exec) {
     NR_INFO("");
     NR_INFO("*** F3D2 options:");
     NR_INFO("\t-vel \t\t\tUse a velocity field integration to generate the deformation");
-    NR_INFO("\t-nogce \t\t\tDo not use the gradient accumulation through exponentiation");
     NR_INFO("\t-fmask <filename>\tFilename of a mask image in the floating space");
     NR_INFO("");
 
@@ -596,12 +595,7 @@ int main(int argc, char **argv) {
             reg->SetPerturbationNumber((size_t)atoi(argv[++i]));
         } else if (strcmp(argv[i], "-nogr") == 0) {
             reg->NoGridRefinement();
-        } else if (strcmp(argv[i], "-nogce") == 0 || strcmp(argv[i], "--nogce") == 0) {
-            reg->DoNotUseGradientCumulativeExp();
-        } else if (strcmp(argv[i], "-bch") == 0 || strcmp(argv[i], "--bch") == 0) {
-            reg->UseBCHUpdate(atoi(argv[++i]));
-        }
-        else if (strcmp(argv[i], "-omp") == 0 || strcmp(argv[i], "--omp") == 0) {
+        } else if (strcmp(argv[i], "-omp") == 0 || strcmp(argv[i], "--omp") == 0) {
 #ifdef _OPENMP
             omp_set_num_threads(atoi(argv[++i]));
 #else

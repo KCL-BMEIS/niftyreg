@@ -185,7 +185,13 @@ void Compute::NormaliseGradient(double maxGradLength, bool optimiseX, bool optim
 void Compute::SmoothGradient(float sigma) {
     if (sigma != 0) {
         sigma = fabs(sigma);
-        reg_tools_kernelConvolution(dynamic_cast<F3dContent&>(con).GetTransformationGradient(), &sigma, ConvKernelType::Gaussian);
+        NiftiImage& transformationGradient = dynamic_cast<F3dContent&>(con).GetTransformationGradient();
+        // One sigma per time point is required
+        const std::vector<float>::size_type sigmaCount =
+            static_cast<std::vector<float>::size_type>(transformationGradient->nt) *
+            static_cast<std::vector<float>::size_type>(transformationGradient->nu);
+        const std::vector<float> sigmaPerTimePoint(sigmaCount, sigma);
+        reg_tools_kernelConvolution(transformationGradient, sigmaPerTimePoint.data(), ConvKernelType::Gaussian);
     }
 }
 /* *************************************************************** */
@@ -327,13 +333,6 @@ void Compute::UpdateVelocityField(float scale, bool optimiseX, bool optimiseY, b
     reg_tools_addImageToImage(controlPointGrid,  // in
                               scaledGradient,    // in
                               controlPointGrid); // out
-}
-/* *************************************************************** */
-void Compute::BchUpdate(float scale, int bchUpdateValue) {
-    F3dContent& con = dynamic_cast<F3dContent&>(this->con);
-    NiftiImage scaledGradient = ScaleGradient(con.GetTransformationGradient(), scale);
-    NiftiImage& controlPointGrid = con.GetControlPointGrid();
-    compute_BCH_update(controlPointGrid, scaledGradient, bchUpdateValue);
 }
 /* *************************************************************** */
 void Compute::SymmetriseVelocityFields(Content& conBwIn) {

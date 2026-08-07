@@ -4,9 +4,21 @@
 #include "reg_test_common.h"
 
 /*
-    This test file contains the following unit tests:
-    test function: NMI gradient.
-    The analytical formulation is compared against an approximation
+    The analytical NMI gradient against central finite differences of the NMI value.
+
+    This is the gradient check no cross-backend comparison can make: both backends could descend the
+    same wrong direction and agree exactly. The finite differences perturb the deformation field one
+    element at a time and re-evaluate the measure, so the expectation involves nothing of the
+    analytical gradient's implementation.
+
+    The gate is on the SCALE and the SHAPE separately: the mean analytical/numerical ratio over
+    significant entries must be 1 to a few percent (a correlation gate is scale-invariant and would
+    pass a gradient wrong by a constant factor), and the largest residual must be small relative to
+    the gradient's own magnitude. The correlation is still reported for context.
+
+    Both padding conventions are covered: a finite padding value, and NaN padding where out-of-FOV
+    voxels are excluded from the joint histogram - the exclusion changes which voxels contribute to
+    the entropies, and the analytical gradient has to track that.
 */
 
 class NmiGradientTest {
@@ -20,7 +32,6 @@ public:
         // Images will be rescaled between 2 and bin-3
         // Default bin value is 68 (64+4 for Parzen windowing)
         constexpr unsigned binNumber = 8;
-        constexpr float padding = 2; //std::numeric_limits<float>::quiet_NaN();
         std::uniform_real_distribution<float> distr(2, binNumber - 3);
 
         // Create reference and floating 2D images
@@ -68,12 +79,15 @@ public:
             reference3d,
             floating3d
         ));
+        const float paddings[] = { 2.f, std::numeric_limits<float>::quiet_NaN() };
         for (auto&& data : testData) {
+          for (const float padding : paddings) {
             for (auto&& platformType : PlatformTypes) {
                 // Create the platform
                 unique_ptr<Platform> platform{ new Platform(platformType) };
                 // Make a copy of the test data
                 auto [testName, reference, floating] = data;
+                testName += std::isnan(padding) ? " NaN padding" : " finite padding";
                 // Create the content creator
                 unique_ptr<DefContentCreator> contentCreator{
                     dynamic_cast<DefContentCreator*>(platform->CreateContentCreator(ContentType::Def))
@@ -125,6 +139,7 @@ public:
                 }
                 testCases.push_back({ testName + " "s + platform->GetName(), std::move(gradientImage), std::move(expectedGradientImage) });
             }
+          }
         }
     }
 
@@ -157,18 +172,34 @@ TEST_CASE_METHOD(NmiGradientTest, "NMI Gradient", "[unit]") {
                 corr += (resPtr[i] - resMean) * (expPtr[i] - expMean);
 
             corr /= resStd * expStd * result.nVoxels();
-            NR_COUT << "Correlation = " << corr << std::endl;
             const auto [expMin, expMax] = expected.data(0).minmax();
             const double norm = std::max(std::abs(expMin), std::abs(expMax));
+
+            // Scale: the mean analytical/numerical ratio over entries large enough to carry signal.
+            // This is what a correlation gate cannot see - a gradient wrong by a constant factor has
+            // correlation 1 and ratio != 1.
+            const double significant = 0.1 * norm;
+            double sumRatio = 0;
+            size_t ratioCount = 0;
+            double maxResidual = 0;
             for (size_t i = 0; i < expected.nVoxels(); ++i) {
-                const double ratio = std::abs(resPtr[i] - expPtr[i]) / norm;
-                if (ratio > .1) {
-                    NR_COUT << "[i]=" << i;
-                    NR_COUT << " | ratio=" << ratio;
-                    NR_COUT << " | Result=" << resPtr[i];
-                    NR_COUT << " | Expected=" << expPtr[i] << std::endl;
+                maxResidual = std::max(maxResidual, std::abs(double(resPtr[i]) - double(expPtr[i])));
+                if (std::abs(double(expPtr[i])) > significant) {
+                    sumRatio += double(resPtr[i]) / double(expPtr[i]);
+                    ++ratioCount;
                 }
             }
+            const double meanRatio = ratioCount ? sumRatio / double(ratioCount) : 0;
+            NR_COUT << "Correlation = " << corr << " | mean ratio = " << meanRatio
+                    << " over " << ratioCount << " entries | max residual = " << maxResidual
+                    << " (max |expected| = " << norm << ")" << std::endl;
+
+            REQUIRE(ratioCount > 0);
+            INFO("mean analytical/numerical ratio " << meanRatio);
+            REQUIRE(std::abs(meanRatio - 1.0) < 0.05);
+            INFO("max residual " << maxResidual << " vs max |expected| " << norm);
+            REQUIRE(maxResidual < 0.1 * norm);
+            // The shape check stays as a diagnostic floor
             REQUIRE(corr > 0.99);
         }
     }

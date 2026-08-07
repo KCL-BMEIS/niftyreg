@@ -4,12 +4,26 @@
 #include "reg_test_common.h"
 
 /*
-    This test file contains the following unit tests:
-    - BE computation for an identity transformation
-    - BE computation for an affine transformation
-    - BE computation for non-linear transformation
-*/
+    The approximated bending energy, checked against closed forms.
 
+    The value sums, over the interior control points, the squared second derivatives the 3x3(x3)
+    B-spline knot stencils produce, and divides by nvox. Three families of grid make that a known
+    number without restating the stencils:
+
+      - identity and AFFINE grids: every second derivative of an affine function vanishes, so the
+        energy is zero. The affine includes shear as well as scaling - a stencil that accidentally
+        picked up a first-derivative term would survive a pure scaling test;
+      - a QUADRATIC displacement a*(index)^2 added along one axis of one component: the (1,-2,1)
+        second-derivative stencil gives exactly 2a, every other term has a vanishing factor
+        (sum(second) = 0, sum(first) = 0 across the perpendicular stencils), so the energy is
+        4 a^2 N_interior / nvox. The derivation is three lines of algebra on the stencil, not a copy
+        of the loop; the tolerance absorbs the float literals the production basis tables hold
+        (their partition of unity is 1 to ~1e-6, not exactly 1).
+
+    The second TEST_CASE compares the analytical bending-energy GRADIENT against central finite
+    differences of the value, the check that ties the two definitions together (and which found the
+    linear-energy gradient inconsistent). Scale and shape are gated separately, as there.
+*/
 
 class BendingEnergyTest {
 protected:
@@ -23,212 +37,212 @@ public:
         if (!testCases.empty())
             return;
 
-        // Create a random number generator
-        std::mt19937 gen(0);
-        std::uniform_real_distribution<float> distr(-1, 1);
-
         // Create 2D and 3D reference images
-        constexpr NiftiImage::dim_t dimSize = 4;
+        constexpr NiftiImage::dim_t dimSize = 8;
         NiftiImage reference2d({ dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
         NiftiImage reference3d({ dimSize, dimSize, dimSize }, NIFTI_TYPE_FLOAT32);
+        setIdentitySform(reference2d);
+        setIdentitySform(reference3d);
 
-        // Create 2D and 3D control point grids
         NiftiImage controlPointGrid2d = CreateControlPointGrid(reference2d);
         NiftiImage controlPointGrid3d = CreateControlPointGrid(reference3d);
 
-        // Add the test data
         vector<TestData> testData;
-        testData.emplace_back(TestData(
-            "BE identity 2D",
-            reference2d,
-            controlPointGrid2d,
-            0.f
-        ));
-        testData.emplace_back(TestData(
-            "BE identity 3D",
-            reference3d,
-            controlPointGrid3d,
-            0.f
-        ));
-        // Add random values to the control point grid coefficients
-        // No += or + operator for RNifti::NiftiImageData:Element
-        // so reverting to old school for now
-        float *cpp2dPtr = static_cast<float*>(controlPointGrid2d->data);
-        float *cpp3dPtr = static_cast<float*>(controlPointGrid3d->data);
-        for (size_t i = 0; i < controlPointGrid2d.nVoxels(); ++i)
-            cpp2dPtr[i] += distr(gen);
-        for (size_t i = 0; i < controlPointGrid3d.nVoxels(); ++i)
-            cpp3dPtr[i] += distr(gen);
-        // Add the test data
-        testData.emplace_back(TestData(
-            "BE random 2D",
-            reference2d,
-            controlPointGrid2d,
-            this->GetBe2d(controlPointGrid2d)
-        ));
-        testData.emplace_back(TestData(
-            "BE random 3D",
-            reference3d,
-            controlPointGrid3d,
-            this->GetBe3d(controlPointGrid3d)
-        ));
+        testData.emplace_back(TestData("BE identity 2D", reference2d, controlPointGrid2d, 0.f));
+        testData.emplace_back(TestData("BE identity 3D", reference3d, controlPointGrid3d, 0.f));
 
-        // Set some scaling transformation in the transformations
-        mat44 affine2d, affine3d;
-        Mat44Eye(&affine2d);
-        Mat44Eye(&affine3d);
-        affine3d.m[0][0] = affine2d.m[0][0] = 0.8f;
-        affine3d.m[1][1] = affine2d.m[1][1] = 1.2f;
-        affine3d.m[2][2] = 1.1f;
-        reg_affine_getDeformationField(&affine2d, controlPointGrid2d);
-        reg_affine_getDeformationField(&affine3d, controlPointGrid3d);
+        // A general affine, with shear and translation, applied to the node positions: all second
+        // derivatives vanish, so the bending energy must still be zero
+        {
+            mat44 affine;
+            Mat44Eye(&affine);
+            affine.m[0][0] = 0.8f; affine.m[0][1] = 0.15f; affine.m[0][3] = -2.5f;
+            affine.m[1][0] = -0.1f; affine.m[1][1] = 1.2f; affine.m[1][3] = 1.75f;
+            NiftiImage affineGrid2d(controlPointGrid2d, NiftiImage::Copy::Image);
+            ApplyAffineToGrid(affineGrid2d, affine);
+            testData.emplace_back(TestData("BE affine 2D", reference2d, std::move(affineGrid2d), 0.f));
 
-        // Add the test data
-        testData.emplace_back(TestData(
-            "BE scaling 2D",
-            reference2d,
-            controlPointGrid2d,
-            0.f
-        ));
-        testData.emplace_back(TestData(
-            "BE scaling 3D",
-            reference3d,
-            controlPointGrid3d,
-            0.f
-        ));
+            affine.m[0][2] = 0.05f; affine.m[1][2] = -0.08f;
+            affine.m[2][0] = 0.12f; affine.m[2][1] = -0.06f; affine.m[2][2] = 1.1f; affine.m[2][3] = 0.5f;
+            NiftiImage affineGrid3d(controlPointGrid3d, NiftiImage::Copy::Image);
+            ApplyAffineToGrid(affineGrid3d, affine);
+            testData.emplace_back(TestData("BE affine 3D", reference3d, std::move(affineGrid3d), 0.f));
+        }
 
-        // Compute the Bending energy for each use case
+        // Quadratic displacement along each axis: u_c(index) = a * (index along that axis)^2.
+        // Every interior node's second derivative along that axis is exactly 2a; every other term
+        // vanishes through sum(second) = 0 or sum(first) = 0. Energy = 4 a^2 N_interior / nvox.
+        constexpr float amplitude = 0.25f;
+        const auto addQuadratic = [](NiftiImage& grid, int axis, int component, float a) {
+            const size_t volume = grid.nVoxelsPerVolume();
+            const int nx = grid->nx, ny = grid->ny, nz = grid->nz;
+            auto ptr = grid.data();
+            for (int k = 0; k < nz; ++k)
+                for (int j = 0; j < ny; ++j)
+                    for (int i = 0; i < nx; ++i) {
+                        const int idx = axis == 0 ? i : (axis == 1 ? j : k);
+                        const size_t index = (static_cast<size_t>(k) * ny + j) * nx + i;
+                        ptr[component * volume + index] =
+                            static_cast<float>(ptr[component * volume + index]) + a * idx * idx;
+                    }
+        };
+        const auto quadraticExpected = [](const NiftiImage& grid, float a) {
+            const size_t interior = static_cast<size_t>(grid->nx - 2) * (grid->ny - 2) *
+                                    (grid->nz > 1 ? grid->nz - 2 : 1);
+            return static_cast<float>(4.0 * a * a * interior / static_cast<double>(grid->nvox));
+        };
+        for (const auto& [label, axis, component] : { std::tuple{ "x-axis, x-component", 0, 0 },
+                                                      std::tuple{ "y-axis, y-component", 1, 1 },
+                                                      std::tuple{ "y-axis, x-component", 1, 0 } }) {
+            NiftiImage grid2d(controlPointGrid2d, NiftiImage::Copy::Image);
+            addQuadratic(grid2d, axis, component, amplitude);
+            testData.emplace_back(TestData(std::string("BE quadratic 2D ") + label, reference2d,
+                                           std::move(grid2d), quadraticExpected(controlPointGrid2d, amplitude)));
+        }
+        for (const auto& [label, axis, component] : { std::tuple{ "x-axis, x-component", 0, 0 },
+                                                      std::tuple{ "z-axis, z-component", 2, 2 },
+                                                      std::tuple{ "z-axis, x-component", 2, 0 } }) {
+            NiftiImage grid3d(controlPointGrid3d, NiftiImage::Copy::Image);
+            addQuadratic(grid3d, axis, component, amplitude);
+            testData.emplace_back(TestData(std::string("BE quadratic 3D ") + label, reference3d,
+                                           std::move(grid3d), quadraticExpected(controlPointGrid3d, amplitude)));
+        }
+
+        // Compute the bending energy for each case on every platform
         for (auto&& data : testData) {
             for (auto&& platformType : PlatformTypes) {
-                // Make a copy of the test data
                 auto [testName, reference, controlPointGrid, expected] = data;
-                // Add content
                 shared_ptr<Platform> platform{ new Platform(platformType) };
                 unique_ptr<F3dContentCreator> contentCreator{ dynamic_cast<F3dContentCreator*>(platform->CreateContentCreator(ContentType::F3d)) };
                 unique_ptr<F3dContent> content{ contentCreator->Create(reference, reference, controlPointGrid) };
                 unique_ptr<Compute> compute{ platform->CreateCompute(*content) };
-                float be = static_cast<float>(compute->ApproxBendingEnergy());
+                const float be = static_cast<float>(compute->ApproxBendingEnergy());
                 testCases.push_back({ testName + " " + platform->GetName(), be, expected });
             }
         }
     }
-
-    float GetBe2d(const NiftiImage& cpp) {
-        // variable to store the bending energy and the normalisation value
-        double be = 0;
-
-        // The BSpine basis values are known since the control points all have a relative position equal to 0
-        float basis[3], first[3], second[3];
-        basis[0] = 1.f / 6.f; basis[1] = 4.f / 6.f; basis[2] = 1.f / 6.f;
-        first[0] = -0.5f; first[1] = 0.f; first[2] = 0.5f;
-        second[0] = 1.f; second[1] = -2.f; second[2] = 1.f;
-
-        // the first and last control points along each axis are
-        // ignored for lack of support
-        const auto cppPtr = cpp.data();
-        for (int y = 1; y < cpp->dim[2] - 1; ++y) {
-            for (int x = 1; x < cpp->dim[1] - 1; ++x) {
-                // The BE is computed as
-                // BE=dXX/dx^2 + dYY/dy^2 + dXX/dy^2 + dYY/dx^2 + 2 * [dXY/dx^2 + dXY/dy^2]
-                float XX_x = 0, YY_x = 0, XY_x = 0;
-                float XX_y = 0, YY_y = 0, XY_y = 0;
-                for (unsigned j = 0; j < 3; ++j) {
-                    for (unsigned i = 0; i < 3; ++i) {
-                        unsigned cpIndex = (y + j - 1) * cpp->dim[1] + x + i - 1;
-                        float x_val = cppPtr[cpIndex];
-                        float y_val = cppPtr[cpIndex + cpp.nVoxelsPerVolume()];
-                        XX_x += x_val * second[i] * basis[j];
-                        YY_x += x_val * basis[i] * second[j];
-                        XY_x += x_val * first[i] * first[j];
-                        XX_y += y_val * second[i] * basis[j];
-                        YY_y += y_val * basis[i] * second[j];
-                        XY_y += y_val * first[i] * first[j];
-                    }
-                }
-                be += XX_x * XX_x + YY_x * YY_x + XX_y * XX_y + YY_y * YY_y + 2.0 * XY_x * XY_x + 2.0 * XY_y * XY_y;
-            }
-        }
-        return float(be / (double)cpp.nVoxels());
-    }
-
-    float GetBe3d(const NiftiImage& cpp) {
-        // variable to store the bending energy and the normalisation value
-        double be = 0;
-
-        // The BSpine basis values are known since the control points all have a relative position equal to 0
-        float basis[3], first[3], second[3];
-        basis[0] = 1.f / 6.f; basis[1] = 4.f / 6.f; basis[2] = 1.f / 6.f;
-        first[0] = -0.5f; first[1] = 0.f; first[2] = 0.5f;
-        second[0] = 1.f; second[1] = -2.f; second[2] = 1.f;
-
-        const auto cppPtr = cpp.data();
-        // the first and last control points along each axis are
-        // ignored for lack of support
-        for (int z = 1; z < cpp->nz - 1; ++z) {
-            for (int y = 1; y < cpp->ny - 1; ++y) {
-                for (int x = 1; x < cpp->nx - 1; ++x) {
-                    float XX_x = 0, YY_x = 0, ZZ_x = 0, XY_x = 0, YZ_x = 0, XZ_x = 0;
-                    float XX_y = 0, YY_y = 0, ZZ_y = 0, XY_y = 0, YZ_y = 0, XZ_y = 0;
-                    float XX_z = 0, YY_z = 0, ZZ_z = 0, XY_z = 0, YZ_z = 0, XZ_z = 0;
-                    for (unsigned k = 0; k < 3; ++k) {
-                        for (unsigned j = 0; j < 3; ++j) {
-                            for (unsigned i = 0; i < 3; ++i) {
-                                unsigned cpIndex = ((z + k - 1) * cpp->ny + y + j - 1) * cpp->nx + x + i - 1;
-                                float x_val = cppPtr[cpIndex];
-                                float y_val = cppPtr[cpIndex + cpp.nVoxelsPerVolume()];
-                                float z_val = cppPtr[cpIndex + 2 * cpp.nVoxelsPerVolume()];
-                                XX_x += x_val * second[i] * basis[j] * basis[k];
-                                YY_x += x_val * basis[i] * second[j] * basis[k];
-                                ZZ_x += x_val * basis[i] * basis[j] * second[k];
-                                XY_x += x_val * first[i] * first[j] * basis[k];
-                                YZ_x += x_val * basis[i] * first[j] * first[k];
-                                XZ_x += x_val * first[i] * basis[j] * first[k];
-
-                                XX_y += y_val * second[i] * basis[j] * basis[k];
-                                YY_y += y_val * basis[i] * second[j] * basis[k];
-                                ZZ_y += y_val * basis[i] * basis[j] * second[k];
-                                XY_y += y_val * first[i] * first[j] * basis[k];
-                                YZ_y += y_val * basis[i] * first[j] * first[k];
-                                XZ_y += y_val * first[i] * basis[j] * first[k];
-
-                                XX_z += z_val * second[i] * basis[j] * basis[k];
-                                YY_z += z_val * basis[i] * second[j] * basis[k];
-                                ZZ_z += z_val * basis[i] * basis[j] * second[k];
-                                XY_z += z_val * first[i] * first[j] * basis[k];
-                                YZ_z += z_val * basis[i] * first[j] * first[k];
-                                XZ_z += z_val * first[i] * basis[j] * first[k];
-                            }
-                        }
-                    }
-                    be += XX_x * XX_x + YY_x * YY_x + ZZ_x * ZZ_x + \
-                        XX_y * XX_y + YY_y * YY_y + ZZ_y * ZZ_y + \
-                        XX_z * XX_z + YY_z * YY_z + ZZ_z * ZZ_z + \
-                        2.0 * XY_x * XY_x + 2.0 * YZ_x * YZ_x + 2.0 * XZ_x * XZ_x + \
-                        2.0 * XY_y * XY_y + 2.0 * YZ_y * YZ_y + 2.0 * XZ_y * XZ_y + \
-                        2.0 * XY_z * XY_z + 2.0 * YZ_z * YZ_z + 2.0 * XZ_z * XZ_z;
-                }
-            }
-        }
-        return float(be / (double)cpp.nVoxels());
-    }
 };
 
 TEST_CASE_METHOD(BendingEnergyTest, "Bending Energy", "[unit]") {
-    // Loop over all generated test cases
     for (auto&& testCase : testCases) {
-        // Retrieve test information
         auto&& [testName, result, expected] = testCase;
 
         SECTION(testName) {
-            NR_COUT << "\n**************** Section " << testName << " ****************" << std::endl;
+            NR_COUT << "  " << std::setw(44) << std::left << testName
+                    << " result = " << std::scientific << std::setprecision(6) << result
+                    << " expected = " << expected << std::endl;
+            // Relative bound: the production basis tables hold 6-digit float literals whose
+            // partition of unity is off by ~1e-6, which enters the quadratic case squared
+            INFO(testName << ": result " << result << ", expected " << expected);
+            REQUIRE(std::abs(result - expected) < 1e-5 * (1.0 + std::abs(expected)));
+        }
+    }
+}
 
-            // Increase the precision for the output
-            NR_COUT << std::fixed << std::setprecision(10);
+class BendingEnergyGradientFiniteDiffTest {
+protected:
+    using TestCase = std::tuple<std::string, NiftiImage, NiftiImage>;
+    inline static vector<TestCase> testCases;
 
-            const auto diff = abs(result - expected);
-            if (diff > 0)
-                NR_COUT << "Result=" << result << " | Expected=" << expected << std::endl;
-            REQUIRE(diff < EPS);
+public:
+    BendingEnergyGradientFiniteDiffTest() {
+        if (!testCases.empty())
+            return;
+
+        constexpr float weight = 1.f;
+        constexpr double h = 1e-3;   // finite-difference step (coefficients are O(1..10) mm)
+        std::mt19937 gen(0);
+        std::uniform_real_distribution<double> distr(-0.5, 0.5);
+
+        Platform platformCpu(PlatformType::Cpu);
+
+        for (const int dim : { 2, 3 }) {
+            std::vector<NiftiImage::dim_t> dims(dim, 8);
+            NiftiImage reference(dims, NIFTI_TYPE_FLOAT32);
+            setIdentitySform(reference);
+
+            // Double-precision content so the finite differences resolve well below the gradient
+            NiftiImage controlPointGrid;
+            const float spacing[3]{ reference->dx * 2, reference->dy * 2, reference->dz * 2 };
+            reg_createControlPointGrid<double>(controlPointGrid, reference, spacing);
+            NiftiImage floating(reference);
+            {
+                auto cpgPtr = controlPointGrid.data();
+                for (size_t j = 0; j < controlPointGrid.nVoxels(); j++)
+                    cpgPtr[j] = static_cast<double>(cpgPtr[j]) + distr(gen);
+            }
+
+            const std::string testName = std::to_string(dim) + "D near-identity";
+
+            // Analytical gradient
+            NiftiImage refA(reference), floA(floating), cpgA(controlPointGrid);
+            unique_ptr<F3dContent> contentA{ new F3dContent(refA, floA, cpgA, nullptr, nullptr, nullptr, sizeof(double)) };
+            unique_ptr<Compute> computeA{ platformCpu.CreateCompute(*contentA) };
+            computeA->ApproxBendingEnergyGradient(weight);
+            NiftiImage analytical = contentA->GetTransformationGradient();
+
+            // Numerical gradient via central finite differences on the value
+            NiftiImage refN(reference), floN(floating), cpgN(controlPointGrid);
+            unique_ptr<F3dContent> contentN{ new F3dContent(refN, floN, cpgN, nullptr, nullptr, nullptr, sizeof(double)) };
+            unique_ptr<Compute> computeN{ platformCpu.CreateCompute(*contentN) };
+            NiftiImage& liveCpg = contentN->GetControlPointGrid();
+            auto cpgPtr = liveCpg.data();
+
+            NiftiImage numerical(analytical, NiftiImage::Copy::ImageInfoAndAllocData);
+            auto numPtr = numerical.data();
+            for (size_t i = 0; i < liveCpg.nVoxels(); ++i) {
+                const double c = cpgPtr[i];
+                cpgPtr[i] = c + h;
+                const double ePlus = computeN->ApproxBendingEnergy();
+                cpgPtr[i] = c - h;
+                const double eMinus = computeN->ApproxBendingEnergy();
+                cpgPtr[i] = c;   // restore
+                numPtr[i] = weight * (ePlus - eMinus) / (2 * h);
+            }
+
+            testCases.push_back({ testName, std::move(analytical), std::move(numerical) });
+        }
+    }
+};
+
+/*
+    The analytical bending-energy gradient against central finite differences of the value: the check
+    that the gradient is the derivative of the number the objective reports, which comparing two
+    backends can never establish.
+*/
+TEST_CASE_METHOD(BendingEnergyGradientFiniteDiffTest, "Bending Energy Gradient Finite Difference", "[unit]") {
+    for (auto&& testCase : testCases) {
+        auto&& [testName, analytical, numerical] = testCase;
+
+        SECTION(testName) {
+            const auto anaPtr = analytical.data();
+            const auto numPtr = numerical.data();
+
+            double maxAbs = 0;
+            for (size_t i = 0; i < numerical.nVoxels(); ++i)
+                maxAbs = std::max(maxAbs, std::abs(static_cast<double>(numPtr[i])));
+            const double significant = 0.1 * maxAbs;
+
+            double maxAbsDiff = 0, sumRatio = 0;
+            size_t ratioCount = 0;
+            for (size_t i = 0; i < analytical.nVoxels(); ++i) {
+                const double a = anaPtr[i];
+                const double n = numPtr[i];
+                maxAbsDiff = std::max(maxAbsDiff, std::abs(a - n));
+                if (std::abs(n) > significant) { sumRatio += a / n; ++ratioCount; }
+            }
+            const double meanRatio = ratioCount ? sumRatio / static_cast<double>(ratioCount) : 0;
+
+            NR_COUT << "  " << testName << ": mean(analytical/numerical) = " << std::fixed
+                    << std::setprecision(10) << meanRatio << " over " << ratioCount
+                    << " entries, max |analytical-numerical| = " << std::scientific << maxAbsDiff
+                    << " (max |numerical| = " << maxAbs << ")" << std::endl;
+
+            REQUIRE(ratioCount > 0);
+            INFO("mean analytical/numerical = " << meanRatio);
+            REQUIRE(std::abs(meanRatio - 1.0) < 1e-2);
+            INFO("max residual " << maxAbsDiff << " vs max |numerical| " << maxAbs);
+            REQUIRE(maxAbsDiff <= 5e-3 * maxAbs);
         }
     }
 }

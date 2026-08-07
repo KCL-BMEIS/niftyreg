@@ -19,9 +19,6 @@ reg_f3d2<T>::reg_f3d2(int refTimePoints, int floTimePoints):
     reg_f3d<T>::reg_f3d(refTimePoints, floTimePoints) {
     this->executableName = (char*)"NiftyReg F3D2";
     inverseConsistencyWeight = 0;
-    bchUpdate = false;
-    useGradientCumulativeExp = true;
-    bchUpdateValue = 0;
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
@@ -298,7 +295,7 @@ void reg_f3d2<T>::GetVoxelBasedGradient() {
             this->measure_mindssc->GetVoxelBasedSimilarityMeasureGradient(t);
     }
 
-    // Exponentiate the gradients if required
+    // Exponentiate the gradients
     ExponentiateGradient();
 
     NR_FUNC_CALLED();
@@ -518,24 +515,6 @@ NiftiImage reg_f3d2<T>::GetBackwardControlPointPositionImage() {
     return controlPointGridBw;
 }
 /* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::UseBCHUpdate(int v) {
-    bchUpdate = true;
-    useGradientCumulativeExp = false;
-    bchUpdateValue = v;
-}
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::UseGradientCumulativeExp() {
-    bchUpdate = false;
-    useGradientCumulativeExp = true;
-}
-/* *************************************************************** */
-template <class T>
-void reg_f3d2<T>::DoNotUseGradientCumulativeExp() {
-    useGradientCumulativeExp = false;
-}
-/* *************************************************************** */
 template<class T>
 void reg_f3d2<T>::Initialise() {
     reg_f3d<T>::Initialise();
@@ -607,8 +586,6 @@ void reg_f3d2<T>::Initialise() {
 /* *************************************************************** */
 template <class T>
 void reg_f3d2<T>::ExponentiateGradient() {
-    if (!useGradientCumulativeExp) return;
-
     // Exponentiate the forward gradient using the backward transformation
     NR_DEBUG("Update the forward measure gradient using a Dartel like approach");
     this->compute->ExponentiateGradient(*conBw);
@@ -625,31 +602,18 @@ void reg_f3d2<T>::UpdateParameters(float scale) {
     // Restore the last successful control point grids
     this->optimiser->RestoreBestDof();
 
-    // The scaled gradient image is added to the current estimate of the transformation using
-    // a simple addition or by computing the BCH update
+    // The scaled gradient image is added to the current estimate of the transformation
     // Note that the gradient has been integrated over the path of transformation previously
-    if (bchUpdate) {
-        // Forward update
-        NR_WARN("USING BCH FORWARD - TESTING ONLY");
-        NR_DEBUG("Update the forward control point grid using BCH approximation");
-        this->compute->BchUpdate(scale, bchUpdateValue);
-
-        // Backward update
-        NR_WARN("USING BCH BACKWARD - TESTING ONLY");
-        NR_DEBUG("Update the backward control point grid using BCH approximation");
-        computeBw->BchUpdate(scale, bchUpdateValue);
-    } else {
-        // Forward update
-        this->compute->UpdateVelocityField(scale,
-                                           this->optimiser->GetOptimiseX(),
-                                           this->optimiser->GetOptimiseY(),
-                                           this->optimiser->GetOptimiseZ());
-        // Backward update
-        computeBw->UpdateVelocityField(scale,
+    // Forward update
+    this->compute->UpdateVelocityField(scale,
                                        this->optimiser->GetOptimiseX(),
                                        this->optimiser->GetOptimiseY(),
                                        this->optimiser->GetOptimiseZ());
-    }
+    // Backward update
+    computeBw->UpdateVelocityField(scale,
+                                   this->optimiser->GetOptimiseX(),
+                                   this->optimiser->GetOptimiseY(),
+                                   this->optimiser->GetOptimiseZ());
 
     // Symmetrise
     this->compute->SymmetriseVelocityFields(*conBw);

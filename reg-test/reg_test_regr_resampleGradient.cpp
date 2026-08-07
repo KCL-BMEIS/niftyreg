@@ -142,6 +142,8 @@ TEST_CASE_METHOD(ResampleGradientTest, "Regression Resample Gradient", "[regress
         auto&& [sectionName, warpedCpu, warpedCuda] = testCase;
 
         SECTION(sectionName) {
+            // The comparison below is only meaningful if the operation ran at all
+            RequireNonZero(warpedCpu, "the resampled gradient");
             NR_COUT << "\n**************** Section " << sectionName << " ****************" << std::endl;
 
             // Increase the precision for the output

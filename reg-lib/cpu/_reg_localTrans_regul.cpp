@@ -209,16 +209,19 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
     private(a, b, i, index, x, derivativeValuesPtr, splineCoeffX, splineCoeffY, \
     XX_x, YY_x, XY_x, XX_y, YY_y, XY_y)
 #endif
-    for (y = 0; y < splineControlPoint->ny; y++) {
-        derivativeValuesPtr = &derivativeValues[6 * y * splineControlPoint->nx];
-        for (x = 0; x < splineControlPoint->nx; x++) {
+    // Only the interior nodes: the value sums over them alone, so the derivative must too - a
+    // boundary term entering here would make the gradient the derivative of a different number
+    // than the one the objective reports. Interior stencils never leave the grid, so no guard.
+    for (y = 1; y < splineControlPoint->ny - 1; y++) {
+        derivativeValuesPtr = &derivativeValues[6 * (y * splineControlPoint->nx + 1)];
+        for (x = 1; x < splineControlPoint->nx - 1; x++) {
             XX_x = 0, YY_x = 0, XY_x = 0;
             XX_y = 0, YY_y = 0, XY_y = 0;
 
             i = 0;
             for (b = -1; b < 2; b++) {
                 for (a = -1; a < 2; a++) {
-                    if (-1 < (x + a) && -1 < (y + b) && (x + a) < splineControlPoint->nx && (y + b) < splineControlPoint->ny) {
+                    {
                         index = (y + b) * splineControlPoint->nx + x + a;
                         splineCoeffX = splinePtrX[index];
                         splineCoeffY = splinePtrY[index];
@@ -245,7 +248,9 @@ void reg_spline_approxBendingEnergyGradient2D(nifti_image *splineControlPoint,
     DataType *gradientXPtr = static_cast<DataType*>(gradientImage->data);
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
 
-    DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
+    // The value divides by nvox and each squared term contributes twice its factor, so the
+    // gradient must scale by 2/nvox for it to be that value's derivative
+    DataType approxRatio = static_cast<DataType>(2.0 * weight / static_cast<double>(splineControlPoint->nvox));
     DataType gradientValue[2];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -320,10 +325,13 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
     splineCoeffZ, XX_x, YY_x, ZZ_x, XY_x, YZ_x, XZ_x, XX_y, YY_y, \
     ZZ_y, XY_y, YZ_y, XZ_y, XX_z, YY_z, ZZ_z, XY_z, YZ_z, XZ_z)
 #endif
-    for (z = 0; z < splineControlPoint->nz; z++) {
-        derivativeValuesPtr = &derivativeValues[18 * z * splineControlPoint->ny * splineControlPoint->nx];
-        for (y = 0; y < splineControlPoint->ny; y++) {
-            for (x = 0; x < splineControlPoint->nx; x++) {
+    // Only the interior nodes: the value sums over them alone, so the derivative must too - a
+    // boundary term entering here would make the gradient the derivative of a different number
+    // than the one the objective reports. Interior stencils never leave the grid, so no guard.
+    for (z = 1; z < splineControlPoint->nz - 1; z++) {
+        for (y = 1; y < splineControlPoint->ny - 1; y++) {
+            derivativeValuesPtr = &derivativeValues[18 * ((z * splineControlPoint->ny + y) * splineControlPoint->nx + 1)];
+            for (x = 1; x < splineControlPoint->nx - 1; x++) {
                 XX_x = 0, YY_x = 0, ZZ_x = 0;
                 XY_x = 0, YZ_x = 0, XZ_x = 0;
                 XX_y = 0, YY_y = 0, ZZ_y = 0;
@@ -335,8 +343,7 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
                 for (c = -1; c < 2; c++) {
                     for (b = -1; b < 2; b++) {
                         for (a = -1; a < 2; a++) {
-                            if (-1 < (x + a) && -1 < (y + b) && -1 < (z + c) && (x + a) < splineControlPoint->nx &&
-                                (y + b) < splineControlPoint->ny && (z + c) < splineControlPoint->nz) {
+                            {
                                 index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
                                 splineCoeffX = splinePtrX[index];
                                 splineCoeffY = splinePtrY[index];
@@ -392,7 +399,9 @@ void reg_spline_approxBendingEnergyGradient3D(nifti_image *splineControlPoint,
     DataType *gradientYPtr = &gradientXPtr[nodeNumber];
     DataType *gradientZPtr = &gradientYPtr[nodeNumber];
 
-    DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
+    // The value divides by nvox and each squared term contributes twice its factor, so the
+    // gradient must scale by 2/nvox for it to be that value's derivative
+    DataType approxRatio = static_cast<DataType>(2.0 * weight / static_cast<double>(splineControlPoint->nvox));
     DataType gradientValue[3];
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -670,6 +679,39 @@ double reg_spline_approxLinearEnergy(const nifti_image *splineControlPoint) {
     }
 }
 /* *************************************************************** */
+/** @brief Derivative of the linear-energy term with respect to the Jacobian-like matrix it is built
+ * from.
+ *
+ * The energy penalises how far the local matrix is from a rotation: it removes the rotation by polar
+ * decomposition, M = R P with P symmetric positive semi-definite, and sums the squared entries of
+ * P - I. Because P's eigenvalues are M's singular values, that is
+ *
+ *     E = sum_i (sigma_i - 1)^2
+ *
+ * and since d(sigma_i)/dM = u_i v_i^T, the derivative telescopes into a closed form:
+ *
+ *     dE/dM = U diag(2(sigma_i - 1)) V^T = 2 (U Sigma V^T - U V^T) = 2 (M - R)
+ *
+ * so differentiating through the polar decomposition costs nothing beyond the rotation the energy
+ * already computes - no Sylvester equation, no singular value decomposition.
+ */
+static mat33 reg_linearEnergyGradientWrtMatrix(const mat33& matrix) {
+    const mat33 rotation = nifti_mat33_polar(matrix);
+    mat33 derivative;
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c)
+            derivative.m[r][c] = 2.f * (matrix.m[r][c] - rotation.m[r][c]);
+    return derivative;
+}
+/* *************************************************************** */
+static mat33 reg_mat33_transpose(const mat33& matrix) {
+    mat33 transposed;
+    for (int r = 0; r < 3; ++r)
+        for (int c = 0; c < 3; ++c)
+            transposed.m[r][c] = matrix.m[c][r];
+    return transposed;
+}
+/* *************************************************************** */
 template <class DataType>
 void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoint,
                                              nifti_image *gradientImage,
@@ -689,9 +731,10 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
 
     // Matrix to use to convert the gradient from mm to voxel
     const mat33 reorientation = Mat44ToMat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
-    const mat33 invReorientation = nifti_mat33_inverse(reorientation);
+    const mat33 reorientationTransposed = reg_mat33_transpose(reorientation);
 
-    const DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
+    // The value divides by nvox, so the gradient has to as well for it to be that value's derivative
+    const DataType approxRatio = weight / static_cast<DataType>(splineControlPoint->nvox);
 
     for (int y = 1; y < splineControlPoint->ny - 1; y++) {
         for (int x = 1; x < splineControlPoint->nx - 1; x++) {
@@ -714,22 +757,29 @@ void reg_spline_approxLinearEnergyGradient2D(const nifti_image *splineControlPoi
             } // b
             // Convert from mm to voxel
             matrix = nifti_mat33_mul(reorientation, matrix);
-            // Removing the rotation component
-            const mat33 r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-            matrix = nifti_mat33_mul(r, matrix);
-            // Convert to displacement
-            matrix.m[0][0]--; matrix.m[1][1]--;
-            i = 8;
+
+            // dE/dM, in full: every entry of the symmetric part contributes, not only the diagonal
+            mat33 dEdMatrix = reg_linearEnergyGradientWrtMatrix(matrix);
+            // The value sums the upper-left 2x2 block only. The third row and column carry the
+            // out-of-plane scaling the reorientation introduces, which the value ignores, so the
+            // derivative has to ignore it too.
+            dEdMatrix.m[0][2] = dEdMatrix.m[1][2] = 0;
+            dEdMatrix.m[2][0] = dEdMatrix.m[2][1] = dEdMatrix.m[2][2] = 0;
+
+            // M = reorientation * G, so dE/dG = reorientation^T dE/dM, and G is linear in the
+            // coefficients with the first-order basis as its weights
+            const mat33 dEdG = nifti_mat33_mul(reorientationTransposed, dEdMatrix);
+
+            i = 0;
             for (int b = -1; b < 2; b++) {
                 for (int a = -1; a < 2; a++) {
-                    const DataType gradValues[2]{ -2.f * matrix.m[0][0] * basisX[i], -2.f * matrix.m[1][1] * basisY[i] };
                     const int index = (y + b) * splineControlPoint->nx + x + a;
-
-                    gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
-                                                          invReorientation.m[0][1] * gradValues[1]);
-                    gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
-                                                          invReorientation.m[1][1] * gradValues[1]);
-                    --i;
+                    // Row of dEdG selects the derivative direction, column the displacement component
+                    gradientXPtr[index] += approxRatio * static_cast<DataType>(basisX[i] * dEdG.m[0][0] +
+                                                                               basisY[i] * dEdG.m[1][0]);
+                    gradientYPtr[index] += approxRatio * static_cast<DataType>(basisX[i] * dEdG.m[0][1] +
+                                                                               basisY[i] * dEdG.m[1][1]);
+                    ++i;
                 } // a
             } // b
         } // x
@@ -757,9 +807,10 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
 
     // Matrix to use to convert the gradient from mm to voxel
     const mat33 reorientation = Mat44ToMat33(splineControlPoint->sform_code > 0 ? &splineControlPoint->sto_ijk : &splineControlPoint->qto_ijk);
-    const mat33 invReorientation = nifti_mat33_inverse(reorientation);
+    const mat33 reorientationTransposed = reg_mat33_transpose(reorientation);
 
-    const DataType approxRatio = weight / static_cast<DataType>(nodeNumber);
+    // The value divides by nvox, so the gradient has to as well for it to be that value's derivative
+    const DataType approxRatio = weight / static_cast<DataType>(splineControlPoint->nvox);
 
     for (int z = 1; z < splineControlPoint->nz - 1; z++) {
         for (int y = 1; y < splineControlPoint->ny - 1; y++) {
@@ -791,30 +842,29 @@ void reg_spline_approxLinearEnergyGradient3D(const nifti_image *splineControlPoi
                 }
                 // Convert from mm to voxel
                 matrix = nifti_mat33_mul(reorientation, matrix);
-                // Removing the rotation component
-                const mat33 r = nifti_mat33_inverse(nifti_mat33_polar(matrix));
-                matrix = nifti_mat33_mul(r, matrix);
-                // Convert to displacement
-                matrix.m[0][0]--; matrix.m[1][1]--; matrix.m[2][2]--;
-                i = 26;
+
+                // dE/dM, in full: every entry of the symmetric part contributes, not only the diagonal
+                const mat33 dEdMatrix = reg_linearEnergyGradientWrtMatrix(matrix);
+                // M = reorientation * G, so dE/dG = reorientation^T dE/dM, and G is linear in the
+                // coefficients with the first-order basis as its weights
+                const mat33 dEdG = nifti_mat33_mul(reorientationTransposed, dEdMatrix);
+
+                i = 0;
                 for (int c = -1; c < 2; c++) {
                     for (int b = -1; b < 2; b++) {
                         for (int a = -1; a < 2; a++) {
                             const int index = ((z + c) * splineControlPoint->ny + y + b) * splineControlPoint->nx + x + a;
-                            const DataType gradValues[3]{ -2.f * matrix.m[0][0] * basisX[i],
-                                                          -2.f * matrix.m[1][1] * basisY[i],
-                                                          -2.f * matrix.m[2][2] * basisZ[i] };
-
-                            gradientXPtr[index] += approxRatio * (invReorientation.m[0][0] * gradValues[0] +
-                                                                  invReorientation.m[0][1] * gradValues[1] +
-                                                                  invReorientation.m[0][2] * gradValues[2]);
-                            gradientYPtr[index] += approxRatio * (invReorientation.m[1][0] * gradValues[0] +
-                                                                  invReorientation.m[1][1] * gradValues[1] +
-                                                                  invReorientation.m[1][2] * gradValues[2]);
-                            gradientZPtr[index] += approxRatio * (invReorientation.m[2][0] * gradValues[0] +
-                                                                  invReorientation.m[2][1] * gradValues[1] +
-                                                                  invReorientation.m[2][2] * gradValues[2]);
-                            --i;
+                            // Row of dEdG selects the derivative direction, column the component
+                            gradientXPtr[index] += approxRatio * static_cast<DataType>(basisX[i] * dEdG.m[0][0] +
+                                                                                       basisY[i] * dEdG.m[1][0] +
+                                                                                       basisZ[i] * dEdG.m[2][0]);
+                            gradientYPtr[index] += approxRatio * static_cast<DataType>(basisX[i] * dEdG.m[0][1] +
+                                                                                       basisY[i] * dEdG.m[1][1] +
+                                                                                       basisZ[i] * dEdG.m[2][1]);
+                            gradientZPtr[index] += approxRatio * static_cast<DataType>(basisX[i] * dEdG.m[0][2] +
+                                                                                       basisY[i] * dEdG.m[1][2] +
+                                                                                       basisZ[i] * dEdG.m[2][2]);
+                            ++i;
                         } // a
                     } // b
                 } // c

@@ -31,7 +31,7 @@ static std::string orderName(int order) {
     }
 }
 
-// Kernel stencil geometry, mirroring _reg_resampling.cpp:346-367
+// Kernel stencil geometry, mirroring the kernel-size/offset switch in the production resampler
 static void kernelGeom(int order, int& size, int& offset) {
     switch (order) {
     case kNN: size = 2; offset = 0; break;
@@ -455,5 +455,47 @@ TEST_CASE("Resample image operation", "[unit]") {
                     requireMatch(static_cast<float>(wp[i]), expected[i]);
             }
         }
+    }
+
+    SECTION("Linear ramp through a non-identity sform (closed form)") {
+        /*
+            The section above checks the realistic geometry against mirrorResample - a declared
+            re-implementation, which can only certify agreement. This one closes the loop with an
+            oracle that owes production nothing: a floating image holding f(v) = c0 + c . v in VOXEL
+            coordinates is reproduced exactly by the linear and cubic kernels, so the value at any
+            world position w must be f(sto_ijk * w) - the sform mapping is exercised and the expected
+            value is pure arithmetic on the matrix entries.
+        */
+        NiftiImage floating = makeImage({ D, D, D });
+        mat44 m;
+        Mat44Eye(&m);
+        m.m[0][0] = 1.2f; m.m[1][1] = 0.9f; m.m[2][2] = 1.1f;
+        m.m[0][1] = 0.1f; m.m[0][2] = 0.05f; m.m[1][2] = -0.07f;
+        m.m[0][3] = 0.5f; m.m[1][3] = 0.3f; m.m[2][3] = 0.2f;
+        setSform(floating, m);
+        const mat44 worldToVoxel = floating->sto_ijk;
+
+        const double c0 = 1.5, c[3] = { 0.75, -0.5, 0.25 };
+        {
+            auto fp = floating.data();
+            for (int z = 0; z < D; ++z)
+                for (int y = 0; y < D; ++y)
+                    for (int x = 0; x < D; ++x)
+                        fp[(static_cast<size_t>(z) * D + y) * D + x] =
+                            static_cast<float>(c0 + c[0] * x + c[1] * y + c[2] * z);
+        }
+
+        // World positions whose mapped voxel coordinates stay well inside the cubic stencil's range
+        const float positions[][3] = { { 4.f, 3.5f, 3.f }, { 3.25f, 4.f, 4.5f }, { 4.5f, 3.f, 3.5f } };
+        for (int order : { kLinear, kCubic })
+            for (const auto& world : positions) {
+                float voxel[3];
+                float w[3] = { world[0], world[1], world[2] };
+                Mat44Mul(worldToVoxel, w, voxel);
+                const double expected = c0 + c[0] * voxel[0] + c[1] * voxel[1] + c[2] * voxel[2];
+                INFO(orderName(order) << " at world (" << world[0] << "," << world[1] << "," << world[2]
+                     << ") -> voxel (" << voxel[0] << "," << voxel[1] << "," << voxel[2] << ")");
+                REQUIRE(std::abs(probeResample(floating, order, world, 0.f, true) - expected) < 1e-4);
+            }
     }
 }

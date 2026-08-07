@@ -206,7 +206,10 @@ void CudaCompute::SmoothGradient(float sigma) {
     if (sigma == 0) return;
     sigma = fabs(sigma);
     CudaF3dContent& con = dynamic_cast<CudaF3dContent&>(this->con);
-    Cuda::KernelConvolution<ConvKernelType::Gaussian>(con.F3dContent::GetTransformationGradient(), con.GetTransformationGradientCuda(), &sigma);
+    const NiftiImage& transformationGradient = con.F3dContent::GetTransformationGradient();
+    // One sigma per time point is required
+    const std::vector<float> sigmaPerTimePoint(transformationGradient->nt * transformationGradient->nu, sigma);
+    Cuda::KernelConvolution<ConvKernelType::Gaussian>(transformationGradient, con.GetTransformationGradientCuda(), sigmaPerTimePoint.data());
 }
 /* *************************************************************** */
 void CudaCompute::GetApproximatedGradient(InterfaceOptimiser& opt) {
@@ -347,14 +350,6 @@ void CudaCompute::UpdateVelocityField(float scale, bool optimiseX, bool optimise
 
     // Update the velocity field
     Cuda::AddImages(controlPointGrid, con.GetControlPointGridCuda(), scaledGradientCudaPtr.get());
-}
-/* *************************************************************** */
-void CudaCompute::BchUpdate(float scale, int bchUpdateValue) {
-    // TODO Implement this for CUDA
-    // Use CPU temporarily
-    Compute::BchUpdate(scale, bchUpdateValue);
-    // Transfer the data back to the CUDA device
-    dynamic_cast<CudaF3dContent&>(con).UpdateControlPointGrid();
 }
 /* *************************************************************** */
 void CudaCompute::SymmetriseVelocityFields(Content& conBwIn) {

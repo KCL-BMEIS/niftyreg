@@ -181,3 +181,134 @@ TEST_CASE_METHOD(BMTest, "Block Matching", "[unit]") {
         }
     }
 }
+
+TEST_CASE("Block matching recovers per-region displacements", "[unit]") {
+    /*
+        The case above applies ONE translation to the whole image, so a block matcher that somehow
+        produced a single global answer would pass it. Here the two halves of the image are shifted
+        by different integer amounts (+1 and +2 voxels along x), the seam and image borders are
+        masked out, and every active block must report exactly the shift of the half it sits in -
+        per-block correctness, not a global average.
+    */
+    constexpr int size = 64, seam = 32, margin = 8;
+    constexpr int shiftLeft = 1, shiftRight = 2;
+    std::mt19937 gen(0);
+    std::uniform_real_distribution<float> distr(0, 1);
+
+    for (const bool is3D : { false, true }) {
+        SECTION(is3D ? "3D" : "2D") {
+            std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, size);
+            NiftiImage reference(dims, NIFTI_TYPE_FLOAT32);
+            NiftiImage warped(dims, NIFTI_TYPE_FLOAT32);
+            const int nx = reference->nx, ny = reference->ny, nz = reference->nz;
+            auto refPtr = reference.data();
+            for (size_t i = 0; i < reference.nVoxels(); ++i)
+                refPtr[i] = distr(gen);
+
+            // warped(x) = ref(x - s): content moves by +s, block matching reports +s
+            auto warPtr = warped.data();
+            for (int k = 0; k < nz; ++k)
+                for (int j = 0; j < ny; ++j)
+                    for (int i = 0; i < nx; ++i) {
+                        const int s = i < seam ? shiftLeft : shiftRight;
+                        const int src = i - s;
+                        const size_t index = (static_cast<size_t>(k) * ny + j) * nx + i;
+                        warPtr[index] = src >= 0
+                            ? static_cast<float>(refPtr[(static_cast<size_t>(k) * ny + j) * nx + src])
+                            : std::numeric_limits<float>::quiet_NaN();
+                    }
+
+            // Mask out the borders and the seam band, where a block's search window would mix shifts
+            std::vector<int> mask(reference.nVoxels(), -1);
+            for (int k = 0; k < nz; ++k)
+                for (int j = margin; j < ny - margin; ++j)
+                    for (int i = margin; i < nx - margin; ++i) {
+                        if (i >= seam - margin && i < seam + margin) continue;
+                        mask[(static_cast<size_t>(k) * ny + j) * nx + i] = 1;
+                    }
+            if (is3D)   // trim z borders too
+                for (int k = 0; k < nz; ++k)
+                    if (k < margin || k >= nz - margin)
+                        std::fill_n(mask.begin() + static_cast<size_t>(k) * ny * nx, ny * nx, -1);
+
+            Platform platform(PlatformType::Cpu);
+            unique_ptr<AladinContentCreator> creator{
+                dynamic_cast<AladinContentCreator*>(platform.CreateContentCreator(ContentType::Aladin)) };
+            NiftiImage ref(reference);
+            unique_ptr<AladinContent> content{ creator->Create(ref, ref, mask.data(), nullptr,
+                                                               sizeof(float), 100, 100, 1) };
+            content->SetWarped(NiftiImage(warped));
+            unique_ptr<Kernel> bmKernel{ platform.CreateKernel(BlockMatchingKernel::GetName(), content.get()) };
+            bmKernel->castTo<BlockMatchingKernel>()->Calculate();
+            unique_ptr<_reg_blockMatchingParam> params{ new _reg_blockMatchingParam(content->GetBlockMatchingParams()) };
+
+            size_t leftBlocks = 0, rightBlocks = 0;
+            for (int b = 0; b < params->activeBlockNumber; ++b) {
+                const float *refPos = &params->referencePosition[b * params->dim];
+                const float *warPos = &params->warpedPosition[b * params->dim];
+                if (warPos[0] != warPos[0]) continue;   // unmatched block
+                const int expected = refPos[0] < seam ? shiftLeft : shiftRight;
+                (refPos[0] < seam ? leftBlocks : rightBlocks)++;
+                INFO("block at (" << refPos[0] << "," << refPos[1] << "): expected shift " << expected);
+                REQUIRE(warPos[0] - refPos[0] == static_cast<float>(expected));
+                REQUIRE(warPos[1] - refPos[1] == 0.f);
+                if (is3D) REQUIRE(warPos[2] - refPos[2] == 0.f);
+            }
+            NR_COUT << "  " << (is3D ? "3D" : "2D") << ": " << leftBlocks << " left blocks (+1), "
+                    << rightBlocks << " right blocks (+2)" << std::endl;
+            // Both regions must actually be represented, or the per-region claim is vacuous
+            REQUIRE(leftBlocks > 0);
+            REQUIRE(rightBlocks > 0);
+        }
+    }
+}
+
+TEST_CASE("Block matching excludes zero-variance blocks", "[unit]") {
+    /*
+        _reg_set_active_blocks marks a block unusable when its variance is not strictly positive.
+        An image that is constant everywhere except one textured
+        quadrant must therefore yield active blocks only inside that quadrant - a matcher fed flat
+        blocks would otherwise report meaningless correspondences from a constant signal.
+    */
+    constexpr int size = 64, textured = 24;
+    std::mt19937 gen(1);
+    std::uniform_real_distribution<float> distr(0, 1);
+    for (const bool is3D : { false, true }) {
+        SECTION(is3D ? "3D" : "2D") {
+            std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, size);
+            NiftiImage reference(dims, NIFTI_TYPE_FLOAT32);
+            const int nx = reference->nx, ny = reference->ny, nz = reference->nz;
+            auto refPtr = reference.data();
+            for (int k = 0; k < nz; ++k)
+                for (int j = 0; j < ny; ++j)
+                    for (int i = 0; i < nx; ++i) {
+                        const bool inTexture = i < textured && j < textured && (!is3D || k < textured);
+                        refPtr[(static_cast<size_t>(k) * ny + j) * nx + i] = inTexture ? distr(gen) : 0.5f;
+                    }
+
+            Platform platform(PlatformType::Cpu);
+            unique_ptr<AladinContentCreator> creator{
+                dynamic_cast<AladinContentCreator*>(platform.CreateContentCreator(ContentType::Aladin)) };
+            NiftiImage ref(reference);
+            unique_ptr<AladinContent> content{ creator->Create(ref, ref, nullptr, nullptr,
+                                                               sizeof(float), 100, 100, 1) };
+            content->SetWarped(NiftiImage(reference));
+            unique_ptr<Kernel> bmKernel{ platform.CreateKernel(BlockMatchingKernel::GetName(), content.get()) };
+            bmKernel->castTo<BlockMatchingKernel>()->Calculate();
+            unique_ptr<_reg_blockMatchingParam> params{ new _reg_blockMatchingParam(content->GetBlockMatchingParams()) };
+
+            REQUIRE(params->activeBlockNumber > 0);
+            for (int b = 0; b < params->activeBlockNumber; ++b) {
+                const float *refPos = &params->referencePosition[b * params->dim];
+                // Every active block must touch the textured quadrant: a block whose whole 4-voxel
+                // extent lies in the constant region has zero variance and must have been excluded
+                INFO("active block at (" << refPos[0] << "," << refPos[1] << ")");
+                REQUIRE(refPos[0] < static_cast<float>(textured));
+                REQUIRE(refPos[1] < static_cast<float>(textured));
+                if (is3D) REQUIRE(refPos[2] < static_cast<float>(textured));
+            }
+            NR_COUT << "  " << (is3D ? "3D" : "2D") << ": " << params->activeBlockNumber
+                    << " active blocks, all within the textured quadrant" << std::endl;
+        }
+    }
+}

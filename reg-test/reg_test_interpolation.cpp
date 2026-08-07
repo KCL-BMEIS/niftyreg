@@ -239,3 +239,66 @@ TEST_CASE("Interpolation kernels", "[unit]") {
         }
     }
 }
+
+TEST_CASE("Interpolation kernels reproduce a linear ramp", "[unit]") {
+    /*
+        The cases above check one hand-computed point per kernel. This one checks the property that
+        makes interpolation trustworthy between voxels: both the linear and the cubic (Catmull-Rom)
+        kernels have linear precision, so sampling f(v) = c0 + cx vx + cy vy [+ cz vz] at ANY position
+        must return exactly the ramp's value there - independent of any weight table, copied or not.
+        Positions are multiples of 0.25 so the float weights are exact; the ramp coefficients are
+        dyadic; tolerance covers the cubic kernel's float literals.
+    */
+    const double c0 = 1.5, cx = 0.75, cy = -0.5, cz = 0.25;
+    for (const bool is3D : { false, true })
+        for (const int interp : { 1, 3 }) {
+            SECTION(std::string(is3D ? "3D" : "2D") + (interp == 3 ? " cubic" : " linear")) {
+                std::vector<NiftiImage::dim_t> dims(is3D ? 3 : 2, 8);
+                NiftiImage floating(dims, NIFTI_TYPE_FLOAT32);
+                setIdentitySform(floating);
+                {
+                    auto ptr = floating.data();
+                    const int nx = floating->nx, ny = floating->ny, nz = floating->nz;
+                    for (int k = 0; k < nz; ++k)
+                        for (int j = 0; j < ny; ++j)
+                            for (int i = 0; i < nx; ++i)
+                                ptr[(static_cast<size_t>(k) * ny + j) * nx + i] = static_cast<float>(
+                                    c0 + cx * i + cy * j + (is3D ? cz * k : 0.0));
+                }
+
+                // Interior sample positions on quarter-voxel offsets (cubic stencil needs a margin)
+                const double positions[][3] = {
+                    { 3.25, 3.5, 3.75 }, { 2.5, 4.25, 3.0 }, { 4.75, 2.75, 4.5 }, { 3.0, 3.0, 3.0 },
+                };
+                for (const auto& p : positions) {
+                    // One-voxel warped image and one-point deformation field, as the cases above
+                    NiftiImage defField({ 1, 1, 1, 1, is3D ? 3 : 2 }, NIFTI_TYPE_FLOAT32);
+                    auto defPtr = defField.data();
+                    defPtr[0] = static_cast<float>(p[0]);
+                    defPtr[1] = static_cast<float>(p[1]);
+                    if (is3D) defPtr[2] = static_cast<float>(p[2]);
+
+                    Platform platform(PlatformType::Cpu);
+                    unique_ptr<ContentCreator> creator{ platform.CreateContentCreator() };
+                    NiftiImage ref(floating), flo(floating);
+                    unique_ptr<Content> content{ creator->Create(ref, flo) };
+                    NiftiImage warped(defField, NiftiImage::Copy::ImageInfo);
+                    warped.setDim(NiftiDim::NDim, defField->nu);
+                    warped.setDim(NiftiDim::X, 1);
+                    warped.setDim(NiftiDim::Y, 1);
+                    warped.setDim(NiftiDim::Z, 1);
+                    warped.setDim(NiftiDim::U, 1);
+                    warped.realloc();
+                    content->SetWarped(std::move(warped));
+                    content->SetDeformationField(std::move(defField));
+                    unique_ptr<Compute> compute{ platform.CreateCompute(*content) };
+                    compute->ResampleImage(interp, 0);
+                    const float actual = static_cast<float>(content->GetWarped().data()[0]);
+
+                    const double expected = c0 + cx * p[0] + cy * p[1] + (is3D ? cz * p[2] : 0.0);
+                    INFO("position (" << p[0] << "," << p[1] << "," << p[2] << ")");
+                    REQUIRE(std::abs(actual - expected) < 1e-5);
+                }
+            }
+        }
+}
