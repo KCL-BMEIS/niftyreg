@@ -3,7 +3,7 @@
 # NiftyReg
 
 [![License](https://img.shields.io/github/license/KCL-BMEIS/NiftyReg)](https://github.com/KCL-BMEIS/niftyreg/blob/master/LICENSE.txt)
-[![Coverage Status](https://codecov.io/gh/KCL-BMEIS/niftyreg/graph/badge.svg?token=lgLtkSC7kX)](https://codecov.io/gh/KCL-BMEIS/niftyreg)
+[![Coverage Status](https://codecov.io/gh/KCL-BMEIS/niftyreg/branch/master/graph/badge.svg)](https://codecov.io/gh/KCL-BMEIS/niftyreg/tree/master)
 [![Static Code Analysis](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/analysis.yml/badge.svg)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/analysis.yml)
 [![Tests](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/tests.yml/badge.svg)](https://github.com/KCL-BMEIS/niftyreg/actions/workflows/tests.yml)
 
