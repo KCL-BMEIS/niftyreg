@@ -13,9 +13,14 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
   ClConvolutionKernel.cpp
   ClLtsKernel.cpp
   ClResampleImageKernel.cpp
-  ../AladinContent.cpp
 )
-target_link_libraries(${NAME} ${OpenCL_LIBRARIES})
+target_link_libraries(${NAME}
+  _reg_blockMatching
+  _reg_compute
+  _reg_content
+  _reg_tools
+  ${OpenCL_LIBRARIES}
+)
 install(TARGETS ${NAME}
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib

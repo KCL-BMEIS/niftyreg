@@ -41,10 +41,11 @@ CMakeSettings.json
 # Mac trash folder
 .DS_Store
 
-# Build
+# Build and install
 build*
 out*
 benchmark
+install
 
 # Doxygen
 html
