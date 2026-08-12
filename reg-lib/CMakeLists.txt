@@ -94,17 +94,36 @@ install(TARGETS _reg_blockMatching
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_blockMatching")
 #-----------------------------------------------------------------------------
-add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
-  Compute.cpp
+add_library(_reg_content ${NIFTYREG_LIBRARY_TYPE}
   AladinContent.cpp
   Content.cpp
   DefContent.cpp
   F3dContent.cpp
+)
+target_link_libraries(_reg_content
+  _reg_blockMatching
+  _reg_resampling
+  _reg_tools
+)
+install(TARGETS _reg_content
+  RUNTIME DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_content")
+#-----------------------------------------------------------------------------
+add_library(_reg_compute ${NIFTYREG_LIBRARY_TYPE}
+  Compute.cpp
   Optimiser.cpp
-  Platform.cpp
   MeasureCreator.cpp
 )
-target_link_libraries(_reg_compute _reg_measure)
+target_link_libraries(_reg_compute
+  _reg_blockMatching
+  _reg_content
+  _reg_localTrans
+  _reg_measure
+  _reg_resampling
+)
 install(TARGETS _reg_compute
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
@@ -122,6 +141,10 @@ add_library(_reg_kernels ${NIFTYREG_LIBRARY_TYPE}
 )
 target_link_libraries(_reg_kernels
   _reg_blockMatching
+  _reg_content
+  _reg_globalTrans
+  _reg_resampling
+  _reg_tools
 )
 install(TARGETS _reg_kernels
   RUNTIME DESTINATION lib
@@ -130,12 +153,28 @@ install(TARGETS _reg_kernels
 )
 set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_kernels")
 #-----------------------------------------------------------------------------
+add_library(_reg_platform ${NIFTYREG_LIBRARY_TYPE} Platform.cpp)
+target_link_libraries(_reg_platform
+  _reg_compute
+  _reg_kernels
+  ${NR_OPENCL_LIBRARIES}
+  ${NR_CUDA_LIBRARIES}
+)
+install(TARGETS _reg_platform
+  RUNTIME DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};_reg_platform")
+#-----------------------------------------------------------------------------
 ## BUILD THE ALADIN LIBRARY
 add_library(_reg_aladin ${NIFTYREG_LIBRARY_TYPE} _reg_aladin.cpp _reg_aladin_sym.cpp)
 target_link_libraries(_reg_aladin
   _reg_blockMatching
   _reg_compute
+  _reg_content
   _reg_kernels
+  _reg_platform
   _reg_localTrans
   _reg_resampling
   _reg_globalTrans
@@ -161,7 +200,9 @@ set(_reg_f3d_files
 set(_reg_f3d_libraries
   _reg_blockMatching
   _reg_compute
+  _reg_content
   _reg_kernels
+  _reg_platform
   _reg_localTrans
   _reg_globalTrans
   _reg_resampling

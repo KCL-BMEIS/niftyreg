@@ -12,6 +12,7 @@ add_executable(reg_resample reg_resample.cpp)
 set(_reg_resample_libraries
   _reg_compute
   _reg_kernels
+  _reg_platform
   _reg_resampling
   _reg_localTrans
   _reg_tools

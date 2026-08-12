@@ -58,7 +58,6 @@ endif(CUDA_FAST_MATH AND CUDA_PRECISE_SQRT EQUAL "OFF" AND CUDA_PRECISE_DIV EQUA
 #-----------------------------------------------------------------------------
 set(NAME _reg_cuda_kernels)
 add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
-    ../AladinContent.cpp
     affineDeformationKernel.cu
     blockMatchingKernel.cu
     CudaAffineDeformationFieldKernel.cpp
@@ -87,7 +86,17 @@ add_library(${NAME} ${NIFTYREG_LIBRARY_TYPE}
     _reg_nmi_gpu.cu
     _reg_ssd_gpu.cu
 )
-target_link_libraries(${NAME} CUDA::cuda_driver CUDA::cusolver CUDA::cublas)
+target_link_libraries(${NAME}
+    _reg_blockMatching
+    _reg_compute
+    _reg_content
+    _reg_measure
+    _reg_tools
+    CUDA::cuda_driver CUDA::cusolver CUDA::cublas
+)
+if(BUILD_SHARED_LIBS)
+    target_link_libraries(${NAME} CUDA::cudart)
+endif(BUILD_SHARED_LIBS)
 install(TARGETS ${NAME}
     RUNTIME DESTINATION lib
     LIBRARY DESTINATION lib
