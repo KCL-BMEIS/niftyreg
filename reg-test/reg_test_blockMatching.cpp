@@ -111,7 +111,34 @@ public:
             contentResampling3d->GetWarped(),
             mask3d.get()
         ));
+
+        // Create 4D variants of the 3D reference and warped images: volume 0 holds the same data,
+        // while the extra volumes are filled with values that must not influence the matching.
+        // The mask stays allocated per volume, mirroring the backward content of a symmetric
+        // registration with a 4D floating image
+        vector<NiftiImage::dim_t> dim4d{ size, size, size, 3 };
+        NiftiImage reference4d(dim4d, NIFTI_TYPE_FLOAT32);
+        NiftiImage warped4d(dim4d, NIFTI_TYPE_FLOAT32);
+        const size_t volumeSize = reference3d.nVoxels();
+        const auto warped3dPtr = contentResampling3d->GetWarped().data();
+        auto ref4dPtr = reference4d.data();
+        auto warped4dPtr = warped4d.data();
+        for (size_t i = 0; i < volumeSize; ++i) {
+            ref4dPtr[i] = static_cast<float>(ref3dPtr[i]);
+            warped4dPtr[i] = static_cast<float>(warped3dPtr[i]);
+        }
+        for (size_t i = volumeSize; i < reference4d.nVoxels(); ++i) {
+            ref4dPtr[i] = 1000.f * distr(gen);
+            warped4dPtr[i] = 1000.f * distr(gen);
+        }
         contentResampling3d.release();
+
+        testData.emplace_back(TestData(
+            "BlockMatching 4D",
+            std::move(reference4d),
+            std::move(warped4d),
+            mask3d.get()
+        ));
 
         for (auto&& data : testData) {
             // Get the test data

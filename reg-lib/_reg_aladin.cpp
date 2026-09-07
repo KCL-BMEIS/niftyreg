@@ -93,6 +93,11 @@ void reg_aladin<T>::InitialiseRegistration() {
 
     this->Print();
 
+    if (this->inputReference->nt > 1 || this->inputReference->nu > 1)
+        NR_WARN("The reference image contains more than one volume - only the first volume is used for the optimisation");
+    if (this->inputFloating->nt > 1 || this->inputFloating->nu > 1)
+        NR_WARN("The floating image contains more than one volume - only the first volume is used for the optimisation");
+
     // CREATE THE PYRAMID IMAGES
     this->referencePyramid = vector<NiftiImage>(this->levelsToPerform);
     this->floatingPyramid = vector<NiftiImage>(this->levelsToPerform);

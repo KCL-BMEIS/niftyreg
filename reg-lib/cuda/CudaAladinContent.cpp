@@ -22,10 +22,12 @@ CudaAladinContent::CudaAladinContent(NiftiImage& referenceIn,
 /* *************************************************************** */
 void CudaAladinContent::AllocateMask() {
     if (!referenceMask) return;
+    // The host mask buffer is allocated per volume
+    const size_t voxelNumber = reference.nVoxelsPerVolume();
     int *mask;
-    Cuda::Allocate(&mask, reference->nvox);
+    Cuda::Allocate(&mask, voxelNumber);
     maskCuda.reset(mask);
-    Cuda::TransferNiftiToDevice(maskCuda.get(), referenceMask, reference->nvox);
+    Cuda::TransferNiftiToDevice(maskCuda.get(), referenceMask, voxelNumber);
 }
 /* *************************************************************** */
 void CudaAladinContent::AllocateReferenceMat() {
