@@ -78,6 +78,7 @@ option(BUILD_ALL_DEP "All the dependencies are build" OFF)
 option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 option(BUILD_TESTING "To build the unit tests" OFF)
 option(USE_CUDA "To use the CUDA platform" OFF)
+option(USE_CUDA_PLUGIN "Package the CUDA platform as a runtime-loaded plugin (niftyreg_cuda library) so the executables do not link CUDA and machines without it run CPU-only" OFF)
 option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use OpenMP for multi-CPU processing" ON)
 # SSE is an x86-only instruction set, so default it off on other architectures (e.g. ARM/aarch64)
@@ -172,6 +173,16 @@ if(USE_OPENCL)
   endif(NOT OpenCL_FOUND)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
+if(USE_CUDA_PLUGIN)
+  if(NOT USE_CUDA)
+    message(FATAL_ERROR "USE_CUDA_PLUGIN requires USE_CUDA=ON")
+  endif()
+  if(USE_OPENCL)
+    # OpenCL would remain a hard library dependency (libOpenCL) of every executable,
+    # defeating the plugin build's purpose of running on machines without GPU stacks
+    message(FATAL_ERROR "USE_CUDA_PLUGIN cannot be combined with USE_OPENCL")
+  endif()
+endif()
 if(USE_CUDA)
   # Check if the CUDA Toolkit is available
   enable_language(CUDA)
@@ -193,6 +204,20 @@ if(USE_CUDA)
     endforeach()
     include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
     add_definitions(-DUSE_CUDA)
+    if(USE_CUDA_PLUGIN)
+      # Runtime-plugin mode: CUDA is packaged as a shared library the host binaries
+      # load at run time, so no host target links any CUDA library. Everything is
+      # built position-independent (with static host libraries, their objects are
+      # linked into the plugin shared library), and USE_CUDA_PLUGIN is exposed to
+      # the sources so Platform routes its CUDA branch through the plugin loader.
+      add_definitions(-DUSE_CUDA_PLUGIN)
+      set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+      if(MSVC)
+        # One CRT heap on both sides of the plugin boundary (objects allocated in
+        # the plugin are deleted by the host)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+      endif()
+    endif()
     # FMA (fused multiply-add) contraction is faster but makes GPU results diverge from the
     # CPU by 1-2 ULP, which breaks the bit-exact CPU-vs-CUDA regression tests. Default it OFF
     # when building the tests (so CPU and GPU agree exactly) and ON otherwise (performance).

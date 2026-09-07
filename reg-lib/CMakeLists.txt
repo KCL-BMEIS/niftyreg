@@ -1,7 +1,12 @@
 #-----------------------------------------------------------------------------
 if(USE_CUDA)
   add_subdirectory(cuda)
-  set(NR_CUDA_LIBRARIES _reg_cuda_kernels)
+  if(NOT USE_CUDA_PLUGIN)
+    # Static CUDA: the kernels are linked into the host libraries. In plugin mode
+    # NR_CUDA_LIBRARIES stays empty - CUDA lives in the niftyreg_cuda plugin, loaded
+    # at run time - so no host target links any CUDA library.
+    set(NR_CUDA_LIBRARIES _reg_cuda_kernels)
+  endif()
 endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 if(USE_OPENCL)
@@ -160,6 +165,19 @@ target_link_libraries(_reg_platform
   ${NR_OPENCL_LIBRARIES}
   ${NR_CUDA_LIBRARIES}
 )
+if(USE_CUDA_PLUGIN)
+  # Platform reaches the CUDA implementation through the runtime plugin loader.
+  # NR_INSTALL_LIBDIR is the loader's last-resort search path (external programs
+  # linking static NiftyReg, whose executable lives outside the install prefix).
+  target_sources(_reg_platform PRIVATE CudaPluginLoader.cpp)
+  target_link_libraries(_reg_platform ${CMAKE_DL_LIBS})
+  target_compile_definitions(_reg_platform PRIVATE "NR_INSTALL_LIBDIR=\"${CMAKE_INSTALL_PREFIX}/lib\"")
+  # Build-tree runs with shared host libraries: dlopen resolves a bare name through
+  # the CALLING module's RUNPATH - which is lib_reg_platform.so, not the executable -
+  # so the plugin's build directory must be on this target's RPATH (installed trees
+  # need nothing: both libraries land in lib/, found module-relative)
+  set_target_properties(_reg_platform PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:niftyreg_cuda>")
+endif()
 install(TARGETS _reg_platform
   RUNTIME DESTINATION lib
   LIBRARY DESTINATION lib
