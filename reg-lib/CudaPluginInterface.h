@@ -76,22 +76,30 @@ public:
     virtual void ShowDeviceInfo() = 0;
 };
 
+// Decoration for the exported symbols. MSVC DLLs export nothing by default, so the
+// dllexport is load-bearing on Windows; it applies only while compiling the plugin
+// itself (CMake defines niftyreg_cuda_EXPORTS for the niftyreg_cuda target). The
+// host declares the same functions but resolves them through GetProcAddress/dlsym,
+// so its declarations stay undecorated. Declaration and definition must agree: MSVC
+// rejects (and clang-cl warns about) a dllexport added on the definition alone.
+#if defined(_WIN32)
+#if defined(niftyreg_cuda_EXPORTS)
+#define NR_CUDA_PLUGIN_EXPORT __declspec(dllexport)
+#else
+#define NR_CUDA_PLUGIN_EXPORT
+#endif
+#else
+#define NR_CUDA_PLUGIN_EXPORT __attribute__((visibility("default")))
+#endif
+
 // Exported (C linkage) symbols the plugin shared library provides. nrCudaPluginAbi
 // and nrCudaPluginVersion are plain C functions so they are safe to call before the
 // ABI has been validated; nrCreateCudaPlugin returns a singleton (never freed).
 extern "C" {
-int nrCudaPluginAbi();
-const char* nrCudaPluginVersion();
-CudaPluginInterface* nrCreateCudaPlugin();
+NR_CUDA_PLUGIN_EXPORT int nrCudaPluginAbi();
+NR_CUDA_PLUGIN_EXPORT const char* nrCudaPluginVersion();
+NR_CUDA_PLUGIN_EXPORT CudaPluginInterface* nrCreateCudaPlugin();
 }
-
-// Decoration for the definitions of the exported symbols in the plugin. MSVC DLLs
-// export nothing by default, so the dllexport is load-bearing on Windows.
-#if defined(_WIN32)
-#define NR_CUDA_PLUGIN_EXPORT __declspec(dllexport)
-#else
-#define NR_CUDA_PLUGIN_EXPORT __attribute__((visibility("default")))
-#endif
 
 // Host-side loader (CudaPluginLoader.cpp, compiled into _reg_platform): locate and
 // load the plugin once, validate its ABI and check a usable device is present.

@@ -55,6 +55,11 @@ endif()
 # Set C++ standard version for CUDA, and enable extended lambdas and relaxed constexpr support
 set(CMAKE_CUDA_STANDARD 17)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --extended-lambda --expt-relaxed-constexpr")
+# nvcc always drives cl.exe as the host compiler on Windows, and CCCL (the Thrust/CUB/
+# libcu++ bundled with CUDA >= 13) refuses cl.exe's traditional preprocessor
+if(MSVC AND CUDAToolkit_VERSION VERSION_GREATER_EQUAL 13)
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -Xcompiler=/Zc:preprocessor")
+endif()
 # If desired, add PIC flags
 if(CMAKE_POSITION_INDEPENDENT_CODE AND DEFINED CMAKE_C_COMPILE_OPTIONS_PIC)
     # Add (undocumented) CMake flag that should tell the host compiler to generate position independent code
