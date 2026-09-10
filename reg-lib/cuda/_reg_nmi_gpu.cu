@@ -130,7 +130,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
             });
             // Convolve the histogram with a cubic B-spline kernel
             // Histogram is first smooth along the reference axis
-            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curFloBinNumber, [=]__device__(const unsigned short f) {
+            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), static_cast<unsigned>(curFloBinNumber), [=]__device__(const unsigned short f) {
                 constexpr double kernel[3]{ GetBasisSplineValue(-1.0), GetBasisSplineValue(0.0), GetBasisSplineValue(-1.0) };
                 for (unsigned short r = 0; r < curRefBinNumber; r++) {
                     double value = 0;
@@ -144,7 +144,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
                 }
             });
             // Histogram is then smooth along the warped floating axis
-            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curRefBinNumber, [=]__device__(const unsigned short r) {
+            thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), static_cast<unsigned>(curRefBinNumber), [=]__device__(const unsigned short r) {
                 constexpr double kernel[3]{ GetBasisSplineValue(-1.0), GetBasisSplineValue(0.0), GetBasisSplineValue(-1.0) };
                 for (unsigned short f = 0; f < curFloBinNumber; f++) {
                     double value = 0;
@@ -165,7 +165,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
             jointHistogramProCuda[index] /= activeVoxel;
         });
         // Marginalise over the reference axis
-        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curRefBinNumber, [=]__device__(const unsigned short r) {
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), static_cast<unsigned>(curRefBinNumber), [=]__device__(const unsigned short r) {
             double sum = 0;
             unsigned short index = r;
             for (unsigned short f = 0; f < curFloBinNumber; f++, index += curRefBinNumber)
@@ -173,7 +173,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
             jointHistogramProCuda[curRefBinNumber * curFloBinNumber + r] = sum;
         });
         // Marginalise over the warped floating axis
-        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned short>(0), curFloBinNumber, [=]__device__(const unsigned short f) {
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), static_cast<unsigned>(curFloBinNumber), [=]__device__(const unsigned short f) {
             double sum = 0;
             unsigned short index = curRefBinNumber * f;
             for (unsigned short r = 0; r < curRefBinNumber; r++, index++)
