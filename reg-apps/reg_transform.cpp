@@ -83,7 +83,7 @@ void Usage(char *exec) {
 
     NR_INFO("\t-comp <filename1> <filename2> <filename3>");
     NR_INFO("\t\tCompose two transformations of any recognised type* and returns a deformation field.");
-    NR_INFO("\t\tTrans3(x) = Trans2(Trans1(x)).");
+    NR_INFO("\t\tTrans3(x) = Trans2(Trans1(x)), with x defined in the reference image space.");
     NR_INFO("\t\tfilename1 - Input transformation 1 file name (associated with -ref if required)");
     NR_INFO("\t\tfilename2 - Input transformation 2 file name (associated with -ref2 if required)");
     NR_INFO("\t\tfilename3 - Output deformation field file name\n");

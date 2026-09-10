@@ -31,6 +31,15 @@ if (@USE_CUDA@)
   set(NIFTYREG_BUILT_WITH_CUDA TRUE)
   mark_as_advanced(NIFTYREG_BUILT_WITH_CUDA)
 endif()
+# CUDA as a runtime-loaded plugin: no CUDA library to link against - the CUDA
+# platform is reached at run time through the niftyreg_cuda plugin in lib/, which
+# Platform locates itself. The loader (in _reg_platform) needs the dynamic-loading
+# library on the link line.
+if (@USE_CUDA_PLUGIN@)
+  set(NIFTYREG_BUILT_WITH_CUDA_PLUGIN TRUE)
+  mark_as_advanced(NIFTYREG_BUILT_WITH_CUDA_PLUGIN)
+  set(NIFTYREG_LIBRARIES "${NIFTYREG_LIBRARIES};@CMAKE_DL_LIBS@")
+endif()
 # NII_NAN
 if (@USE_NII_NAN@)
   set(NIFTYREG_BUILT_WITH_NII_NAN TRUE)

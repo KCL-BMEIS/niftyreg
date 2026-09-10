@@ -57,11 +57,14 @@ add_definitions(-DNR_VERSION="${NR_VERSION}")
 message(STATUS "NiftyReg version: ${NR_VERSION}")
 #-----------------------------------------------------------------------------
 if(MSVC)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D_CRT_SECURE_NO_WARNINGS")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS")
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /bigobj")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /bigobj")
 endif(MSVC)
+if(WIN32)
+  add_definitions(-DNOMINMAX)
+endif(WIN32)
 #-----------------------------------------------------------------------------
 # Silence GCC's informational -Wpsabi note about the std::pair<double,double>
 # parameter-passing ABI change in GCC 10.1, emitted by the vendored RNifti header.
@@ -78,6 +81,7 @@ option(BUILD_ALL_DEP "All the dependencies are build" OFF)
 option(BUILD_SHARED_LIBS "Build the libraries as shared" OFF)
 option(BUILD_TESTING "To build the unit tests" OFF)
 option(USE_CUDA "To use the CUDA platform" OFF)
+option(USE_CUDA_PLUGIN "Package the CUDA platform as a runtime-loaded plugin (niftyreg_cuda library) so the executables do not link CUDA and machines without it run CPU-only" OFF)
 option(USE_OPENCL "To use the OpenCL platform" OFF)
 option(USE_OPENMP "To use OpenMP for multi-CPU processing" ON)
 # SSE is an x86-only instruction set, so default it off on other architectures (e.g. ARM/aarch64)
@@ -172,6 +176,16 @@ if(USE_OPENCL)
   endif(NOT OpenCL_FOUND)
 endif(USE_OPENCL)
 #-----------------------------------------------------------------------------
+if(USE_CUDA_PLUGIN)
+  if(NOT USE_CUDA)
+    message(FATAL_ERROR "USE_CUDA_PLUGIN requires USE_CUDA=ON")
+  endif()
+  if(USE_OPENCL)
+    # OpenCL would remain a hard library dependency (libOpenCL) of every executable,
+    # defeating the plugin build's purpose of running on machines without GPU stacks
+    message(FATAL_ERROR "USE_CUDA_PLUGIN cannot be combined with USE_OPENCL")
+  endif()
+endif()
 if(USE_CUDA)
   # Check if the CUDA Toolkit is available
   enable_language(CUDA)
@@ -193,6 +207,20 @@ if(USE_CUDA)
     endforeach()
     include_directories(${CMAKE_SOURCE_DIR}/reg-lib/cuda)
     add_definitions(-DUSE_CUDA)
+    if(USE_CUDA_PLUGIN)
+      # Runtime-plugin mode: CUDA is packaged as a shared library the host binaries
+      # load at run time, so no host target links any CUDA library. Everything is
+      # built position-independent (with static host libraries, their objects are
+      # linked into the plugin shared library), and USE_CUDA_PLUGIN is exposed to
+      # the sources so Platform routes its CUDA branch through the plugin loader.
+      add_definitions(-DUSE_CUDA_PLUGIN)
+      set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+      if(MSVC)
+        # One CRT heap on both sides of the plugin boundary (objects allocated in
+        # the plugin are deleted by the host)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+      endif()
+    endif()
     # FMA (fused multiply-add) contraction is faster but makes GPU results diverge from the
     # CPU by 1-2 ULP, which breaks the bit-exact CPU-vs-CUDA regression tests. Default it OFF
     # when building the tests (so CPU and GPU agree exactly) and ON otherwise (performance).
@@ -205,9 +233,16 @@ if(USE_CUDA)
     option(USE_CUDA_FMA "Enable FMA contraction in host and device maths (faster, but CPU and GPU results differ by ULPs)" ${NR_CUDA_FMA_DEFAULT})
     if(NOT USE_CUDA_FMA)
       set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --fmad=false")
-      if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffp-contract=off")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffp-contract=off")
+      # clang-cl accepts clang driver options only through the /clang: prefix; MSVC's
+      # cl.exe does not contract under its default /fp:precise (VS 2022+), so no flag
+      if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+        set(NR_FP_CONTRACT_OFF_FLAG "/clang:-ffp-contract=off")
+      elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(NR_FP_CONTRACT_OFF_FLAG "-ffp-contract=off")
+      endif()
+      if(NR_FP_CONTRACT_OFF_FLAG)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${NR_FP_CONTRACT_OFF_FLAG}")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${NR_FP_CONTRACT_OFF_FLAG}")
       endif()
       message(STATUS "CUDA FMA contraction disabled (USE_CUDA_FMA=OFF): CPU and GPU results match bit-exactly")
     else()

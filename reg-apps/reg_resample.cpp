@@ -316,7 +316,7 @@ int main(int argc, char **argv)
    // Set up the compute platform
    Platform platform(platformType);
    platform.SetGpuIdx(gpuIdx);
-   NR_VERBOSE_APP("Platform: " << (platformType == PlatformType::Cuda ? "CUDA" : "CPU"));
+   NR_VERBOSE_APP("Platform: " << platform.GetName());
 
    /* *********************** */
    /* READ THE TRANSFORMATION */
