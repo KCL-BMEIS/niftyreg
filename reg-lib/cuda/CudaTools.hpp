@@ -14,6 +14,7 @@
 
 #include "CudaCommon.hpp"
 #include "_reg_tools.h"
+#include <thrust/pair.h>
 
 /* *************************************************************** */
 namespace NiftyReg::Cuda {

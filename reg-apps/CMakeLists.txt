@@ -19,9 +19,9 @@ set(_reg_resample_libraries
   _reg_globalTrans
   _reg_ReadWriteImage
 )
-if(USE_CUDA)
+if(USE_CUDA AND NOT USE_CUDA_PLUGIN)
   set(_reg_resample_libraries ${_reg_resample_libraries} _reg_cuda_kernels)
-endif(USE_CUDA)
+endif()
 if(USE_OPENCL)
   set(_reg_resample_libraries ${_reg_resample_libraries} _reg_opencl_kernels)
 endif(USE_OPENCL)
@@ -49,10 +49,11 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/reg_aladin.h.in ${CMAKE_CURRENT_BINAR
 #-----------------------------------------------------------------------------
 # Standalone CPU-vs-CUDA benchmark (own main; CUDA-only). Independent of the test infrastructure,
 # so it builds whenever USE_CUDA is on, regardless of BUILD_TESTING. Not installed (dev tool).
-if(USE_CUDA)
+# Skipped in plugin mode: it links CUDA directly, which the plugin build's host targets never do.
+if(USE_CUDA AND NOT USE_CUDA_PLUGIN)
   add_executable(reg_benchmark reg_benchmark.cpp)
   target_link_libraries(reg_benchmark _reg_aladin _reg_f3d CUDA::cudart)
-endif(USE_CUDA)
+endif()
 #-----------------------------------------------------------------------------
 set(MODULE_LIST
   reg_average
@@ -68,7 +69,13 @@ set(MODULE_LIST
 if(USE_CUDA OR USE_OPENCL)
   set(gpuinfo_libraries "")
   if(USE_CUDA)
-    set(gpuinfo_libraries ${gpuinfo_libraries} _reg_cudainfo)
+    if(USE_CUDA_PLUGIN)
+      # Device information is reported through the runtime plugin, so reg_gpuinfo
+      # keeps no CUDA link dependency and starts on machines without a GPU stack
+      set(gpuinfo_libraries ${gpuinfo_libraries} _reg_platform)
+    else()
+      set(gpuinfo_libraries ${gpuinfo_libraries} _reg_cudainfo)
+    endif()
   endif(USE_CUDA)
   if(USE_OPENCL)
     set(gpuinfo_libraries ${gpuinfo_libraries} _reg_openclinfo)
@@ -77,6 +84,16 @@ if(USE_CUDA OR USE_OPENCL)
   target_link_libraries(reg_gpuinfo ${gpuinfo_libraries})
   set(MODULE_LIST ${MODULE_LIST} reg_gpuinfo)
 endif(USE_CUDA OR USE_OPENCL)
+#-----------------------------------------------------------------------------
+if(TARGET niftyreg_cuda)
+  # Build-tree runs only: the plugin loader falls back to a bare-name lookup, which
+  # on Linux consults the calling executable's RPATH, so point it at the plugin's
+  # build directory. Installed trees need no RPATH - the loader finds the plugin
+  # relative to its own module (bin/../lib).
+  foreach(MODULE_NAME ${MODULE_LIST})
+    set_target_properties(${MODULE_NAME} PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:niftyreg_cuda>")
+  endforeach()
+endif()
 #-----------------------------------------------------------------------------
 foreach(MODULE_NAME ${MODULE_LIST})
   install(TARGETS ${MODULE_NAME}

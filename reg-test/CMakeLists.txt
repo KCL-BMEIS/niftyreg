@@ -121,7 +121,10 @@ set(EXEC_LIST reg_test_nmi_gradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_normaliseGradient ${EXEC_LIST})
 set(EXEC_LIST reg_test_splineBasis ${EXEC_LIST})
 set(EXEC_LIST reg_test_voxelCentricToNodeCentric ${EXEC_LIST})
-if(USE_CUDA)
+# The CUDA tests reference the concrete Cuda* classes directly, so they need the
+# statically linked kernels; in plugin mode only the CPU suite (and the plugin
+# loader test below) is built - the CUDA suite is covered by static configurations
+if(USE_CUDA AND NOT USE_CUDA_PLUGIN)
   set(EXEC_LIST reg_test_context ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_affineDeformationField ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_approxBendingEnergyGradient ${EXEC_LIST})
@@ -138,12 +141,22 @@ if(USE_CUDA)
   set(EXEC_LIST reg_test_regr_resampleImage ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_symmetriseVelocityFields ${EXEC_LIST})
   set(EXEC_LIST reg_test_regr_updateVelocityField ${EXEC_LIST})
-endif(USE_CUDA)
+endif()
+if(USE_CUDA_PLUGIN)
+  set(EXEC_LIST reg_test_pluginLoader ${EXEC_LIST})
+endif(USE_CUDA_PLUGIN)
 
 foreach(EXEC ${EXEC_LIST})
   add_executable(${EXEC} ${EXEC}.cpp)
   target_link_libraries(${EXEC} PRIVATE Catch2::Catch2WithMain _reg_aladin _reg_f3d)
   catch_discover_tests(${EXEC} DISCOVERY_MODE PRE_TEST)
+  if(TARGET niftyreg_cuda)
+    # Let the loader's bare-name fallback find the plugin in the build tree: the
+    # tests iterate PlatformTypes, so their CUDA sections run through the plugin
+    # boundary - real cross-backend coverage of the plugin build (needs a GPU
+    # machine, like any CUDA test configuration)
+    set_target_properties(${EXEC} PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:niftyreg_cuda>")
+  endif()
 endforeach(EXEC)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

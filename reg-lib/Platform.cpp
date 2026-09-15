@@ -1,6 +1,9 @@
 #include "Platform.h"
 #include "CpuKernelFactory.h"
-#ifdef USE_CUDA
+// USE_CUDA marks the CUDA platform as available in both build modes. When
+// USE_CUDA_PLUGIN is also set, CUDA is reached through the runtime plugin (no CUDA
+// headers or symbols here); otherwise it is compiled in statically.
+#if defined(USE_CUDA) && !defined(USE_CUDA_PLUGIN)
 #include "CudaContext.hpp"
 #include "CudaF3dContent.h"
 #include "CudaComputeFactory.h"
@@ -8,6 +11,9 @@
 #include "CudaKernelFactory.h"
 #include "CudaMeasureCreatorFactory.hpp"
 #include "CudaOptimiser.hpp"
+#elif defined(USE_CUDA_PLUGIN)
+#include "CudaPluginInterface.h"
+#include <type_traits>
 #endif
 #ifdef USE_OPENCL
 #include "ClContextSingleton.h"
@@ -26,7 +32,7 @@ Platform::Platform(const PlatformType platformTypeIn) {
         kernelFactory = new CpuKernelFactory();
         measureCreatorFactory = new MeasureCreatorFactory();
     }
-#ifdef USE_CUDA
+#if defined(USE_CUDA) && !defined(USE_CUDA_PLUGIN)
     else if (platformType == PlatformType::Cuda) {
         platformName = "CUDA";
         SetGpuIdx(999);
@@ -34,6 +40,23 @@ Platform::Platform(const PlatformType platformTypeIn) {
         contentCreatorFactory = new CudaContentCreatorFactory();
         kernelFactory = new CudaKernelFactory();
         measureCreatorFactory = new CudaMeasureCreatorFactory();
+    }
+#elif defined(USE_CUDA_PLUGIN)
+    else if (platformType == PlatformType::Cuda) {
+        // The CUDA implementation lives in the runtime plugin. An explicit CUDA
+        // request that cannot be honoured is a hard error - never a silent CPU
+        // fallback, which would let pipelines record CPU results as GPU runs
+        CudaPluginInterface *cudaPlugin = loadCudaPlugin();
+        if (!cudaPlugin)
+            NR_FATAL_ERROR("The CUDA platform was requested but " + getCudaPluginLoadError() +
+                           "\nUsing the CUDA platform requires the plugin alongside this installation "
+                           "and the CUDA runtime libraries (CUDA toolkit) on this machine.");
+        platformName = "CUDA";
+        SetGpuIdx(999);
+        computeFactory = cudaPlugin->CreateComputeFactory();
+        contentCreatorFactory = cudaPlugin->CreateContentCreatorFactory();
+        kernelFactory = cudaPlugin->CreateKernelFactory();
+        measureCreatorFactory = cudaPlugin->CreateMeasureCreatorFactory();
     }
 #endif
 #ifdef USE_OPENCL
@@ -67,13 +90,24 @@ void Platform::SetGpuIdx(unsigned gpuIdxIn) {
     if (platformType == PlatformType::Cpu) {
         gpuIdx = 999;
     }
-#ifdef USE_CUDA
+#if defined(USE_CUDA) && !defined(USE_CUDA_PLUGIN)
     else if (platformType == PlatformType::Cuda) {
         CudaContext& cudaContext = CudaContext::GetInstance();
         if (gpuIdxIn != 999) {
             gpuIdx = gpuIdxIn;
             cudaContext.SetCudaIdx(gpuIdxIn);
         }
+    }
+#elif defined(USE_CUDA_PLUGIN)
+    else if (platformType == PlatformType::Cuda) {
+        // Forwarded unconditionally: with the default index (999) the plugin still
+        // creates the CUDA context eagerly (max-Gflops card pick) BEFORE any device
+        // allocation, matching the static build's initialisation order
+        if (gpuIdxIn != 999)
+            gpuIdx = gpuIdxIn;
+        CudaPluginInterface *cudaPlugin = loadCudaPlugin();
+        if (cudaPlugin)
+            cudaPlugin->SetGpuIdx(gpuIdxIn);
     }
 #endif
 #ifdef USE_OPENCL
@@ -117,6 +151,23 @@ Optimiser<Type>* Platform::CreateOptimiser(F3dContent& con,
                                            bool optimiseY,
                                            bool optimiseZ,
                                            F3dContent *conBw) const {
+#ifdef USE_CUDA_PLUGIN
+    if (platformType == PlatformType::Cuda) {
+        // The concrete CUDA optimiser needs the CudaF3dContent device pointers, so
+        // it is built inside the plugin. It is single precision only (CudaOptimiser
+        // derives from Optimiser<float>); the double path stays on the CPU
+        if constexpr (std::is_same_v<Type, float>) {
+            CudaPluginInterface *cudaPlugin = loadCudaPlugin();
+            if (!cudaPlugin)
+                NR_FATAL_ERROR("The CUDA plugin is unavailable: " + getCudaPluginLoadError());
+            return cudaPlugin->CreateOptimiser(con, opt, maxIterationNumber, useConjGradient,
+                                               optimiseX, optimiseY, optimiseZ, conBw);
+        } else {
+            NR_FATAL_ERROR("The CUDA platform only supports single-precision optimisation");
+            return nullptr;
+        }
+    }
+#endif
     Optimiser<Type> *optimiser;
     nifti_image *controlPointGrid = con.F3dContent::GetControlPointGrid();
     nifti_image *controlPointGridBw = conBw ? static_cast<nifti_image*>(conBw->F3dContent::GetControlPointGrid()) : nullptr;
@@ -132,7 +183,7 @@ Optimiser<Type>* Platform::CreateOptimiser(F3dContent& con,
             transformationGradientDataBw = static_cast<Type*>(conBw->GetTransformationGradient()->data);
         }
     }
-#ifdef USE_CUDA
+#if defined(USE_CUDA) && !defined(USE_CUDA_PLUGIN)
     else if (platformType == PlatformType::Cuda) {
         optimiser = dynamic_cast<Optimiser<Type>*>(useConjGradient ? new CudaConjugateGradient() : new CudaOptimiser());
         controlPointGridData = reinterpret_cast<Type*>(dynamic_cast<CudaF3dContent&>(con).GetControlPointGridCuda());
