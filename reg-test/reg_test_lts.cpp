@@ -84,7 +84,7 @@ mat44 runLts(unsigned dim, const std::vector<float>& ref, const std::vector<floa
     params.dim = dim;
     params.blockNumber[0] = 1;
     params.blockNumber[1] = 1;
-    params.blockNumber[2] = dim == 2 ? 1u : 2u;   // blockNumber[2]==1 selects the 2D path
+    params.blockNumber[2] = 1;   // a single row of blocks along z; the estimator has to follow `dim`
     params.activeBlockNumber = activeBlockNumber;
     params.definedActiveBlockNumber = definedActiveBlockNumber;
     params.percent_to_keep = percentToKeep;
@@ -173,6 +173,20 @@ TEST_CASE("LTS estimation", "[unit]") {
         REQUIRE(maxProbeDisplacement(rec, gt, ref, 2) < TOL_EXACT);
         REQUIRE(fabs(linearDet(rec, 2) - 1.0) < TOL_ORTHO);
         REQUIRE(maxOrthonormalityError(rec, 2) < TOL_ORTHO);
+    }
+    SECTION("Rigid 3D recovery from coplanar correspondences") {
+        // A thin 3D image (fewer than 7 slices) holds a single row of blocks along z, so every
+        // reference position has z = 0. The correspondences are still 3D - an out-of-plane
+        // translation is observed through the warped positions - and a rigid transformation is
+        // well defined from them. Reading them as 2D pairs would scramble x, y and z.
+        auto ref = makeCloud(gen, 3, N);
+        for (int i = 0; i < N; ++i) ref[i * 3 + 2] = 0.f;
+        const auto gt = makeRigid3d(0.0, 0.0, 0.25, 6.0, -4.0, 3.0);
+        const auto rec = runLts(3, ref, warpBy(ref, 3, gt), N, N, 100, false);
+        const auto probes = makeCloud(gen, 3, N);
+        REQUIRE(maxProbeDisplacement(rec, gt, probes, 3) < TOL_EXACT);
+        REQUIRE(fabs(linearDet(rec, 3) - 1.0) < TOL_ORTHO);
+        REQUIRE(maxOrthonormalityError(rec, 3) < TOL_ORTHO);
     }
     // A reflected (improper) correspondence set forces det(V*U^T) < 0, exercising the reflection
     // guard in EstimateRigidLeastSquares. The estimator must still return a *proper* rotation

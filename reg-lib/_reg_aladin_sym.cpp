@@ -136,6 +136,7 @@ void reg_aladin_sym<T>::UpdateTransformationMatrix(int type) {
 
     NR_MAT44_DEBUG(*this->affineTransformation, "The pre-updated forward transformation matrix");
     NR_MAT44_DEBUG(*this->affineTransformationBw, "The pre-updated backward transformation matrix");
+    this->CheckTransformationMatrix(*this->affineTransformationBw, type ? "backward affine" : "backward rigid");
 
     // Forward and backward matrix are inverted
     mat44 fInverted = nifti_mat44_inverse(*this->affineTransformation);
