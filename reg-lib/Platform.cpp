@@ -139,6 +139,10 @@ Kernel* Platform::CreateKernel(const std::string& name, Content *con) const {
 }
 /* *************************************************************** */
 MeasureCreator* Platform::CreateMeasureCreator() const {
+    // The OpenCL backend only implements the reg_aladin kernels and leaves the measure factory
+    // unset; the non-rigid registrations that need one must stop with a diagnosis, not a null call
+    if (!measureCreatorFactory)
+        NR_FATAL_ERROR("The " + platformName + " platform does not provide similarity measures - only reg_aladin is supported on it");
     return measureCreatorFactory->Produce();
 }
 /* *************************************************************** */
