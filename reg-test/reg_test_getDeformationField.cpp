@@ -1189,7 +1189,9 @@ TEST_CASE("Linear spline field conventions and guards", "[unit]") {
                           std::runtime_error);
     }
     SECTION("float and double instantiations agree on an affine grid") {
-        // Both dispatch branches, same oracle: the double field must reproduce the affine too
+        // Both dispatch branches, same oracle: the double field must reproduce the affine too.
+        // An SSE build only implements single precision and must refuse the double
+        // instantiation up front rather than dispatch into it
         const NiftiImage reference = MakeReference(true, 16, false);
         NiftiImage grid = MakeLinearGrid(reference, kProductionGridSpacing);
         ApplyAffineToGrid(grid, LinearMap());
@@ -1198,6 +1200,10 @@ TEST_CASE("Linear spline field conventions and guards", "[unit]") {
         reg_tools_changeDatatype<double>(fieldDouble);
         NiftiImage gridDouble(grid);
         reg_tools_changeDatatype<double>(gridDouble);
+#ifdef USE_SSE
+        REQUIRE_THROWS_AS(reg_spline_getDeformationField(gridDouble, fieldDouble, nullptr, false, true),
+                          std::runtime_error);
+#else
         reg_spline_getDeformationField(gridDouble, fieldDouble, nullptr, false, true);
         reg_tools_changeDatatype<float>(fieldDouble);
 
@@ -1205,5 +1211,6 @@ TEST_CASE("Linear spline field conventions and guards", "[unit]") {
                                                   ExpectedAffineField(reference, LinearMap()));
         ReportDeviation("3D double instantiation, linear map", deviation);
         REQUIRE(deviation.max < 1e-4);
+#endif
     }
 }
