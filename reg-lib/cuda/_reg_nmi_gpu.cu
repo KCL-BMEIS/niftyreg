@@ -161,7 +161,7 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         // Normalise the histogram
         const double activeVoxel = thrust::reduce(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0, thrust::plus<double>());
         entropyValues[t][3] = activeVoxel;
-        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), curTotalBinNumber, [=]__device__(const unsigned index) {
+        thrust::for_each_n(thrust::device, thrust::make_counting_iterator<unsigned>(0), static_cast<unsigned>(curTotalBinNumber), [=]__device__(const unsigned index) {
             jointHistogramProCuda[index] /= activeVoxel;
         });
         // Marginalise over the reference axis
