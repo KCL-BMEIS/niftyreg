@@ -1190,8 +1190,10 @@ TEST_CASE("Linear spline field conventions and guards", "[unit]") {
     }
     SECTION("float and double instantiations agree on an affine grid") {
         // Both dispatch branches, same oracle: the double field must reproduce the affine too.
-        // An SSE build only implements single precision and must refuse the double
-        // instantiation up front rather than dispatch into it
+        // An SSE build implements single precision only and refuses the double instantiation
+        // up front. Whether that guard is compiled in cannot be read from USE_SSE here:
+        // _reg_localTrans.cpp drops the macro in test-enabled debug builds, so the refusal
+        // is detected at run time and checked to be the documented one
         const NiftiImage reference = MakeReference(true, 16, false);
         NiftiImage grid = MakeLinearGrid(reference, kProductionGridSpacing);
         ApplyAffineToGrid(grid, LinearMap());
@@ -1200,17 +1202,17 @@ TEST_CASE("Linear spline field conventions and guards", "[unit]") {
         reg_tools_changeDatatype<double>(fieldDouble);
         NiftiImage gridDouble(grid);
         reg_tools_changeDatatype<double>(gridDouble);
-#ifdef USE_SSE
-        REQUIRE_THROWS_AS(reg_spline_getDeformationField(gridDouble, fieldDouble, nullptr, false, true),
-                          std::runtime_error);
-#else
-        reg_spline_getDeformationField(gridDouble, fieldDouble, nullptr, false, true);
+        try {
+            reg_spline_getDeformationField(gridDouble, fieldDouble, nullptr, false, true);
+        } catch (const std::runtime_error& e) {
+            REQUIRE(std::string(e.what()).find("single precision") != std::string::npos);
+            return;
+        }
         reg_tools_changeDatatype<float>(fieldDouble);
 
         const Deviation deviation = CompareImages(fieldDouble,
                                                   ExpectedAffineField(reference, LinearMap()));
         ReportDeviation("3D double instantiation, linear map", deviation);
         REQUIRE(deviation.max < 1e-4);
-#endif
     }
 }
