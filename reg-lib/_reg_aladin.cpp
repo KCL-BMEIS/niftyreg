@@ -67,10 +67,10 @@ void reg_aladin<T>::Print() {
     /* *********************************** */
     NR_VERBOSE("Parameters");
     NR_VERBOSE("Platform: " << this->platform->GetName());
-    NR_VERBOSE("Reference image name: " << this->inputReference->fname);
+    NR_VERBOSE("Reference image name: " << (this->inputReference->fname ? this->inputReference->fname : "(in-memory image)"));
     NR_VERBOSE("\t" << this->inputReference->nx << "x" << this->inputReference->ny << "x" << this->inputReference->nz << " voxels");
     NR_VERBOSE("\t" << this->inputReference->dx << "x" << this->inputReference->dy << "x" << this->inputReference->dz << " mm");
-    NR_VERBOSE("Floating image name: " << this->inputFloating->fname);
+    NR_VERBOSE("Floating image name: " << (this->inputFloating->fname ? this->inputFloating->fname : "(in-memory image)"));
     NR_VERBOSE("\t" << this->inputFloating->nx << "x" << this->inputFloating->ny << "x" << this->inputFloating->nz << " voxels");
     NR_VERBOSE("\t" << this->inputFloating->dx << "x" << this->inputFloating->dy << "x" << this->inputFloating->dz << " mm");
     NR_VERBOSE("Maximum iteration number: " << this->maxIterations);

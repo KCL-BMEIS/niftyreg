@@ -204,7 +204,7 @@ void reg_f3d<T>::Initialise() {
     NR_VERBOSE("INPUT PARAMETERS");
     NR_VERBOSE("***********************************************************");
     NR_VERBOSE("Reference image:");
-    NR_VERBOSE("\t* name: " << this->inputReference->fname);
+    NR_VERBOSE("\t* name: " << (this->inputReference->fname ? this->inputReference->fname : "(in-memory image)"));
     NR_VERBOSE("\t* image dimension: " << this->inputReference->nx << " x " << this->inputReference->ny << " x " <<
                this->inputReference->nz << " x " << this->inputReference->nt);
     NR_VERBOSE("\t* image spacing: " << this->inputReference->dx << " x " << this->inputReference->dy << " x " <<
@@ -222,7 +222,7 @@ void reg_f3d<T>::Initialise() {
     NR_VERBOSE("\t* gaussian smoothing sigma: " << this->referenceSmoothingSigma);
     NR_VERBOSE("");
     NR_VERBOSE("Floating image:");
-    NR_VERBOSE("\t* name: " << this->inputFloating->fname);
+    NR_VERBOSE("\t* name: " << (this->inputFloating->fname ? this->inputFloating->fname : "(in-memory image)"));
     NR_VERBOSE("\t* image dimension: " << this->inputFloating->nx << " x " << this->inputFloating->ny << " x " <<
                this->inputFloating->nz << " x " << this->inputFloating->nt);
     NR_VERBOSE("\t* image spacing: " << this->inputFloating->dx << " x " << this->inputFloating->dy << " x " <<
