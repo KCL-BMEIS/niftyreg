@@ -113,6 +113,13 @@ protected:
     virtual void GetWarpedImage(int, float padding);
     virtual void UpdateTransformationMatrix(int);
 
+    /// @brief Reject input images the block-matching pipeline cannot handle (a 2D image paired
+    /// with a 3D one, an axis thinner than a block) and warn when an axis only holds one row of blocks
+    virtual void CheckInputImages();
+    /// @brief Fail if an estimated transformation cannot be inverted, i.e. the block
+    /// correspondences it was estimated from are degenerate (e.g. all in one plane)
+    static void CheckTransformationMatrix(const mat44& matrix, const std::string& description);
+
     void (*funcProgressCallback)(float pcntProgress, void *params);
     void *paramsProgressCallback;
 

@@ -67,10 +67,10 @@ void reg_aladin<T>::Print() {
     /* *********************************** */
     NR_VERBOSE("Parameters");
     NR_VERBOSE("Platform: " << this->platform->GetName());
-    NR_VERBOSE("Reference image name: " << this->inputReference->fname);
+    NR_VERBOSE("Reference image name: " << (this->inputReference->fname ? this->inputReference->fname : "(in-memory image)"));
     NR_VERBOSE("\t" << this->inputReference->nx << "x" << this->inputReference->ny << "x" << this->inputReference->nz << " voxels");
     NR_VERBOSE("\t" << this->inputReference->dx << "x" << this->inputReference->dy << "x" << this->inputReference->dz << " mm");
-    NR_VERBOSE("Floating image name: " << this->inputFloating->fname);
+    NR_VERBOSE("Floating image name: " << (this->inputFloating->fname ? this->inputFloating->fname : "(in-memory image)"));
     NR_VERBOSE("\t" << this->inputFloating->nx << "x" << this->inputFloating->ny << "x" << this->inputFloating->nz << " voxels");
     NR_VERBOSE("\t" << this->inputFloating->dx << "x" << this->inputFloating->dy << "x" << this->inputFloating->dz << " mm");
     NR_VERBOSE("Maximum iteration number: " << this->maxIterations);
@@ -97,6 +97,8 @@ void reg_aladin<T>::InitialiseRegistration() {
         NR_WARN("The reference image contains more than one volume - only the first volume is used for the optimisation");
     if (this->inputFloating->nt > 1 || this->inputFloating->nu > 1)
         NR_WARN("The floating image contains more than one volume - only the first volume is used for the optimisation");
+
+    this->CheckInputImages();
 
     // CREATE THE PYRAMID IMAGES
     this->referencePyramid = vector<NiftiImage>(this->levelsToPerform);
@@ -289,6 +291,61 @@ void reg_aladin<T>::UpdateTransformationMatrix(int type) {
     this->blockMatchingKernel->template castTo<BlockMatchingKernel>()->Calculate();
     this->ltsKernel->template castTo<LtsKernel>()->Calculate(type);
     NR_MAT44_DEBUG(*this->affineTransformation, "The updated forward matrix");
+    CheckTransformationMatrix(*this->affineTransformation, type ? "affine" : "rigid");
+}
+/* *************************************************************** */
+template<class T>
+void reg_aladin<T>::CheckInputImages() {
+    // The whole pipeline is dimensioned from the reference image: a 2D reference (nz == 1) yields
+    // a 2D deformation field without a z component, so a 3D floating image could not be sampled
+    // through it, and a 3D reference paired with a 2D floating image allocates a warped image
+    // whose voxel count does not match its grid
+    const bool referenceIs3d = this->inputReference->nz > 1;
+    const bool floatingIs3d = this->inputFloating->nz > 1;
+    if (referenceIs3d != floatingIs3d)
+        NR_FATAL_ERROR("The reference and floating images must both be 2D or both be 3D - the reference image is "s +
+                       (referenceIs3d ? "3D" : "2D") + " and the floating image is " + (floatingIs3d ? "3D" : "2D"));
+
+    // Block matching works on blocks of BLOCK_WIDTH voxels along every axis, so an axis with fewer
+    // voxels than that cannot hold a single block. A block is only used when more than half of its
+    // voxels are defined, so an axis needs BLOCK_WIDTH + BLOCK_WIDTH / 2 + 1 voxels before a second
+    // row of blocks becomes usable; below that every block corner shares the same coordinate along
+    // the axis, the correspondences are coplanar, and an affine transformation - which has to
+    // observe a scaling and a shearing along that axis - cannot be estimated from them
+    constexpr int minimumSize = BLOCK_WIDTH;
+    constexpr int singleBlockRowSize = BLOCK_WIDTH + BLOCK_WIDTH / 2 + 1;
+    const char *axisNames[] = { "x", "y", "z" };
+    const int axisNumber = referenceIs3d ? 3 : 2;
+    const auto checkImage = [&](const NiftiImage& image, const std::string& name) {
+        const int dims[] = { image->nx, image->ny, image->nz };
+        for (int axis = 0; axis < axisNumber; ++axis) {
+            if (dims[axis] < minimumSize)
+                NR_FATAL_ERROR("The " + name + " image has only " + std::to_string(dims[axis]) + " voxel(s) along the " +
+                               axisNames[axis] + "-axis - block matching requires at least " + std::to_string(minimumSize) +
+                               " voxels along every axis");
+            if (dims[axis] < singleBlockRowSize && this->performAffine)
+                NR_WARN("The " << name << " image has only " << dims[axis] << " voxels along the " << axisNames[axis] <<
+                        "-axis, which can hold a single row of blocks: the block correspondences are coplanar along it and "
+                        "an affine transformation cannot be estimated from them - a rigid transformation (-rigOnly) can");
+        }
+    };
+    checkImage(this->inputReference, "reference");
+    checkImage(this->inputFloating, "floating");
+}
+/* *************************************************************** */
+template<class T>
+void reg_aladin<T>::CheckTransformationMatrix(const mat44& matrix, const std::string& description) {
+    // A singular estimate means the block correspondences were degenerate (e.g. all in one plane).
+    // Used as is, it would collapse the warped image; in the symmetric algorithm its inverse and its
+    // matrix logarithm - which never converges for a singular matrix - are needed to average the
+    // forward and backward estimates. Stop with a diagnosis instead
+    constexpr double minimumDeterminant = 1e-6;
+    const double determinant = Mat44Det<double>(&matrix);
+    if (!std::isfinite(determinant) || std::abs(determinant) < minimumDeterminant)
+        NR_FATAL_ERROR("The estimated "s + description + " transformation is singular (determinant " + std::to_string(determinant) +
+                       "): the block correspondences are degenerate, e.g. they all lie in one plane because an image has fewer than " +
+                       std::to_string(BLOCK_WIDTH + BLOCK_WIDTH / 2 + 1) + " voxels along an axis - a rigid transformation (-rigOnly) "
+                       "can still be estimated from such correspondences");
 }
 /* *************************************************************** */
 template<class T>
