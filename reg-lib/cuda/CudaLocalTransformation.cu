@@ -689,9 +689,9 @@ template void DefFieldCompose<false>(const nifti_image*, const float4*, float4*)
 // texture (created once for a buffer that is reused across every step, avoiding per-step texture
 // creation). Bit-identical to DefFieldCompose applied to a field composed with itself.
 template<bool is3d>
-static void DefFieldComposePingPong(const nifti_image *deformationField,
-                                    cudaTextureObject_t srcTexture,
-                                    float4 *deformationFieldOutCuda) {
+void DefFieldComposePingPong(const nifti_image *deformationField,
+                             cudaTextureObject_t srcTexture,
+                             float4 *deformationFieldOutCuda) {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(deformationField, 3);
     const int3 referenceImageDims{ deformationField->nx, deformationField->ny, deformationField->nz };
     const mat44& affineMatrixB = deformationField->sform_code > 0 ? deformationField->sto_ijk : deformationField->qto_ijk;

@@ -57,7 +57,7 @@ void reg_lncc_gpu::InitialiseMeasure(nifti_image *refImg, float *refImgCuda,
     NR_FUNC_CALLED();
 }
 /* *************************************************************** */
-namespace {
+namespace LnccGpuDetail {
 /* *************************************************************** */
 template<class F>
 void DispatchKernelType(const ConvKernelType kernelType, F&& f) {
@@ -305,7 +305,8 @@ void GetVoxelBasedLnccGradient_gpu(const nifti_image *image,
     });
 }
 /* *************************************************************** */
-} // anonymous namespace
+} // namespace LnccGpuDetail
+using namespace LnccGpuDetail;
 /* *************************************************************** */
 double reg_lncc_gpu::GetSimilarityMeasureValueFw() {
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(this->referenceImage, 3);
