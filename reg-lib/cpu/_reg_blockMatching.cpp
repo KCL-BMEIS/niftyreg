@@ -718,29 +718,26 @@ void block_matching_method(nifti_image * reference, nifti_image * warped, _reg_b
    }
 }
 /* *************************************************************** */
+void reg_checkCorrespondenceNumber(const _reg_blockMatchingParam *params, const bool affine)
+{
+   // Enough point pairs for the trimmed least-squares fit to have outliers to discard: 6 (2D) or
+   // 8 (3D) for an affine transformation, 4 for a rigid one
+   const int minimum = affine ? (params->dim == 2 ? 6 : 8) : 4;
+   if(params->definedActiveBlockNumber < minimum)
+      NR_FATAL_ERROR(std::string("Not enough correspondences were found - it is impossible to estimate ") +
+                     (affine ? "an affine" : "a rigid") + " transformation from " +
+                     std::to_string(params->definedActiveBlockNumber) + " block correspondences (at least " +
+                     std::to_string(minimum) + " are needed)");
+}
+/* *************************************************************** */
 // Find the optimal transformation - affine or rigid
 void optimize(_reg_blockMatchingParam *params,
               mat44 *transformation_matrix,
               bool affine)
 {
+   reg_checkCorrespondenceNumber(params, affine);
    if (params->dim == 2)  // 2D images
    {
-      //First let's check if we have enough correspondence points to estimate a transformation
-      if(affine) {
-         //3 = minimum number of correspondences needed
-         if(params->definedActiveBlockNumber < 6)
-         {
-            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
-            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate an affine transformation");
-         }
-      } else {
-         if(params->definedActiveBlockNumber < 4)
-         {
-            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
-            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
-         }
-      }
-
       float in[2];
       float out[2];
       std::vector<float> referencePositionVect;
@@ -769,22 +766,6 @@ void optimize(_reg_blockMatchingParam *params,
    }
    else  // 3D images
    {
-      //First let's check if we have enough correspondence points to estimate a transformation
-      if(affine) {
-         //4 = minimum number of correspondences needed
-         if(params->definedActiveBlockNumber < 8)
-         {
-            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
-            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate an affine transformation");
-         }
-      } else {
-         if(params->definedActiveBlockNumber < 4)
-         {
-            NR_ERROR(std::to_string(params->definedActiveBlockNumber) + " correspondences between blocks were found");
-            NR_FATAL_ERROR("Not enough correspondences were found - it is impossible to estimate a rigid transformation");
-         }
-      }
-
       float in[3];
       float out[3];
       std::vector<float> referencePositionVect;

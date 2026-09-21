@@ -432,3 +432,29 @@ TEST_CASE("Jacobian maps reject a transformation that disagrees with the image t
         REQUIRE_NOTHROW(reg_defField_GetJacobianDetFromFlowField(jacobian3d, MakeFlowField(image3d)));
     }
 }
+
+TEST_CASE("reg_aladin rejects a registration without block correspondences", "[reg_aladin][validation]") {
+    // A flat floating image has zero variance in every block, so no block correlation is defined
+    // and the block matching hands the estimator no correspondence at all
+    std::mt19937 gen(0);
+    const vector<vector<NiftiImage::dim_t>> allDims{ { kSize, kSize }, { kSize, kSize, kSize } };
+    const auto matcher = ContainsSubstring("Not enough correspondences");
+
+    for (const auto& dims : allDims) {
+        const NiftiImage reference = MakeImage(gen, dims);
+        NiftiImage flat(reference, NiftiImage::Copy::Image);
+        auto data = flat.data();
+        for (size_t i = 0; i < flat.nVoxels(); ++i)
+            data[i] = 1.f;
+
+        for (const auto& platformType : PlatformTypes) {
+            // The OpenCL block matching does not leave a flat floating image unmatched, so its
+            // estimator is never starved: only the CPU and CUDA estimators are exercised
+            if (platformType == PlatformType::OpenCl) continue;
+            SECTION((dims.size() == 3 ? "3D" : "2D") + " - platform "s + std::to_string(static_cast<int>(platformType))) {
+                REQUIRE_THROWS_WITH(Register<reg_aladin<float>>(reference, flat, platformType, false), matcher);
+                REQUIRE_THROWS_WITH(Register<reg_aladin<float>>(reference, flat, platformType, true), matcher);
+            }
+        }
+    }
+}
