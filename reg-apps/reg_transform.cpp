@@ -299,6 +299,12 @@ int main(int argc, char **argv) {
                     NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
                     return EXIT_FAILURE;
                 }
+                // The dense field is allocated on the reference grid with one component per
+                // reference dimension and filled by the grid's own kernel
+                if (!reg_haveSameDimensionality(referenceImage, inputTransformationImage)) {
+                    NR_ERROR(reg_dimensionalityMismatchMessage(referenceImage, "reference image", inputTransformationImage, "input transformation"));
+                    return EXIT_FAILURE;
+                }
             }
         } else {
             // Read the affine transformation
@@ -566,6 +572,21 @@ int main(int argc, char **argv) {
                     return EXIT_FAILURE;
                 }
             }
+            // Every input is evaluated or composed into a field dimensioned from the composition
+            // space: the reference image when the first transformation needs one, else that transformation
+            const nifti_image *compositionSpace = referenceImage ? referenceImage : input1TransImage;
+            const std::string compositionSpaceName = referenceImage ? "reference image" : "first transformation";
+            const auto hasCompositionSpaceDimensionality = [&](const nifti_image *image, const std::string& name) {
+                if (image && image != compositionSpace && !reg_haveSameDimensionality(compositionSpace, image)) {
+                    NR_ERROR(reg_dimensionalityMismatchMessage(compositionSpace, compositionSpaceName, image, name));
+                    return false;
+                }
+                return true;
+            };
+            if (!hasCompositionSpaceDimensionality(input1TransImage, "first transformation") ||
+                !hasCompositionSpaceDimensionality(input2TransImage, "second transformation") ||
+                !hasCompositionSpaceDimensionality(referenceImage2, "second reference image"))
+                return EXIT_FAILURE;
             // Generate the first deformation field
             if (referenceImage != nullptr) {
                 // The field is created using the reference image space
@@ -775,6 +796,12 @@ int main(int argc, char **argv) {
                 referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
                 if (referenceImage == nullptr) {
                     NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
+                    return EXIT_FAILURE;
+                }
+                // The landmarks are pushed through a dense field allocated on the reference grid
+                // with one component per reference dimension and filled by the grid's own kernel
+                if (!reg_haveSameDimensionality(referenceImage, inputTransformationImage)) {
+                    NR_ERROR(reg_dimensionalityMismatchMessage(referenceImage, "reference image", inputTransformationImage, "input transformation"));
                     return EXIT_FAILURE;
                 }
             }
@@ -1041,6 +1068,12 @@ int main(int argc, char **argv) {
             NR_ERROR("Error when reading the input image: " << param->input2TransName);
             return EXIT_FAILURE;
         }
+        // The inverse is estimated on the floating image grid with one component per floating
+        // image dimension
+        if (!reg_haveSameDimensionality(inputTransImage, floatingImage)) {
+            NR_ERROR(reg_dimensionalityMismatchMessage(inputTransImage, "input transformation", floatingImage, "floating image"));
+            return EXIT_FAILURE;
+        }
         // Convert the spline parametrisation into a dense deformation parametrisation
         if (inputTransImage->intent_p1 == LIN_SPLINE_GRID ||
             inputTransImage->intent_p1 == CUB_SPLINE_GRID ||
@@ -1054,6 +1087,11 @@ int main(int argc, char **argv) {
             NiftiImage referenceImage = reg_io_ReadImageFile(param->referenceImageName, true);
             if (referenceImage == nullptr) {
                 NR_ERROR("Error when reading the reference image: " << param->referenceImageName);
+                return EXIT_FAILURE;
+            }
+            // The grid is first evaluated into a dense field dimensioned from the reference image
+            if (!reg_haveSameDimensionality(referenceImage, inputTransImage)) {
+                NR_ERROR(reg_dimensionalityMismatchMessage(referenceImage, "reference image", inputTransImage, "input transformation"));
                 return EXIT_FAILURE;
             }
             // Create a deformation field or a flow field

@@ -102,6 +102,7 @@ include(Catch)
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------
 set(EXEC_LIST reg_test_affineDeformationField)
+set(EXEC_LIST reg_test_appInputValidation ${EXEC_LIST})
 set(EXEC_LIST reg_test_be ${EXEC_LIST})
 set(EXEC_LIST reg_test_blockMatching ${EXEC_LIST})
 set(EXEC_LIST reg_test_conjugateGradient ${EXEC_LIST})
@@ -160,5 +161,10 @@ foreach(EXEC ${EXEC_LIST})
     set_target_properties(${EXEC} PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:niftyreg_cuda>")
   endif()
 endforeach(EXEC)
+# The tools validate their inputs in main(), observable only by running them: the test needs
+# their location (a raw string literal keeps a Windows path intact) and has to be built after them
+set(APP_LIST reg_resample reg_measure reg_transform reg_jacobian reg_tools reg_average)
+target_compile_definitions(reg_test_appInputValidation PRIVATE "NR_APP_DIR=R\"($<TARGET_FILE_DIR:reg_resample>)\"")
+add_dependencies(reg_test_appInputValidation ${APP_LIST})
 #-----------------------------------------------------------------------------
 #-----------------------------------------------------------------------------

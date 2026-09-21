@@ -86,12 +86,12 @@ if(USE_CUDA OR USE_OPENCL)
 endif(USE_CUDA OR USE_OPENCL)
 #-----------------------------------------------------------------------------
 if(TARGET niftyreg_cuda)
-  # Build-tree runs only: the plugin loader falls back to a bare-name lookup, which
-  # on Linux consults the calling executable's RPATH, so point it at the plugin's
-  # build directory. Installed trees need no RPATH - the loader finds the plugin
-  # relative to its own module (bin/../lib).
+  # The plugin loader may open the plugin by bare name through the calling executable's
+  # search path, which in the build tree has to reach the plugin's build directory (the
+  # property overrides the tree-wide default, hence the origin entry as well)
   foreach(MODULE_NAME ${MODULE_LIST})
-    set_target_properties(${MODULE_NAME} PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:niftyreg_cuda>")
+    set_target_properties(${MODULE_NAME} PROPERTIES
+      BUILD_RPATH "${NR_RPATH_ORIGIN};$<TARGET_FILE_DIR:niftyreg_cuda>")
   endforeach()
 endif()
 #-----------------------------------------------------------------------------

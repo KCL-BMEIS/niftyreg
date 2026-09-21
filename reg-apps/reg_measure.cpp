@@ -225,6 +225,14 @@ int main(int argc, char **argv)
    }
    reg_tools_changeDatatype<float>(floImage);
 
+   // The floating image is resampled through an identity field and into a warped image that are
+   // both dimensioned from the reference image
+   if(!reg_haveSameDimensionality(refImage, floImage))
+   {
+      NR_ERROR(reg_dimensionalityMismatchMessage(refImage, "reference image", floImage, "floating image"));
+      return EXIT_FAILURE;
+   }
+
    /* Read and create the mask array */
    vector<unique_ptr<int[]>> refMasks(1);
    unique_ptr<int[]>& refMask = refMasks[0];
@@ -234,6 +242,14 @@ int main(int argc, char **argv)
       if(!refMaskImage)
       {
          NR_ERROR("Error when reading the reference mask image: " << param->refMaskImageName);
+         return EXIT_FAILURE;
+      }
+      // The mask is indexed with the reference image's voxel indices
+      if(refMaskImage->nx!=refImage->nx || refMaskImage->ny!=refImage->ny || refMaskImage->nz!=refImage->nz)
+      {
+         NR_ERROR("The reference mask image must be defined on the reference image grid - the mask is " <<
+                  refMaskImage->nx << "x" << refMaskImage->ny << "x" << refMaskImage->nz << " and the reference image " <<
+                  refImage->nx << "x" << refImage->ny << "x" << refImage->nz);
          return EXIT_FAILURE;
       }
       reg_createMaskPyramid<float>(refMaskImage, refMasks, 1, 1);

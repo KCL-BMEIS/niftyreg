@@ -1495,6 +1495,11 @@ void reg_spline_getDeformationField(nifti_image *splineControlPoint,
                                     bool forceNoLut) {
     if (splineControlPoint->datatype != deformationField->datatype)
         NR_FATAL_ERROR("The spline control point image and the deformation field image are expected to be of the same type");
+    // The kernel is chosen from the grid and writes one field component per grid dimension
+    if ((splineControlPoint->nz > 1) != (deformationField->nu > 2))
+        NR_FATAL_ERROR("The control point grid and the deformation field must both be 2D or both be 3D - the grid is "s +
+                       (splineControlPoint->nz > 1 ? "3D" : "2D") + " and the deformation field has " +
+                       std::to_string(deformationField->nu) + " components");
 
 #if USE_SSE
     if (splineControlPoint->datatype != NIFTI_TYPE_FLOAT32)
@@ -2524,6 +2529,11 @@ void reg_defField_compose(const nifti_image *deformationField,
                           const nifti_image *positionField) {
     if (deformationField->datatype != dfToUpdate->datatype)
         NR_FATAL_ERROR("Both deformation fields are expected to have the same type");
+    // The kernel is chosen from the field to update and reads as many components from the look-up field
+    if (deformationField->nu != dfToUpdate->nu)
+        NR_FATAL_ERROR("The two deformation fields must both be 2D or both be 3D - the deformation field has "s +
+                       std::to_string(deformationField->nu) + " components and the field to update " +
+                       std::to_string(dfToUpdate->nu));
 
     if (positionField && (positionField->datatype != dfToUpdate->datatype ||
                         positionField->nx != dfToUpdate->nx ||
@@ -3083,6 +3093,10 @@ void reg_defFieldInvert(nifti_image *inputDeformationField,
 
     if (inputDeformationField->nu != 3)
         NR_FATAL_ERROR("The function has only been implemented for 3D deformation field yet");
+    // The inverted field is written with three components on the output grid
+    if (outputDeformationField->nu != 3)
+        NR_FATAL_ERROR("The output deformation field must be 3D as well - it has "s +
+                       std::to_string(outputDeformationField->nu) + " components");
 
     switch (inputDeformationField->datatype) {
     case NIFTI_TYPE_FLOAT32:
@@ -3131,6 +3145,14 @@ void reg_defField_getDeformationFieldFromFlowField(nifti_image *flowField,
     // Check first if the velocity field is actually a velocity field
     if (flowField->intent_p1 != DEF_VEL_FIELD)
         NR_FATAL_ERROR("The provided field is not a velocity field");
+    // Both fields serve as ping-pong buffers of the squaring and are copied into one another
+    if (flowField->nx != deformationField->nx || flowField->ny != deformationField->ny ||
+        flowField->nz != deformationField->nz || flowField->nu != deformationField->nu)
+        NR_FATAL_ERROR("The flow field and the deformation field must be defined on the same grid with the same number of components - the flow field is "s +
+                       std::to_string(flowField->nx) + "x" + std::to_string(flowField->ny) + "x" + std::to_string(flowField->nz) + " with " +
+                       std::to_string(flowField->nu) + " components and the deformation field " + std::to_string(deformationField->nx) + "x" +
+                       std::to_string(deformationField->ny) + "x" + std::to_string(deformationField->nz) + " with " +
+                       std::to_string(deformationField->nu) + " components");
 
     // Remove the affine component from the flow field
     NiftiImage affineOnly;

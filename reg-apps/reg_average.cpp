@@ -254,6 +254,11 @@ int compute_nrr_demean(nifti_image *demean_field,
    for(size_t t=0; t<transformationNumber; ++t){
       // read the transformation
       NiftiImage transformation = reg_io_ReadImageFile(inputNRRName[t]);
+      // The transformation is evaluated or composed into a field dimensioned from the reference image
+      if(!reg_haveSameDimensionality(demean_field, transformation)){
+         NR_ERROR(reg_dimensionalityMismatchMessage(demean_field, "reference image", transformation, "transformation "s + inputNRRName[t]));
+         return EXIT_FAILURE;
+      }
       // Generate the deformation or flow field
       nifti_image *deformationField = nifti_dup(*demean_field, false);
       reg_tools_multiplyValueToImage(deformationField,deformationField,0.f);
@@ -348,7 +353,10 @@ int compute_average_image(nifti_image *averageImage,
       demeanField->scl_inter=0.f;
       demeanField->intent_p1=DISP_FIELD;
       demeanField->data=calloc(demeanField->nvox, demeanField->nbyper);
-      compute_nrr_demean(demeanField, imageNumber, inputNRRName, inputAffName);
+      if(compute_nrr_demean(demeanField, imageNumber, inputNRRName, inputAffName)!=EXIT_SUCCESS){
+         nifti_image_free(demeanField);
+         return EXIT_FAILURE;
+      }
       NR_DEBUG("Displacement field to use for demeaning computed");
    }
 
@@ -364,6 +372,11 @@ int compute_average_image(nifti_image *averageImage,
       // Compute the transformation if required
       if(inputNRRName!=nullptr){
          NiftiImage current_transformation = reg_io_ReadImageFile(inputNRRName[i]);
+         // The transformation is evaluated or composed into a field dimensioned from the reference image
+         if(!reg_haveSameDimensionality(averageImage, current_transformation)){
+            NR_ERROR(reg_dimensionalityMismatchMessage(averageImage, "reference image", current_transformation, "transformation "s + inputNRRName[i]));
+            return EXIT_FAILURE;
+         }
          switch(static_cast<int>(current_transformation->intent_p1)){
          case DISP_FIELD:
             reg_getDeformationFromDisplacement(current_transformation);
@@ -418,6 +431,13 @@ int compute_average_image(nifti_image *averageImage,
       warpedImage->data = malloc(warpedImage->nvox*warpedImage->nbyper);
       // Read the input image
       NiftiImage current_input_image = reg_io_ReadImageFile(inputImageName[i]);
+      // The image is sampled through a field and into a warped image both dimensioned from the
+      // reference image
+      if(!reg_haveSameDimensionality(averageImage, current_input_image)){
+         NR_ERROR(reg_dimensionalityMismatchMessage(averageImage, "reference image", current_input_image, "input image "s + inputImageName[i]));
+         nifti_image_free(warpedImage);
+         return EXIT_FAILURE;
+      }
       reg_tools_changeDatatype<PrecisionType>(current_input_image);
       // Apply the transformation
       reg_resampleImage(current_input_image,
@@ -427,8 +447,10 @@ int compute_average_image(nifti_image *averageImage,
                         interpolation_order,
                         std::numeric_limits<float>::quiet_NaN());
       // Add the image to the average
-      remove_nan_and_add(averageImage, warpedImage, definedValue);
+      const int status = remove_nan_and_add(averageImage, warpedImage, definedValue);
       nifti_image_free(warpedImage);
+      if(status!=EXIT_SUCCESS)
+         return EXIT_FAILURE;
    }
    // Deallocate the allocated demeanField if needed
    if(demeanField!=nullptr) nifti_image_free(demeanField);
@@ -641,6 +663,15 @@ int main(int argc, char **argv)
       start=4;
       increment=3;
    }
+   // Inputs come in groups of `increment` arguments after the reference image, with one slot
+   // per group in the name arrays
+   if((arg_num_command-start)%increment!=0){
+      NR_ERROR("Expected groups of " << increment << " arguments after the reference image (" <<
+               (increment==2 ? "transformation and image" : "affine transformation, non-rigid transformation and image") <<
+               "), " << arg_num_command-start << " were provided");
+      usage(pointer_to_command[0]);
+      return EXIT_FAILURE;
+   }
    int index=0;
    for(int i=start; i<arg_num_command; i+=increment){
       if(operation==AVG_INPUT){
@@ -695,13 +726,14 @@ int main(int argc, char **argv)
       // Set the output filename
       nifti_set_filenames(avg_output_image, outputName, 0, 0);
       // Compute the average image
-      compute_average_image(avg_output_image,
-                            image_number,
-                            input_image_names,
-                            input_affine_names,
-                            input_nonrigid_names,
-                            use_demean,
-                            interpolation_order);
+      if(compute_average_image(avg_output_image,
+                               image_number,
+                               input_image_names,
+                               input_affine_names,
+                               input_nonrigid_names,
+                               use_demean,
+                               interpolation_order)!=EXIT_SUCCESS)
+         return EXIT_FAILURE;
    }
    // Save the output
    if(avg_output_image==nullptr)

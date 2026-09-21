@@ -13,6 +13,9 @@ Content::Content(NiftiImage& referenceIn,
     transformationMatrix(transformationMatrixIn) {
     if (!referenceIn || !floatingIn)
         NR_FATAL_ERROR("referenceIn or floatingIn can't be nullptr");
+    // The deformation field is dimensioned from the reference image and the warped image from
+    // the floating image on the reference grid, so the two images have to agree
+    reg_checkSameDimensionality(reference, "reference image", floating, "floating image");
     AllocateWarped();
     AllocateDeformationField(bytesIn);
     activeVoxelNumber = reference.nVoxelsPerVolume();

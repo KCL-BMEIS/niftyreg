@@ -269,6 +269,12 @@ int main(int argc, char **argv)
          NR_ERROR("Error when reading the reference image.");
          return EXIT_FAILURE;
       }
+      // The Jacobian maps are allocated on the reference grid and filled by the grid's own kernel
+      if(!reg_haveSameDimensionality(referenceImage, inputTransformation))
+      {
+         NR_ERROR(reg_dimensionalityMismatchMessage(referenceImage, "reference image", inputTransformation, "input transformation"));
+         return EXIT_FAILURE;
+      }
    }
 
    if(flag->outputJacDetFlag || flag->outputLogDetFlag){
