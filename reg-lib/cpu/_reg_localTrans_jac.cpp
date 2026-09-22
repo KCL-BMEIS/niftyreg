@@ -2434,6 +2434,8 @@ double reg_spline_correctFolding(nifti_image *splineControlPoint,
 void reg_spline_GetJacobianMap(nifti_image *splineControlPoint,
                                nifti_image *jacobianImage)
 {
+   // The kernel is chosen from the grid and fills the Jacobian image accordingly
+   reg_checkSameDimensionality(splineControlPoint, "control point grid", jacobianImage, "Jacobian image");
    if(splineControlPoint->intent_p1==LIN_SPLINE_GRID){
       if(splineControlPoint->nz==1)
       {
@@ -2522,6 +2524,8 @@ void reg_spline_GetJacobianMatrix(nifti_image *referenceImage,
                                   nifti_image *splineControlPoint,
                                   mat33 *jacobianMatrices)
 {
+   // The kernel is chosen from the grid and visits the reference image accordingly
+   reg_checkSameDimensionality(splineControlPoint, "control point grid", referenceImage, "reference image");
    if(splineControlPoint->nz==1)
    {
       switch(splineControlPoint->datatype)
@@ -2822,6 +2826,9 @@ void reg_defField_getJacobianMap(nifti_image *deformationField,
 {
    if(deformationField->datatype!=jacobianImage->datatype)
       NR_FATAL_ERROR("Both input images are expected to have the same datatype");
+   // The determinants are written at the deformation field's voxel indices
+   if(deformationField->nx!=jacobianImage->nx || deformationField->ny!=jacobianImage->ny || deformationField->nz!=jacobianImage->nz)
+      NR_FATAL_ERROR("The deformation field and the Jacobian image must be defined on the same grid");
 
    switch(deformationField->datatype)
    {
@@ -3017,6 +3024,9 @@ int reg_spline_GetJacobianMatFromVelocityGrid(mat33* jacobianMatrices,
 int reg_defField_GetJacobianDetFromFlowField(nifti_image* jacobianDetImage,
                                              nifti_image* flowFieldImage)
 {
+   // One matrix per flow field voxel goes into an array sized from the Jacobian image
+   if(flowFieldImage->nx!=jacobianDetImage->nx || flowFieldImage->ny!=jacobianDetImage->ny || flowFieldImage->nz!=jacobianDetImage->nz)
+      NR_FATAL_ERROR("The flow field and the Jacobian image must be defined on the same grid");
    // create an array of mat33
    const size_t voxelNumber = NiftiImage::calcVoxelNumber(jacobianDetImage, 3);
    mat33 *jacobianMatrices=(mat33 *)malloc(voxelNumber*sizeof(mat33));

@@ -172,11 +172,12 @@ if(USE_CUDA_PLUGIN)
   target_sources(_reg_platform PRIVATE CudaPluginLoader.cpp)
   target_link_libraries(_reg_platform ${CMAKE_DL_LIBS})
   target_compile_definitions(_reg_platform PRIVATE "NR_INSTALL_LIBDIR=\"${CMAKE_INSTALL_PREFIX}/lib\"")
-  # Build-tree runs with shared host libraries: dlopen resolves a bare name through
-  # the CALLING module's RUNPATH - which is lib_reg_platform.so, not the executable -
-  # so the plugin's build directory must be on this target's RPATH (installed trees
-  # need nothing: both libraries land in lib/, found module-relative)
-  set_target_properties(_reg_platform PROPERTIES BUILD_RPATH "$<TARGET_FILE_DIR:niftyreg_cuda>")
+  # With shared host libraries, dlopen resolves a bare name through the CALLING module's
+  # search path - lib_reg_platform.so, not the executable - so in the build tree it has to
+  # reach the plugin's build directory (the property overrides the tree-wide default, hence
+  # the origin entry as well)
+  set_target_properties(_reg_platform PROPERTIES
+    BUILD_RPATH "${NR_RPATH_ORIGIN};$<TARGET_FILE_DIR:niftyreg_cuda>")
 endif()
 install(TARGETS _reg_platform
   RUNTIME DESTINATION lib

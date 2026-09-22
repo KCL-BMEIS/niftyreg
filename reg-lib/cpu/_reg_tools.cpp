@@ -70,6 +70,23 @@ void reg_checkAndCorrectDimension(nifti_image *image) {
     image->dw = image->pixdim[7];
 }
 /* *************************************************************** */
+bool reg_haveSameDimensionality(const nifti_image *image1, const nifti_image *image2) {
+    return (image1->nz > 1) == (image2->nz > 1);
+}
+/* *************************************************************** */
+std::string reg_dimensionalityMismatchMessage(const nifti_image *image1, const std::string& name1,
+                                              const nifti_image *image2, const std::string& name2) {
+    const auto dimensionality = [](const nifti_image *image) { return image->nz > 1 ? "3D" : "2D"; };
+    return "The " + name1 + " and the " + name2 + " must both be 2D or both be 3D - the " +
+           name1 + " is " + dimensionality(image1) + " and the " + name2 + " is " + dimensionality(image2);
+}
+/* *************************************************************** */
+void reg_checkSameDimensionality(const nifti_image *image1, const std::string& name1,
+                                 const nifti_image *image2, const std::string& name2) {
+    if (!reg_haveSameDimensionality(image1, image2))
+        NR_FATAL_ERROR(reg_dimensionalityMismatchMessage(image1, name1, image2, name2));
+}
+/* *************************************************************** */
 bool reg_isAnImageFileName(const char *name) {
     const std::string n(name);
     if (n.find(".nii") != std::string::npos)

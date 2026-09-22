@@ -43,6 +43,32 @@ enum class ConvKernelType { Mean, Linear, Gaussian, Cubic };
  */
 void reg_checkAndCorrectDimension(nifti_image *image);
 /* *************************************************************** */
+/** @brief Tell whether two inputs are both 2D (a single slice, nz == 1) or both 3D.
+ * Images, deformation fields, flow fields and control point grids all encode their
+ * dimensionality in nz, so the predicate applies to any pairing of them.
+ * @param image1 First input
+ * @param image2 Second input
+ * @return True if both inputs are 2D or both are 3D
+ */
+bool reg_haveSameDimensionality(const nifti_image *image1, const nifti_image *image2);
+/* *************************************************************** */
+/** @brief Build the diagnosis for two inputs of different dimensionality, e.g. "The
+ * reference image and the floating image must both be 2D or both be 3D - the
+ * reference image is 3D and the floating image is 2D"
+ * @param image1 First input
+ * @param name1 What the first input is, e.g. "reference image"
+ * @param image2 Second input
+ * @param name2 What the second input is, e.g. "floating image"
+ * @return The message
+ */
+std::string reg_dimensionalityMismatchMessage(const nifti_image *image1, const std::string& name1,
+                                              const nifti_image *image2, const std::string& name2);
+/* *************************************************************** */
+/** @brief Fatal error, with the diagnosis above, unless both inputs have the same dimensionality
+ */
+void reg_checkSameDimensionality(const nifti_image *image1, const std::string& name1,
+                                 const nifti_image *image2, const std::string& name2);
+/* *************************************************************** */
 /** @brief Check if the specified filename corresponds to an image.
  * @param name Input filename
  * @return True is the specified filename corresponds to an image,

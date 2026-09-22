@@ -25,6 +25,22 @@
 
 #include "reg_tools.h"
 
+// Voxel-wise operations pair two images index by index over every axis
+static bool HaveSameShape(const nifti_image *image1, const nifti_image *image2)
+{
+    for(int i=1; i<8; ++i)
+        if(image1->dim[i]!=image2->dim[i])
+            return false;
+    return true;
+}
+static std::string ShapeString(const nifti_image *image)
+{
+    std::string shape = std::to_string(image->nx) + "x" + std::to_string(image->ny) + "x" + std::to_string(image->nz);
+    if(image->nt>1 || image->nu>1)
+        shape += "x" + std::to_string(image->nt) + "x" + std::to_string(image->nu);
+    return shape;
+}
+
 std::vector<float> splitFloatVector(char* input)
 {
     std::vector<float> floatVector;
@@ -582,6 +598,12 @@ int main(int argc, char **argv)
                 NR_ERROR("Error when reading the image: " << param->operationImageName);
                 return EXIT_FAILURE;
             }
+            if(!HaveSameShape(image, image2))
+            {
+                NR_ERROR("The input image and the operand image must have the same dimensions - the input image is " <<
+                         ShapeString(image) << " and the operand image " << ShapeString(image2));
+                return EXIT_FAILURE;
+            }
         }
         // Images are converted to the higher datatype
         if(image2!=nullptr){
@@ -722,6 +744,12 @@ int main(int argc, char **argv)
         if(maskImage == nullptr)
         {
             NR_ERROR("Error when reading the image: " << param->operationImageName);
+            return EXIT_FAILURE;
+        }
+        if(!HaveSameShape(image, maskImage))
+        {
+            NR_ERROR("The input image and the mask image must have the same dimensions - the input image is " <<
+                     ShapeString(image) << " and the mask image " << ShapeString(maskImage));
             return EXIT_FAILURE;
         }
 

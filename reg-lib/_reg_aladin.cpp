@@ -300,11 +300,8 @@ void reg_aladin<T>::CheckInputImages() {
     // a 2D deformation field without a z component, so a 3D floating image could not be sampled
     // through it, and a 3D reference paired with a 2D floating image allocates a warped image
     // whose voxel count does not match its grid
+    reg_checkSameDimensionality(this->inputReference, "reference image", this->inputFloating, "floating image");
     const bool referenceIs3d = this->inputReference->nz > 1;
-    const bool floatingIs3d = this->inputFloating->nz > 1;
-    if (referenceIs3d != floatingIs3d)
-        NR_FATAL_ERROR("The reference and floating images must both be 2D or both be 3D - the reference image is "s +
-                       (referenceIs3d ? "3D" : "2D") + " and the floating image is " + (floatingIs3d ? "3D" : "2D"));
 
     // Block matching works on blocks of BLOCK_WIDTH voxels along every axis, so an axis with fewer
     // voxels than that cannot hold a single block. A block is only used when more than half of its

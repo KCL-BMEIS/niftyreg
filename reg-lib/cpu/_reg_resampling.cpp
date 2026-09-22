@@ -649,6 +649,17 @@ void reg_resampleImage(nifti_image *floatingImage,
         NR_FATAL_ERROR("The floating and warped images have different dimensions along the time axis");
     if (deformationField->datatype != NIFTI_TYPE_FLOAT32 && deformationField->datatype != NIFTI_TYPE_FLOAT64)
         NR_FATAL_ERROR("The deformation field image is expected to be of type float or double");
+    // The resampler is chosen from the field: it walks the warped image in step with the field
+    // and samples the floating image with one coordinate per field component
+    if ((floatingImage->nz > 1) != (deformationField->nu > 2))
+        NR_FATAL_ERROR("The floating image and the deformation field must both be 2D or both be 3D - the floating image is "s +
+                       (floatingImage->nz > 1 ? "3D" : "2D") + " and the deformation field has " +
+                       std::to_string(deformationField->nu) + " components");
+    if (warpedImage->nx != deformationField->nx || warpedImage->ny != deformationField->ny || warpedImage->nz != deformationField->nz)
+        NR_FATAL_ERROR("The warped image and the deformation field must be defined on the same grid - the warped image is "s +
+                       std::to_string(warpedImage->nx) + "x" + std::to_string(warpedImage->ny) + "x" + std::to_string(warpedImage->nz) +
+                       " and the deformation field " + std::to_string(deformationField->nx) + "x" + std::to_string(deformationField->ny) +
+                       "x" + std::to_string(deformationField->nz));
 
     // Define the DTI indices if required
     int dtIndicies[6];
@@ -1777,6 +1788,16 @@ void reg_resampleGradient(const nifti_image *floatingImage,
         NR_FATAL_ERROR("Input images are expected to have the same type");
     if (floatingImage->datatype != NIFTI_TYPE_FLOAT32 && floatingImage->datatype != NIFTI_TYPE_FLOAT64)
         NR_FATAL_ERROR("Input images are expected to be of type float or double");
+    // The kernel is chosen from the warped grid and reads one component per dimension from all
+    // three fields, walking the warped and deformation fields in step
+    if (floatingImage->nu != warpedImage->nu || floatingImage->nu != deformationField->nu)
+        NR_FATAL_ERROR("The floating gradient, the warped gradient and the deformation field must have the same number of components - "s +
+                       std::to_string(floatingImage->nu) + ", " + std::to_string(warpedImage->nu) + " and " +
+                       std::to_string(deformationField->nu) + " were provided");
+    if ((warpedImage->nz > 1) != (warpedImage->nu > 2))
+        NR_FATAL_ERROR("The warped gradient must have two components when 2D and three when 3D");
+    if (warpedImage->nx != deformationField->nx || warpedImage->ny != deformationField->ny || warpedImage->nz != deformationField->nz)
+        NR_FATAL_ERROR("The warped gradient and the deformation field must be defined on the same grid");
 
     std::visit([&](auto&& floImgDataType) {
         using FloImgDataType = std::decay_t<decltype(floImgDataType)>;

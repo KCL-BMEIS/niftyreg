@@ -207,6 +207,10 @@ void OptimizeLts(_reg_blockMatchingParam *params,
         return;
     }
 
+    // The working set below holds the matched blocks only: a device sort refuses an empty one and
+    // a handful of points cannot determine the transformation
+    reg_checkCorrespondenceNumber(params, affine);
+
     const int n = params->activeBlockNumber;
 
     // Finite working set (drop NaN = unmatched): warpedWork = current_matrix * warped, refWork = ref.

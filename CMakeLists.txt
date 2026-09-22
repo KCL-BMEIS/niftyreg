@@ -10,6 +10,22 @@ if(APPLE)
   set(CMAKE_MACOSX_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif(APPLE)
 #-----------------------------------------------------------------------------
+# The dynamic loader resolves each object's dependencies through that object's own search
+# path and expands the token below to the object's directory, so one relocatable setting
+# lets executables in bin/ reach ../lib, libraries in lib/ reach their siblings, and the
+# CUDA plugin be found beside the executable or in ../lib. Windows looks DLLs up in the
+# executable's directory instead.
+if(NOT WIN32)
+  if(APPLE)
+    set(NR_RPATH_ORIGIN "@loader_path")
+  else()
+    set(NR_RPATH_ORIGIN "$ORIGIN")
+  endif()
+  set(CMAKE_INSTALL_RPATH "${NR_RPATH_ORIGIN};${NR_RPATH_ORIGIN}/../lib")
+  # A build-tree binary copied next to the plugin still finds it
+  set(CMAKE_BUILD_RPATH "${NR_RPATH_ORIGIN}")
+endif()
+#-----------------------------------------------------------------------------
 if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
   message("In-source builds not allowed by NiftyReg police.")
   message("Please create a new directory (called a build directory) and run CMake from there.")

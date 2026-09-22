@@ -300,6 +300,14 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
+   // The deformation field and the warped image are dimensioned from the reference image, so the
+   // floating image has to share its dimensionality
+   if(!reg_haveSameDimensionality(referenceImage, floatingImage))
+   {
+      NR_ERROR(reg_dimensionalityMismatchMessage(referenceImage, "reference image", floatingImage, "floating image"));
+      return EXIT_FAILURE;
+   }
+
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
    /* *********************************** */
@@ -333,6 +341,13 @@ int main(int argc, char **argv)
          if(inputTransformationImage==nullptr)
          {
             NR_ERROR("Error when reading the provided transformation: " << param->inputTransName);
+            return EXIT_FAILURE;
+         }
+         // The transformation is evaluated into a deformation field whose components follow the
+         // reference image
+         if(!reg_haveSameDimensionality(referenceImage, inputTransformationImage))
+         {
+            NR_ERROR(reg_dimensionalityMismatchMessage(referenceImage, "reference image", inputTransformationImage, "input transformation"));
             return EXIT_FAILURE;
          }
       }

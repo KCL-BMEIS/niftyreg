@@ -94,6 +94,14 @@ void block_matching_method(nifti_image * referenceImage,
                            _reg_blockMatchingParam *params,
                            int *mask);
 
+/** @brief Fatal error unless the block matching found enough correspondences for the
+ * trimmed least-squares estimation to have outliers to discard: 6 (2D) or 8 (3D) for an
+ * affine transformation, 4 for a rigid one
+ * @param params Block-matching structure filled by block_matching_method
+ * @param affine True for an affine estimation, false for a rigid one
+ */
+void reg_checkCorrespondenceNumber(const _reg_blockMatchingParam *params, bool affine);
+/* *************************************************************** */
 /** @brief Find the optimal affine transformation that matches the points
  * in the reference image to the point in the warped image
  * @param params Block-matching structure that contains the relevant information
