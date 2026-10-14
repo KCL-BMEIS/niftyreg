@@ -106,6 +106,9 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "(^|[^a-zA-Z])([xX]86|[xX]86_64|[aA][mM][dD]64
 else()
   set(NR_SSE_DEFAULT OFF)
 endif()
+if(APPLE AND CMAKE_OSX_ARCHITECTURES MATCHES "(^|;)arm64(e)?(;|$)")
+  set(NR_SSE_DEFAULT OFF)
+endif()
 option(USE_SSE "To enable SSE computation in some case" ${NR_SSE_DEFAULT})
 option(CHECK_GPU "To check if a GPU is available" ON)
 #-----------------------------------------------------------------------------
@@ -269,7 +272,7 @@ endif(USE_CUDA)
 #-----------------------------------------------------------------------------
 if(USE_SSE AND NOT NR_SSE_DEFAULT)
   # SSE is not available on this architecture (e.g. ARM/aarch64) - force it off
-  message(STATUS "SSE is not supported on ${CMAKE_SYSTEM_PROCESSOR}, forcing USE_SSE to OFF")
+  message(STATUS "SSE is not supported for the requested target architecture(s), forcing USE_SSE to OFF")
   set(USE_SSE OFF CACHE BOOL "To enable SSE computation in some case" FORCE)
 endif()
 if(USE_SSE)
