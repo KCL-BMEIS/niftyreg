@@ -415,7 +415,7 @@ double GetSimilarityMeasureValue(nifti_image *referenceImage,
                 mind += reg_getSsdValue<RefImgDataType>(referenceImageDescriptor,
                                                         warpedFloatingImageDescriptor,
                                                         timePointWeightsDescriptor,
-                                                        referenceTimePoints,
+                                                        referenceImageDescriptor->nt,
                                                         jacobianDetImage,
                                                         combinedMask.get(),
                                                         nullptr);
