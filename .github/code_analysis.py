@@ -4,6 +4,7 @@ import subprocess
 import argparse
 import sys
 from github import Github
+from github.GithubException import GithubException
 
 # Input variables from Github action
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
@@ -274,23 +275,33 @@ def create_or_edit_comment(comment_body):
     - None.
     """
 
-    github = Github(GITHUB_TOKEN)
-    repo = github.get_repo(TARGET_REPO_NAME)
-    pull_request = repo.get_pull(int(PR_NUM))
+    try:
+        github = Github(GITHUB_TOKEN)
+        repo = github.get_repo(TARGET_REPO_NAME)
+        pull_request = repo.get_pull(int(PR_NUM))
 
-    comments = pull_request.get_issue_comments()
-    found_id = -1
-    comment_to_edit = None
-    for comment in comments:
-        if (comment.user.login == "github-actions[bot]") and (COMMENT_TITLE in comment.body):
-            found_id = comment.id
-            comment_to_edit = comment
-            break
+        comments = pull_request.get_issue_comments()
+        found_id = -1
+        comment_to_edit = None
+        for comment in comments:
+            if (comment.user.login == "github-actions[bot]") and (COMMENT_TITLE in comment.body):
+                found_id = comment.id
+                comment_to_edit = comment
+                break
 
-    if found_id != -1 and comment_to_edit:
-        comment_to_edit.edit(body=comment_body)
-    else:
-        pull_request.create_issue_comment(body=comment_body)
+        if found_id != -1 and comment_to_edit:
+            comment_to_edit.edit(body=comment_body)
+        else:
+            pull_request.create_issue_comment(body=comment_body)
+    except GithubException as exc:
+        if exc.status != 403:
+            raise
+        print(
+            "::warning::Code analysis completed, but the GitHub Actions token "
+            "cannot post the PR comment (HTTP 403). See the job logs for results.",
+            file=sys.stderr,
+        )
+        print(comment_body, file=sys.stderr)
 
 
 def generate_output(is_note, file_path, file_line_start, file_line_end, description):
