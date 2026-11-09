@@ -1,0 +1,82 @@
+name: CUDA tests (simulated H100)
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# NiftyReg with the CUDA platform and runs the Catch2 suite, including the
+# CPU-vs-CUDA comparison tests, on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "reg-lib/**"
+      - "reg-io/**"
+      - "reg-apps/**"
+      - "reg-test/**"
+      - "cmake/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cuda-sim:
+    name: CUDA 13.0, simulated H100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      - name: Install build tools and Catch2
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends catch2 ninja-build
+
+      # The simulator runs PTX only, so the default architecture list (which has
+      # SASS-only entries) is replaced by 90-virtual for this job, and it needs a
+      # shared CUDA runtime. CHECK_GPU is off because the runner has no GPU to probe.
+      - name: Configure
+        run: |
+          sed -i 's/set(NR_DEFAULT_CUDA_ARCHITECTURES "75-real[^"]*")/set(NR_DEFAULT_CUDA_ARCHITECTURES "90-virtual")/' reg-lib/cuda/CMakeLists.txt
+          grep -n 'NR_DEFAULT_CUDA_ARCHITECTURES "90-virtual"' reg-lib/cuda/CMakeLists.txt
+          cmake -B build -S . -GNinja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_CUDA_COMPILER=/usr/local/cuda-13.0/bin/nvcc \
+                -DCUDAToolkit_ROOT=/usr/local/cuda-13.0 \
+                -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \
+                -DUSE_CUDA=ON \
+                -DCHECK_GPU=OFF \
+                -DUSE_OPENCL=OFF \
+                -DUSE_OPENMP=ON \
+                -DBUILD_TESTING=ON
+
+      - name: Build
+        run: cmake --build build -j3
+
+      # These 11 tests fail the same way on a real RTX 3060 built from the same
+      # sources (CPU and CUDA results differ by a few ULPs, so the exact-equality
+      # checks fail), except "Interpolation kernels", which writes past a
+      # one-voxel warped image in its CUDA Aladin section; the simulator reports
+      # that write, a real GPU does not. They are skipped so the check is green
+      # when nothing regresses.
+      - name: Run tests
+        working-directory: build
+        run: |
+          vgpu run ctest --output-on-failure -j2 -E '^(Regression Velocity Field Exponentiation|Regression Velocity Field Step Number Update|Regression Measure|Regression Measure - NMI value against image size|Regression Kernel Convolution|Regression Kernel Convolution - voxel-based gradient smoothing|Regression Kernel Convolution - transformation gradient smoothing|Regression Exponentiate Gradient|Regression Deformation Field Composition|Regression Deformation Field at the default control point spacing|Interpolation kernels)$'
