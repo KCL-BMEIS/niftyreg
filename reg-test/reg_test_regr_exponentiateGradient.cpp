@@ -1,5 +1,6 @@
 #include "reg_test_common.h"
 #include "CudaF3dContent.h"
+#include <optional>
 
 /**
  *  Gradient accumulation through exponentiation, CPU against CUDA
@@ -14,11 +15,16 @@
  *  Each backend is also run twice, resetting the gradient in between, so that the second call has to
  *  reproduce the first. Both implementations pool scratch buffers across calls, and a field left dirty
  *  by one call can only show up in a later one.
+ *
+ *  The "affine" cases use a backward grid as reg_f3d2 creates it from an initial affine: the two
+ *  halves of the affine are stored as extensions on the grid and the backward content holds the full
+ *  backward affine. The intermediate fields are then built around the first half and composed with
+ *  the second, a path the plain cases never take.
 **/
 
 class ExponentiateGradientTest {
 protected:
-    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
+    using TestData = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage, std::optional<mat44>>;
     // name, input gradient, cpu 1st call, cpu 2nd call, cuda 1st call, cuda 2nd call
     using TestCase = std::tuple<std::string, NiftiImage, NiftiImage, NiftiImage, NiftiImage, NiftiImage>;
 
@@ -93,15 +99,51 @@ public:
         voxelBasedGrad2d->qto_xyz = nifti_mat44_inverse(voxelBasedGrad2d->qto_ijk);
         voxelBasedGrad3d->sto_xyz = nifti_mat44_inverse(voxelBasedGrad3d->sto_ijk);
 
+        // Backward grids carrying the two halves of an affine as extensions, with a random velocity
+        const mat44 affine2d = makeRotationScalingAffine(false, 0.2f, { 0.75f, -0.5f, 0.6f });
+        const mat44 affine3d = makeRotationScalingAffine(true, 0.2f, { 0.75f, -0.5f, 0.6f });
+        auto createAffineGridBw = [&](const NiftiImage& reference, const mat44& affine) {
+            const float spacing[3]{ reference->dx * 2, reference->dy * 2, reference->dz * 2 };
+            NiftiImage gridFw, gridBw;
+            reg_createSymmetricControlPointGrids<float>(gridFw, gridBw, reference, reference, &affine, spacing);
+            gridBw->intent_p1 = SPLINE_VEL_GRID;
+            gridBw->intent_p2 = squaringSteps;
+            auto gridBwPtr = gridBw.data();
+            for (size_t i = 0; i < gridBw.nVoxels(); i++)
+                gridBwPtr[i] = static_cast<float>(gridBwPtr[i]) + distr(gen);
+            return gridBw;
+        };
+        NiftiImage controlPointGridBwAffine2d = createAffineGridBw(reference2d, affine2d);
+        NiftiImage controlPointGridBwAffine3d = createAffineGridBw(reference3d, affine3d);
+
         // Add the test data
         vector<TestData> testData;
+        testData.emplace_back(TestData(
+            "2D affine",
+            NiftiImage(reference2d, NiftiImage::Copy::Image),
+            NiftiImage(deformationField2d, NiftiImage::Copy::Image),
+            NiftiImage(controlPointGrid2d, NiftiImage::Copy::Image),
+            std::move(controlPointGridBwAffine2d),
+            NiftiImage(voxelBasedGrad2d, NiftiImage::Copy::Image),
+            nifti_mat44_inverse(affine2d)
+        ));
+        testData.emplace_back(TestData(
+            "3D affine",
+            NiftiImage(reference3d, NiftiImage::Copy::Image),
+            NiftiImage(deformationField3d, NiftiImage::Copy::Image),
+            NiftiImage(controlPointGrid3d, NiftiImage::Copy::Image),
+            std::move(controlPointGridBwAffine3d),
+            NiftiImage(voxelBasedGrad3d, NiftiImage::Copy::Image),
+            nifti_mat44_inverse(affine3d)
+        ));
         testData.emplace_back(TestData(
             "2D",
             std::move(reference2d),
             std::move(deformationField2d),
             std::move(controlPointGrid2d),
             std::move(controlPointGridBw2d),
-            std::move(voxelBasedGrad2d)
+            std::move(voxelBasedGrad2d),
+            std::nullopt
         ));
         testData.emplace_back(TestData(
             "3D",
@@ -109,7 +151,8 @@ public:
             std::move(deformationField3d),
             std::move(controlPointGrid3d),
             std::move(controlPointGridBw3d),
-            std::move(voxelBasedGrad3d)
+            std::move(voxelBasedGrad3d),
+            std::nullopt
         ));
 
         // Create the platforms
@@ -118,7 +161,8 @@ public:
 
         for (auto&& testData : testData) {
             // Get the test data
-            auto&& [testName, reference, defField, controlPointGrid, controlPointGridBw, voxelBasedGrad] = testData;
+            auto&& [testName, reference, defField, controlPointGrid, controlPointGridBw, voxelBasedGrad, affineBw] = testData;
+            mat44 *affineBwPtr = affineBw ? &*affineBw : nullptr;
 
             // Create images
             NiftiImage referenceCpu(reference), referenceCuda(reference);
@@ -130,8 +174,8 @@ public:
             // Create the contents
             unique_ptr<F3dContent> contentCpu{ new F3dContent(referenceCpu, referenceCpu, cppCpu) };
             unique_ptr<F3dContent> contentCuda{ new CudaF3dContent(referenceCuda, referenceCuda, cppCuda) };
-            unique_ptr<F3dContent> contentBwCpu{ new F3dContent(referenceBwCpu, referenceBwCpu, cppBwCpu) };
-            unique_ptr<F3dContent> contentBwCuda{ new CudaF3dContent(referenceBwCuda, referenceBwCuda, cppBwCuda) };
+            unique_ptr<F3dContent> contentBwCpu{ new F3dContent(referenceBwCpu, referenceBwCpu, cppBwCpu, nullptr, nullptr, affineBwPtr) };
+            unique_ptr<F3dContent> contentBwCuda{ new CudaF3dContent(referenceBwCuda, referenceBwCuda, cppBwCuda, nullptr, nullptr, affineBwPtr) };
 
             // Set the deformation fields
             contentCpu->SetDeformationField(std::move(defFieldCpu));
