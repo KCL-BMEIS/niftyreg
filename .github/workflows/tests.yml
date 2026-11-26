@@ -36,6 +36,13 @@ jobs:
           cmake -Bbuild -H. -DBUILD_TESTING=OFF
           ${{ matrix.sudo }} cmake --build build/ --target install --config ${{ matrix.build-type }}
 
+      - name: Use the clang-cl bundled with Visual Studio
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -property installationPath
+          "$vs\VC\Tools\Llvm\x64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
       - name: Configure NiftyReg
         shell: bash
         run: |
