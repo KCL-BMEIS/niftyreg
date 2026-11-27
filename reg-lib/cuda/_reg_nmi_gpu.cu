@@ -92,18 +92,17 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
         thrust::fill(thrust::device, jointHistogramProCudaVecs[t].begin(), jointHistogramProCudaVecs[t].end(), 0.0);
         double *jointHistogramLogCuda = jointHistogramLogCudaVecs[t].data().get();
         double *jointHistogramProCuda = jointHistogramProCudaVecs[t].data().get();
-        // Define the current textures
-        auto referenceImageTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-        auto warpedImageTexturePtr = Cuda::CreateTextureObject(warpedImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-        auto referenceImageTexture = *referenceImageTexturePtr;
-        auto warpedImageTexture = *warpedImageTexturePtr;
+        // A time point starts at an offset that is not necessarily 512-byte aligned, so it cannot be
+        // bound to a texture (cudaCreateTextureObject rejects unaligned addresses)
+        const float *refPtr = referenceImageCuda + t * voxelNumber;
+        const float *warPtr = warpedImageCuda + t * voxelNumber;
         // Fill the joint histograms
         if (approximation == false) {
             // No approximation is used for the Parzen windowing
             thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
-                const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
+                const float refValue = refPtr[index];
                 if (refValue != refValue) return;
-                const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
+                const float warValue = warPtr[index];
                 if (warValue != warValue) return;
                 for (int r = int(refValue) - 1; r < int(refValue) + 3; r++) {
                     if (0 <= r && r < curRefBinNumber) {
@@ -121,9 +120,9 @@ void reg_getNmiValue_gpu(const nifti_image *referenceImage,
             // An approximation is used for the Parzen windowing. First intensities are binarised then
             // the histogram is convolved with a spine kernel function.
             thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
-                const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
+                const float refValue = refPtr[index];
                 if (refValue != refValue) return;
-                const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
+                const float warValue = warPtr[index];
                 if (warValue != warValue) return;
                 if (0 <= refValue && refValue < curRefBinNumber && 0 <= warValue && warValue < curFloBinNumber)
                     atomicAdd(&jointHistogramProCuda[int(refValue) + int(warValue) * curRefBinNumber], 1.0);
@@ -313,17 +312,17 @@ void reg_getVoxelBasedNmiGradient_gpu(const nifti_image *referenceImage,
     const int referenceOffset = refBinNumber * floBinNumber;
     const int floatingOffset = referenceOffset + refBinNumber;
 
-    auto referenceImageTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto warpedImageTexturePtr = Cuda::CreateTextureObject(warpedImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+    // A time point starts at an offset that is not necessarily 512-byte aligned, so it cannot be
+    // bound to a texture (cudaCreateTextureObject rejects unaligned addresses)
+    const float *refPtr = referenceImageCuda + currentTimePoint * voxelNumber;
+    const float *warPtr = warpedImageCuda + currentTimePoint * voxelNumber;
     auto warpedGradientTexturePtr = Cuda::CreateTextureObject(warpedGradientCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-    auto referenceImageTexture = *referenceImageTexturePtr;
-    auto warpedImageTexture = *warpedImageTexturePtr;
     auto warpedGradientTexture = *warpedGradientTexturePtr;
 
     thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
-        const float refValue = tex1Dfetch<float>(referenceImageTexture, index);
+        const float refValue = refPtr[index];
         if (refValue != refValue) return;
-        const float warValue = tex1Dfetch<float>(warpedImageTexture, index);
+        const float warValue = warPtr[index];
         if (warValue != warValue) return;
         const float4 warGradValue = tex1Dfetch<float4>(warpedGradientTexture, index);
 

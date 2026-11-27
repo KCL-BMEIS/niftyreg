@@ -69,16 +69,16 @@ double reg_getSsdValue_gpu(const nifti_image *referenceImage,
 
     double ssd = 0.0;
     for (int t = 0; t < referenceTimePoints; t++) {
-        auto referenceTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-        auto warpedTexturePtr = Cuda::CreateTextureObject(warpedCuda + t * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-        auto referenceTexture = *referenceTexturePtr;
-        auto warpedTexture = *warpedTexturePtr;
+        // A time point starts at an offset that is not necessarily 512-byte aligned, so it cannot be
+        // bound to a texture (cudaCreateTextureObject rejects unaligned addresses)
+        const float *refPtr = referenceImageCuda + t * voxelNumber;
+        const float *warPtr = warpedCuda + t * voxelNumber;
 
         const auto ssdAndCount = thrust::transform_reduce(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) -> double2 {
-            const double refValue = tex1Dfetch<float>(referenceTexture, index);
+            const double refValue = refPtr[index];
             if (refValue != refValue) return {};
 
-            const double warValue = tex1Dfetch<float>(warpedTexture, index);
+            const double warValue = warPtr[index];
             if (warValue != warValue) return {};
 
             const double weight = localWeightSimTexture ? tex1Dfetch<float>(localWeightSimTexture, index) : 1.f;
@@ -127,11 +127,11 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
     const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const size_t voxelNumber = NiftiImage::calcVoxelNumber(referenceImage, 3);
 
-    auto referenceTexturePtr = Cuda::CreateTextureObject(referenceImageCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
-    auto warpedTexturePtr = Cuda::CreateTextureObject(warpedCuda + currentTimePoint * voxelNumber, voxelNumber, cudaChannelFormatKindFloat, 1);
+    // A time point starts at an offset that is not necessarily 512-byte aligned, so it cannot be
+    // bound to a texture (cudaCreateTextureObject rejects unaligned addresses)
+    const float *refPtr = referenceImageCuda + currentTimePoint * voxelNumber;
+    const float *warPtr = warpedCuda + currentTimePoint * voxelNumber;
     auto spatialGradTexturePtr = Cuda::CreateTextureObject(spatialGradCuda, voxelNumber, cudaChannelFormatKindFloat, 4);
-    auto referenceTexture = *referenceTexturePtr;
-    auto warpedTexture = *warpedTexturePtr;
     auto spatialGradTexture = *spatialGradTexturePtr;
     Cuda::UniqueTextureObjectPtr localWeightSimTexturePtr; cudaTextureObject_t localWeightSimTexture = 0;
     if (localWeightSimCuda) {
@@ -141,9 +141,9 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
 
     // Find number of valid voxels and correct weight
     const auto validVoxelNumber = thrust::count_if(thrust::device, maskCuda, maskCuda + activeVoxelNumber, [=]__device__(const int index) -> bool {
-        const float refValue = tex1Dfetch<float>(referenceTexture, index);
+        const float refValue = refPtr[index];
         if (refValue != refValue) return false;
-        const float warValue = tex1Dfetch<float>(warpedTexture, index);
+        const float warValue = warPtr[index];
         if (warValue != warValue) return false;
         return true;
     });
@@ -151,10 +151,10 @@ void reg_getVoxelBasedSsdGradient_gpu(const nifti_image *referenceImage,
 
     // Calculate the SSD gradient
     thrust::for_each_n(thrust::device, maskCuda, activeVoxelNumber, [=]__device__(const int index) {
-        const double refValue = tex1Dfetch<float>(referenceTexture, index);
+        const double refValue = refPtr[index];
         if (refValue != refValue) return;
 
-        const double warValue = tex1Dfetch<float>(warpedTexture, index);
+        const double warValue = warPtr[index];
         if (warValue != warValue) return;
 
         const float4 spaGradientValue = tex1Dfetch<float4>(spatialGradTexture, index);

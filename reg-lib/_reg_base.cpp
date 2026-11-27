@@ -17,6 +17,14 @@ template<class T>
 reg_base<T>::reg_base(int refTimePoints, int floTimePoints) {
     reg_base::SetPlatformType(PlatformType::Cpu);
 
+    // The similarity measures keep per-time-point settings (weights, bin numbers, kernel sizes) in
+    // fixed arrays of 255 entries; more time points would write past them and corrupt the heap
+    constexpr int maxTimePoints = 255;
+    if (refTimePoints > maxTimePoints || floTimePoints > maxTimePoints)
+        NR_FATAL_ERROR("The reference and floating images can have at most " + std::to_string(maxTimePoints) +
+                       " time points (channels); the provided images have " + std::to_string(refTimePoints) +
+                       " and " + std::to_string(floTimePoints));
+
     maxIterationNumber = 150;
     optimiseX = true;
     optimiseY = true;
