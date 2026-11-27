@@ -23,6 +23,9 @@ CudaContent::~CudaContent() {
 }
 /* *************************************************************** */
 void CudaContent::AllocateReference() {
+    // A reference read header-only (reg_resample only needs its geometry) has no data to upload;
+    // referenceCuda then stays null so any kernel that would read it fails instead of using garbage
+    if (!reference->data) return;
     if (reference->nbyper != NIFTI_TYPE_FLOAT32)
         reference.changeDatatype(NIFTI_TYPE_FLOAT32);
     Cuda::Allocate(&referenceCuda, reference->nvox);

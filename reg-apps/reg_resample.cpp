@@ -308,6 +308,15 @@ int main(int argc, char **argv)
       return EXIT_FAILURE;
    }
 
+   // The GPU resampler is linear only, and the default interpolation is cubic. Tensor and PSF
+   // resampling always run on the CPU (see the warping below), so any interpolation suits them.
+   const bool resamplesOnCpu = ((floatingImage->dim[4]==6 || floatingImage->dim[4]==7) && flag->isTensor) || flag->usePSF;
+   if(platformType == PlatformType::Cuda && flag->outputResultFlag && param->interpolation != 1 && !resamplesOnCpu)
+   {
+      NR_ERROR("The CUDA platform only supports linear interpolation: use -inter 1, or -platf 0 for nearest-neighbour, cubic or sinc interpolation");
+      return EXIT_FAILURE;
+   }
+
    /* *********************************** */
    /* DISPLAY THE RESAMPLING PARAMETERS */
    /* *********************************** */
