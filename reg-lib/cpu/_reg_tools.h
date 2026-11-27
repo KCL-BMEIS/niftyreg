@@ -319,10 +319,11 @@ void reg_tools_binaryImage2int(const nifti_image *img,
                                int *array);
 /* *************************************************************** */
 /** @brief Compute the mean root mean squared error between
- * two vector images
+ * two vector images: the mean over voxels of the Euclidean distance between the vectors
+ * (|a-b| for scalar images). Voxels that are NaN in either image are ignored.
  * @param imgA Input vector image
  * @param imgB Input vector image
- * @return Mean root mean squared error values returned
+ * @return Mean root mean squared error, or NaN if no voxel is defined in both images
  */
 double reg_tools_getMeanRMS(const nifti_image *imgA,
                             const nifti_image *imgB);

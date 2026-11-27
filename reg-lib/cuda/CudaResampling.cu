@@ -93,8 +93,9 @@ void ResampleImage(const nifti_image *floatingImage,
                             const int x = previous.x + a;
                             if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y && -1 < z && z < floatingDim.z) {
                                 tempX += tex1Dfetch<float>(floatingTexture, floOffset + index) * xBasis[a];
-                            } else {
-                                // Padding value
+                            } else if (xBasis[a] * yBasis[b] * zBasis[c] != 0) {
+                                // A zero-weight padding tap is skipped: 0*NaN would turn a sample lying
+                                // exactly on the last valid voxel into NaN under NaN padding
                                 tempX += paddingValue * xBasis[a];
                             }
                         }
@@ -112,8 +113,8 @@ void ResampleImage(const nifti_image *floatingImage,
                         const int x = previous.x + a;
                         if (-1 < x && x < floatingDim.x && -1 < y && y < floatingDim.y) {
                             tempX += tex1Dfetch<float>(floatingTexture, floOffset + index) * xBasis[a];
-                        } else {
-                            // Padding value
+                        } else if (xBasis[a] * yBasis[b] != 0) {
+                            // Zero-weight padding taps are skipped so that NaN padding cannot leak as 0*NaN
                             tempX += paddingValue * xBasis[a];
                         }
                     }

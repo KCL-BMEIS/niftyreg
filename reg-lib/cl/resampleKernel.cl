@@ -125,7 +125,9 @@ __inline real_t interpLoop2D(__global float* floatingIntensity,
 
                 const unsigned idx = Y * fi_xyz.x + X;
 
-                xTempNewValue += (xInBounds && yInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
+                // Zero-weight padding taps are skipped so that NaN padding cannot leak as 0*NaN
+                if (xInBounds && yInBounds) xTempNewValue += floatingIntensity[idx] * xBasis[a];
+                else if (xBasis[a] * yBasis[b] != 0) xTempNewValue += paddingValue * xBasis[a];
             }
             intensity += xTempNewValue * yBasis[b];
     }
@@ -157,7 +159,9 @@ __inline real_t interpLoop3D(__global float* floatingIntensity,
                 bool xInBounds = -1 < X && X < fi_xyz.x;
                 const unsigned idx = Z * fi_xyz.x * fi_xyz.y + Y * fi_xyz.x + X;
 
-                xTempNewValue += (xInBounds && yInBounds  && zInBounds) ? floatingIntensity[idx] * xBasis[a] : paddingValue * xBasis[a];
+                // Zero-weight padding taps are skipped so that NaN padding cannot leak as 0*NaN
+                if (xInBounds && yInBounds && zInBounds) xTempNewValue += floatingIntensity[idx] * xBasis[a];
+                else if (xBasis[a] * yBasis[b] * zBasis[c] != 0) xTempNewValue += paddingValue * xBasis[a];
             }
             yTempNewValue += xTempNewValue * yBasis[b];
         }
