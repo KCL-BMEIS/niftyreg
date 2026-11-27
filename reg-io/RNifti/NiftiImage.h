@@ -1924,14 +1924,21 @@ public:
             if constexpr (std::is_floating_point_v<DataType>)
                 return static_cast<RetT>(value);
             if (value != value) return 0; // Check for NaN
-            if (value < std::numeric_limits<DataType>::min())
+            // Interpolated values are rounded to the nearest integer: a plain cast truncates toward zero,
+            // which biases every resampled integer image by -0.5 on average and erodes partial-volume
+            // masks (any value below 1 becomes 0)
+            T rounded = value;
+            if constexpr (std::is_floating_point_v<T>)
+                rounded = std::round(value);
+            if (rounded < std::numeric_limits<DataType>::min())
                 return static_cast<RetT>(std::numeric_limits<DataType>::min());
             // To handle the case, implicit conversion from 'long long' to 'float/double' changes value from 9223372036854775807 to 9223372036854775808
             // To handle the case, implicit conversion from 'unsigned long long' to 'float/double' changes value from 18446744073709551615 to 18446744073709551616
+            // so a value equal to that rounded-up maximum must be clamped too, or the cast overflows
             constexpr auto maxVal = std::is_floating_point_v<T> ? static_cast<T>(std::numeric_limits<DataType>::max()) : std::numeric_limits<DataType>::max();
-            if (value > maxVal)
+            if (rounded >= maxVal)
                 return static_cast<RetT>(std::numeric_limits<DataType>::max());
-            return static_cast<RetT>(value);
+            return static_cast<RetT>(rounded);
         }, NiftiImage::getDataType(image));
     }
 

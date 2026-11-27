@@ -439,6 +439,9 @@ int compute_average_image(nifti_image *averageImage,
          return EXIT_FAILURE;
       }
       reg_tools_changeDatatype<PrecisionType>(current_input_image);
+      // Average real values: inputs stored with different scl_slope/scl_inter (e.g. Philips int16 MR)
+      // would otherwise be mixed in their stored units, and the output header has no scaling
+      reg_tools_removeSCLInfo(current_input_image);
       // Apply the transformation
       reg_resampleImage(current_input_image,
                         warpedImage,

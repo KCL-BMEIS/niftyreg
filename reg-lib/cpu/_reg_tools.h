@@ -95,6 +95,13 @@ void reg_intensityRescale(nifti_image *image,
  */
 void reg_tools_removeSCLInfo(nifti_image *img);
 /* *************************************************************** */
+/** @brief Copy the intensity scaling (scl_slope, scl_inter) and display range (cal_min, cal_max)
+ * of one image onto another, e.g. onto a warped image that holds the source's stored values
+ * @param target Image whose header is updated
+ * @param source Image whose intensity scaling is copied
+ */
+void reg_tools_copyIntensityScaling(nifti_image *target, const nifti_image *source);
+/* *************************************************************** */
 /** @brief reg_getRealImageSpacing
  * @param image image
  * @param spacingValues spacingValues

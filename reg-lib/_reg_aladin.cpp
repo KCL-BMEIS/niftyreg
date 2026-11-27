@@ -200,12 +200,13 @@ void reg_aladin<T>::InitialiseRegistration() {
             for (int z = 0; z < this->inputReference->nz; ++z) {
                 for (int y = 0; y < this->inputReference->ny; ++y) {
                     for (int x = 0; x < this->inputReference->nx; ++x) {
-                        float value = refPtr[refIndex];
+                        // A single NaN voxel would make the whole centre, hence the initial transformation, NaN
+                        const float value = refPtr[refIndex++];
+                        if (value != value) continue;
                         referenceCentre[0] += (float)x * value;
                         referenceCentre[1] += (float)y * value;
                         referenceCentre[2] += (float)z * value;
                         referenceCount += value;
-                        refIndex++;
                     }
                 }
             }
@@ -224,12 +225,12 @@ void reg_aladin<T>::InitialiseRegistration() {
             for (int z = 0; z < this->inputFloating->nz; ++z) {
                 for (int y = 0; y < this->inputFloating->ny; ++y) {
                     for (int x = 0; x < this->inputFloating->nx; ++x) {
-                        float value = floPtr[floIndex];
+                        const float value = floPtr[floIndex++];
+                        if (value != value) continue;
                         floatingCentre[0] += (float)x * value;
                         floatingCentre[1] += (float)y * value;
                         floatingCentre[2] += (float)z * value;
                         floatingCount += value;
-                        floIndex++;
                     }
                 }
             }
@@ -449,10 +450,7 @@ NiftiImage reg_aladin<T>::GetFinalWarpedImage() {
     reg_aladin<T>::GetWarpedImage(3, this->warpedPaddingValue); // cubic spline interpolation
 
     NiftiImage warpedImage(this->con->GetWarped());
-    warpedImage->cal_min = this->inputFloating->cal_min;
-    warpedImage->cal_max = this->inputFloating->cal_max;
-    warpedImage->scl_slope = this->inputFloating->scl_slope;
-    warpedImage->scl_inter = this->inputFloating->scl_inter;
+    reg_tools_copyIntensityScaling(warpedImage, this->inputFloating);
 
     reg_aladin<T>::DeallocateKernels();
     reg_aladin<T>::DeinitAladinContent();

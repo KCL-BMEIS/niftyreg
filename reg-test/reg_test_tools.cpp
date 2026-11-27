@@ -86,6 +86,40 @@ TEST_CASE("Tools: image arithmetic", "[unit]") {
     }
 }
 
+TEST_CASE("Tools: values stored into integer images are rounded and clamped", "[unit]") {
+    // Resampled and computed values written into an integer image are rounded to the nearest integer
+    // (a cast would truncate toward zero: a -0.5 bias on average and eroded partial-volume masks) and
+    // clamped to the type's range (a cast would wrap around); NaN becomes 0
+    SECTION("NiftiImage::clampData, as used by every resampler") {
+        const NiftiImage int16({ 1 }, NIFTI_TYPE_INT16), uint8({ 1 }, NIFTI_TYPE_UINT8);
+        REQUIRE(int16.clampData<short>(20.9f) == 21);
+        REQUIRE(int16.clampData<short>(29.1f) == 29);
+        REQUIRE(int16.clampData<short>(-3.6f) == -4);
+        REQUIRE(int16.clampData<short>(40000.f) == 32767);
+        REQUIRE(int16.clampData<short>(-40000.f) == -32768);
+        REQUIRE(int16.clampData<short>(std::numeric_limits<float>::quiet_NaN()) == 0);
+        REQUIRE(uint8.clampData<unsigned char>(0.6f) == 1);   // a mask edge survives
+        REQUIRE(uint8.clampData<unsigned char>(-0.4f) == 0);
+        REQUIRE(uint8.clampData<unsigned char>(255.4f) == 255);
+    }
+    SECTION("arithmetic on an int16 image") {
+        NiftiImage img({ 4 }, NIFTI_TYPE_INT16);
+        auto ptr = img.data();
+        const short values[] = { 1, 2, -2, 1000 };
+        for (int i = 0; i < 4; ++i) ptr[i] = values[i];
+        NiftiImage out(img, NiftiImage::Copy::ImageInfoAndAllocData);
+        reg_tools_divideValueToImage(img, out, 3.0);
+        const short divided[] = { 0, 1, -1, 333 };   // 1/3, 2/3, -2/3, 1000/3 rounded
+        for (int i = 0; i < 4; ++i) {
+            INFO("voxel " << i);
+            REQUIRE(static_cast<int>(out.data()[i]) == divided[i]);
+        }
+        reg_tools_multiplyValueToImage(img, out, 100.0);
+        REQUIRE(static_cast<int>(out.data()[3]) == 32767);   // 100000 clamped, not wrapped
+        REQUIRE(static_cast<int>(out.data()[2]) == -200);
+    }
+}
+
 TEST_CASE("Tools: intensity rescale and threshold", "[unit]") {
     SECTION("rescale maps [min, max] to [newMin, newMax] linearly") {
         // Values 10..20: rescaled = (v - 10) / 10 * (newMax - newMin) + newMin, exact for these

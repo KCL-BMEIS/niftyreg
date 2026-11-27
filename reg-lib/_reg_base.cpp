@@ -420,29 +420,35 @@ void reg_base<T>::Initialise() {
 
     // Update the input images threshold if required
     if (robustRange) {
-        // Create a copy of the reference image to extract the robust range
-        NiftiImage tmpReference = inputReference;
-        reg_tools_changeDatatype<T>(tmpReference);
-        // Extract the robust range of the reference image
-        T *refDataPtr = static_cast<T *>(tmpReference->data);
-        HeapSort(refDataPtr, tmpReference->nvox);
-        // Update the reference threshold values if no value has been setup by the user
-        if (referenceThresholdLow[0] == std::numeric_limits<T>::lowest())
-            referenceThresholdLow[0] = refDataPtr[Round<size_t>(tmpReference->nvox * 0.02)];
-        if (referenceThresholdUp[0] == std::numeric_limits<T>::max())
-            referenceThresholdUp[0] = refDataPtr[Round<size_t>(tmpReference->nvox * 0.98)];
-
-        // Create a copy of the floating image to extract the robust range
-        NiftiImage tmpFloating = inputFloating;
-        reg_tools_changeDatatype<T>(tmpFloating);
-        // Extract the robust range of the floating image
-        T *floDataPtr = static_cast<T *>(tmpFloating->data);
-        HeapSort(floDataPtr, tmpFloating->nvox);
-        // Update the floating threshold values if no value has been setup by the user
-        if (floatingThresholdLow[0] == std::numeric_limits<T>::lowest())
-            floatingThresholdLow[0] = floDataPtr[Round<size_t>(tmpFloating->nvox * 0.02)];
-        if (floatingThresholdUp[0] == std::numeric_limits<T>::max())
-            floatingThresholdUp[0] = floDataPtr[Round<size_t>(tmpFloating->nvox * 0.98)];
+        // The 2nd and 98th percentiles of each time point, in the same units as the thresholds and the
+        // pyramid images: real values (scl_slope/scl_inter applied) with the NaN voxels left out
+        auto robustRangeOf = [](const NiftiImage& input, unique_ptr<T[]>& low, unique_ptr<T[]>& up, const int timePoints) {
+            NiftiImage image = input;
+            reg_tools_changeDatatype<T>(image);
+            reg_tools_removeSCLInfo(image);
+            const size_t voxelNumber = image.nVoxelsPerVolume();
+            for (int t = 0; t < std::min(image->nt, timePoints); ++t) {
+                const T *dataPtr = static_cast<T*>(image->data) + t * voxelNumber;
+                vector<T> values;
+                values.reserve(voxelNumber);
+                for (size_t i = 0; i < voxelNumber; ++i)
+                    if (dataPtr[i] == dataPtr[i]) values.push_back(dataPtr[i]);
+                if (values.empty()) continue;
+                // A threshold set by the user takes precedence over the robust range
+                if (low[t] == std::numeric_limits<T>::lowest()) {
+                    auto nth = values.begin() + std::min(Round<size_t>(values.size() * 0.02), values.size() - 1);
+                    std::nth_element(values.begin(), nth, values.end());
+                    low[t] = *nth;
+                }
+                if (up[t] == std::numeric_limits<T>::max()) {
+                    auto nth = values.begin() + std::min(Round<size_t>(values.size() * 0.98), values.size() - 1);
+                    std::nth_element(values.begin(), nth, values.end());
+                    up[t] = *nth;
+                }
+            }
+        };
+        robustRangeOf(inputReference, referenceThresholdLow, referenceThresholdUp, referenceTimePoints);
+        robustRangeOf(inputFloating, floatingThresholdLow, floatingThresholdUp, floatingTimePoints);
     }
 
     // FINEST LEVEL OF REGISTRATION
@@ -479,9 +485,20 @@ void reg_base<T>::Initialise() {
     }
 
     // THRESHOLD THE INPUT IMAGES IF REQUIRED
+    // Each image gets its own thresholds, time point by time point (the pyramid images are of type T,
+    // in real units); NaN voxels are left untouched
+    auto thresholdPerTimePoint = [](NiftiImage& image, const unique_ptr<T[]>& low, const unique_ptr<T[]>& up, const int timePoints) {
+        const size_t voxelNumber = image.nVoxelsPerVolume();
+        for (int t = 0; t < std::min(image->nt, timePoints); ++t) {
+            if (low[t] == std::numeric_limits<T>::lowest() && up[t] == std::numeric_limits<T>::max()) continue;
+            T *dataPtr = static_cast<T*>(image->data) + t * voxelNumber;
+            for (size_t i = 0; i < voxelNumber; ++i)
+                if (dataPtr[i] == dataPtr[i]) dataPtr[i] = std::clamp(dataPtr[i], low[t], up[t]);
+        }
+    };
     for (unsigned l = 0; l < imageCount; l++) {
-        reg_thresholdImage<T>(referencePyramid[l], referenceThresholdLow[0], referenceThresholdUp[0]);
-        reg_thresholdImage<T>(floatingPyramid[l], referenceThresholdLow[0], referenceThresholdUp[0]);
+        thresholdPerTimePoint(referencePyramid[l], referenceThresholdLow, referenceThresholdUp, referenceTimePoints);
+        thresholdPerTimePoint(floatingPyramid[l], floatingThresholdLow, floatingThresholdUp, floatingTimePoints);
     }
 
     initialised = true;

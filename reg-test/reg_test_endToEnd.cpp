@@ -2,6 +2,7 @@
 #include "_reg_aladin_sym.h"
 #include "_reg_f3d2.h"
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <functional>
 
 /**
  *  End-to-end smoke tests for the registration front-ends
@@ -219,3 +220,157 @@ TEST_CASE("reg_f3d refuses the OpenCL platform with a diagnosis", "[reg_f3d][smo
                         Catch::Matchers::ContainsSubstring("does not provide similarity measures"));
 }
 #endif
+
+namespace {
+
+// Raw buffers on purpose below: NiftiImage::data() applies scl_slope/scl_inter on read and inverts it
+// on write, which would hide (or double) the scaling these tests are about
+
+// The same intensities stored as int16 with a slope and an intercept (real = stored * slope + inter)
+NiftiImage ToScaledInt16(const NiftiImage& image, const float slope, const float inter) {
+    NiftiImage scaled(image, NiftiImage::Copy::ImageInfo);
+    scaled->datatype = NIFTI_TYPE_INT16;
+    scaled->nbyper = sizeof(short);
+    scaled.realloc();
+    scaled->scl_slope = slope;
+    scaled->scl_inter = inter;
+    const float *in = static_cast<const float*>(image->data);
+    short *out = static_cast<short*>(scaled->data);
+    for (size_t i = 0; i < image.nVoxels(); ++i)
+        out[i] = static_cast<short>(std::lround((in[i] - inter) / slope));
+    return scaled;
+}
+
+// The real values of a scaled int16 image, as a float image without scaling
+NiftiImage ToRealFloat(const NiftiImage& image) {
+    NiftiImage real(image, NiftiImage::Copy::ImageInfo);
+    real->datatype = NIFTI_TYPE_FLOAT32;
+    real->nbyper = sizeof(float);
+    real.realloc();
+    real->scl_slope = 1;
+    real->scl_inter = 0;
+    const short *in = static_cast<const short*>(image->data);
+    float *out = static_cast<float*>(real->data);
+    for (size_t i = 0; i < image.nVoxels(); ++i)
+        out[i] = in[i] * image->scl_slope + image->scl_inter;
+    return real;
+}
+
+// Median rather than mean: the padding of an integer warped image is stored as 0, i.e. the intercept
+double MedianRealValue(const NiftiImage& image) {
+    REQUIRE(image->datatype == NIFTI_TYPE_INT16);
+    const float slope = image->scl_slope == 0 ? 1.f : image->scl_slope;
+    const short *data = static_cast<const short*>(image->data);
+    vector<double> values(data, data + image.nVoxels());
+    for (auto& value : values) value = value * slope + image->scl_inter;
+    std::nth_element(values.begin(), values.begin() + values.size() / 2, values.end());
+    return values[values.size() / 2];
+}
+
+NiftiImage RunF3dOnCpu(const NiftiImage& reference, const NiftiImage& floating,
+                       const std::function<void(reg_f3d<float>&)>& configure = nullptr) {
+    reg_f3d<float> reg(reference->nt, floating->nt);
+    reg.SetReferenceImage(reference);
+    reg.SetFloatingImage(floating);
+    reg.SetPlatformType(PlatformType::Cpu);
+    reg.DoNotPrintOutInformation();
+    reg.SetLevelNumber(2);
+    reg.SetLevelToPerform(2);
+    reg.SetMaximalIterationNumber(5);
+    if (configure) configure(reg);
+    reg.Run();
+    return reg.GetControlPointPositionImage();
+}
+
+bool SameValues(const NiftiImage& a, const NiftiImage& b) {
+    for (size_t i = 0; i < a.nVoxels(); ++i)
+        if (static_cast<float>(a.data()[i]) != static_cast<float>(b.data()[i])) return false;
+    return true;
+}
+
+} // namespace
+
+TEST_CASE("reg_f3d and reg_f3d2 write each warped image with the scaling of the image it resamples", "[reg_f3d][intensity]") {
+    // The warped image holds the stored values of the image it resamples, but is allocated from the
+    // other image's header: a CT floating (int16, intercept -1024) used to come out 1024 HU off
+    const NiftiImage reference = ToScaledInt16(MakeSmoothImage({ 32, 32, 32 }), 2.f, 10.f);
+    const NiftiImage floating = ToScaledInt16(MakeFloating(MakeSmoothImage({ 32, 32, 32 })), 0.5f, -1024.f);
+    for (const bool symmetric : { false, true }) {
+        INFO((symmetric ? "reg_f3d2" : "reg_f3d"));
+        std::unique_ptr<reg_f3d<float>> reg(symmetric ? new reg_f3d2<float>(1, 1) : new reg_f3d<float>(1, 1));
+        reg->SetReferenceImage(reference);
+        reg->SetFloatingImage(floating);
+        reg->SetPlatformType(PlatformType::Cpu);
+        reg->DoNotPrintOutInformation();
+        reg->SetLevelNumber(2);
+        reg->SetLevelToPerform(2);
+        reg->SetMaximalIterationNumber(5);
+        REQUIRE_NOTHROW(reg->Run());
+        const vector<NiftiImage> warped = reg->GetWarpedImage();
+        REQUIRE(warped[0]->scl_slope == floating->scl_slope);
+        REQUIRE(warped[0]->scl_inter == floating->scl_inter);
+        // Misalignment and padding move the median by a few units; the wrong scaling moved it by ~1000
+        REQUIRE(std::abs(MedianRealValue(warped[0]) - MedianRealValue(floating)) < 50);
+        if (symmetric) {
+            REQUIRE(warped[1]->scl_slope == reference->scl_slope);
+            REQUIRE(warped[1]->scl_inter == reference->scl_inter);
+            REQUIRE(std::abs(MedianRealValue(warped[1]) - MedianRealValue(reference)) < 50);
+        }
+    }
+}
+
+TEST_CASE("reg_f3d thresholds each image with its own thresholds", "[reg_f3d][intensity]") {
+    const NiftiImage reference = MakeSmoothImage({ 32, 32, 32 });
+    const NiftiImage floating = MakeFloating(reference);
+    const NiftiImage unthresholded = RunF3dOnCpu(reference, floating);
+
+    SECTION("A floating threshold changes the registration") {
+        // The floating pyramid used to be clamped with the reference thresholds, ignoring --fUpTh/--fLwTh
+        const NiftiImage thresholded = RunF3dOnCpu(reference, floating, [](reg_f3d<float>& reg) { reg.SetFloatingThresholdUp(0, 110.f); });
+        REQUIRE_FALSE(SameValues(thresholded, unthresholded));
+    }
+    SECTION("A reference threshold does not reach the floating image") {
+        // Just above the reference maximum the threshold leaves the reference untouched; the floating
+        // image (1.1 * reference + 5) goes higher and used to be clamped by it
+        float referenceMax = std::numeric_limits<float>::lowest();
+        for (size_t i = 0; i < reference.nVoxels(); ++i)
+            referenceMax = std::max(referenceMax, static_cast<float>(reference.data()[i]));
+        const NiftiImage thresholded = RunF3dOnCpu(reference, floating, [&](reg_f3d<float>& reg) { reg.SetReferenceThresholdUp(0, referenceMax + 1); });
+        REQUIRE(SameValues(thresholded, unthresholded));
+    }
+    SECTION("The robust range is taken in real units") {
+        // The 2-98% range used to be read from the stored values and applied to the real ones
+        const NiftiImage scaledReference = ToScaledInt16(reference, 0.5f, -1024.f);
+        const NiftiImage scaledFloating = ToScaledInt16(floating, 0.5f, -1024.f);
+        auto robust = [](reg_f3d<float>& reg) { reg.UseRobustRange(); };
+        REQUIRE(SameValues(RunF3dOnCpu(scaledReference, scaledFloating, robust),
+                           RunF3dOnCpu(ToRealFloat(scaledReference), ToRealFloat(scaledFloating), robust)));
+    }
+    SECTION("The robust range ignores NaN voxels") {
+        NiftiImage maskedFloating(floating, NiftiImage::Copy::Image);
+        auto data = maskedFloating.data();
+        for (size_t i = 0; i < maskedFloating.nVoxels() / 4; ++i)
+            data[i] = std::numeric_limits<float>::quiet_NaN();
+        const NiftiImage grid = RunF3dOnCpu(reference, maskedFloating, [](reg_f3d<float>& reg) { reg.UseRobustRange(); });
+        RequireAllFinite(grid);
+    }
+}
+
+TEST_CASE("reg_aladin's intensity centre of mass skips NaN voxels", "[reg_aladin][intensity]") {
+    // One NaN voxel used to turn the centre of mass, hence the initial transformation, into NaN, and the
+    // registration then aborted for lack of block correspondences
+    const NiftiImage reference = MakeSmoothImage({ 32, 32, 32 });
+    NiftiImage floating = MakeFloating(reference);
+    static_cast<float*>(floating->data)[0] = std::numeric_limits<float>::quiet_NaN();
+    reg_aladin<float> reg;
+    reg.SetInputReference(reference);
+    reg.SetInputFloating(floating);
+    reg.SetPlatformType(PlatformType::Cpu);
+    reg.SetAlignCentreMass(2);
+    reg.SetVerbose(false);
+    REQUIRE_NOTHROW(reg.Run());
+    const mat44 *matrix = reg.GetTransformationMatrix();
+    for (int i = 0; i < 4; ++i)
+        for (int j = 0; j < 4; ++j)
+            REQUIRE(std::isfinite(matrix->m[i][j]));
+}
