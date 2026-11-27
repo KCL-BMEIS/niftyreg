@@ -270,6 +270,16 @@ void reg_base<T>::CheckParameters() {
     // image paired with a 3D reference yields a warped image whose voxel count does not match its grid
     reg_checkSameDimensionality(inputReference, "reference image", inputFloating, "floating image");
 
+    // Only the time points (4th dimension) are registered, as channels; volumes along the 5th and
+    // higher dimensions are not, and the per-channel buffers sized from nt cannot hold them
+    const auto checkAtMost4d = [](const NiftiImage& image, const std::string& name) {
+        if (image->nu > 1 || image->nv > 1 || image->nw > 1)
+            NR_FATAL_ERROR("The " + name + " image has more than 4 dimensions; only 2D or 3D images, "
+                           "optionally with time points as channels (4D), can be registered");
+    };
+    checkAtMost4d(inputReference, "reference");
+    checkAtMost4d(inputFloating, "floating");
+
     // Check the number of level to perform
     if (levelToPerform > 0) {
         levelToPerform = levelToPerform < levelNumber ? levelToPerform : levelNumber;

@@ -13,7 +13,9 @@
  *  they cannot handle before any buffer is allocated:
  *    - a 2D image paired with a 3D one: the warped image would be allocated with the wrong voxel
  *      count and a 2D deformation field cannot sample a 3D floating image,
- *    - an axis thinner than a block (BLOCK_WIDTH voxels), which cannot hold a single block.
+ *    - an axis thinner than a block (BLOCK_WIDTH voxels), which cannot hold a single block,
+ *    - for reg_f3d, an image with more than 4 dimensions: time points are registered as channels,
+ *      but the per-channel buffers are sized from nt and cannot hold volumes along nu, nv or nw.
  *  When an axis is at least a block wide but only holds a single row of blocks, every block corner
  *  shares the same coordinate along it: the correspondences are coplanar, the affine least-squares
  *  fit is singular, and the estimate has to be rejected rather than inverted or fed to the matrix
@@ -205,6 +207,23 @@ TEST_CASE("reg_f3d rejects a 2D image paired with a 3D one", "[reg_f3d][validati
             reg.SetFloatingImage(reference3d ? image2d : image3d);
             reg.DoNotPrintOutInformation();
             REQUIRE_THROWS_WITH(reg.Run(), matcher);
+        }
+    }
+}
+
+TEST_CASE("reg_f3d rejects images with more than 4 dimensions", "[reg_f3d][validation]") {
+    std::mt19937 gen(0);
+    const NiftiImage image3d = MakeImage(gen, { kSize, kSize, kSize });
+    const NiftiImage image5d = MakeImage(gen, { kSize, kSize, kSize, 1, 2 });
+
+    for (const bool reference5d : { false, true }) {
+        SECTION(reference5d ? "5D reference" : "5D floating") {
+            reg_f3d<float> reg(1, 1);
+            reg.SetReferenceImage(reference5d ? image5d : image3d);
+            reg.SetFloatingImage(reference5d ? image3d : image5d);
+            reg.DoNotPrintOutInformation();
+            REQUIRE_THROWS_WITH(reg.Run(), ContainsSubstring(std::string(reference5d ? "reference" : "floating") +
+                                                             " image has more than 4 dimensions"));
         }
     }
 }
