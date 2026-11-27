@@ -19,6 +19,10 @@
  *  function and is only observable from outside: the tools are run here as processes on tiny
  *  images in a temporary directory and must end with a failure status - not a signal - after
  *  naming the offending pair. A matched run per tool checks that valid inputs are accepted.
+ *
+ *  reg_resample is also run on the CUDA platform, when the build has it: the tool reads only the
+ *  reference header, so the CUDA content must cope with a reference without data, and the GPU
+ *  resampler is linear only, so other interpolations have to be refused rather than abort.
  */
 
 using Catch::Matchers::ContainsSubstring;
@@ -284,5 +288,24 @@ TEST_CASE("reg_average refuses mixed 2D/3D inputs", "[apps][validation]") {
     SECTION("Matched inputs") {
         RequireCompleted(Run(in.scratch, "reg_average", { out, "-avg_tran", in.ref3d, in.cpp3d, in.flo3d, in.def3d, in.flo3d }), out);
         RequireCompleted(Run(in.scratch, "reg_average", { out, "-avg", in.ref2d, in.flo2d }), out);
+    }
+}
+
+TEST_CASE("reg_resample runs on the CUDA platform", "[apps][validation][cuda]") {
+    if (!Platform::IsCudaEnabled())
+        SKIP("CUDA is not enabled in this build");
+    const Inputs in;
+
+    SECTION("Linear interpolation") {
+        const std::string out3d = in.Out("resampled3d.nii"), out2d = in.Out("resampled2d.nii");
+        RequireCompleted(Run(in.scratch, "reg_resample", { "-ref", in.ref3d, "-flo", in.flo3d, "-trans", in.cpp3d, "-inter", "1", "-platf", "1", "-res", out3d, "-voff" }), out3d);
+        RequireCompleted(Run(in.scratch, "reg_resample", { "-ref", in.ref2d, "-flo", in.flo2d, "-trans", in.def2d, "-inter", "1", "-platf", "1", "-res", out2d, "-voff" }), out2d);
+    }
+    SECTION("Other interpolations") {
+        const std::string out = in.Out("resampled.nii");
+        const std::string diagnosis = "only supports linear interpolation";
+        RequireRejected(Run(in.scratch, "reg_resample", { "-ref", in.ref3d, "-flo", in.flo3d, "-platf", "1", "-res", out, "-voff" }), diagnosis);
+        RequireRejected(Run(in.scratch, "reg_resample", { "-ref", in.ref3d, "-flo", in.flo3d, "-inter", "0", "-platf", "1", "-res", out, "-voff" }), diagnosis);
+        REQUIRE_FALSE(std::filesystem::exists(out));
     }
 }
