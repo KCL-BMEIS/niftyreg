@@ -101,6 +101,8 @@ static float mirrorResample(const NiftiImage& floating, int order, const float w
 
     // Mirror ResampleImage2D/3D's FP32 accumulation for every order: `relative` is formed in float,
     // the (double) weight functions are cast down to a float basis, and the blend is done in float.
+    // Out-of-FOV taps of zero (product) weight are skipped, so a NaN padding value only reaches the
+    // result through a tap that actually contributes.
     int prev[3];
     for (int d = 0; d < 3; ++d) prev[d] = Floor<int>(position[d]);
     float basisX[SINC_KERNEL_SIZE], basisY[SINC_KERNEL_SIZE], basisZ[SINC_KERNEL_SIZE];
@@ -120,7 +122,8 @@ static float mirrorResample(const NiftiImage& floating, int order, const float w
                 for (int a = 0; a < size; ++a) {
                     const int X = prev[0] + a;
                     const bool inFov = -1 < X && X < nx && -1 < Y && Y < ny && -1 < Z && Z < nz;
-                    xTemp += (inFov ? floVal(X, Y, Z) : pad) * basisX[a];
+                    if (inFov) xTemp += floVal(X, Y, Z) * basisX[a];
+                    else if (basisX[a] * basisY[b] * basisZ[c] != 0) xTemp += pad * basisX[a];
                 }
                 yTemp += xTemp * basisY[b];
             }
@@ -133,7 +136,8 @@ static float mirrorResample(const NiftiImage& floating, int order, const float w
             for (int a = 0; a < size; ++a) {
                 const int X = prev[0] + a;
                 const bool inFov = -1 < X && X < nx && -1 < Y && Y < ny;
-                xTemp += (inFov ? floVal(X, Y, 0) : pad) * basisX[a];
+                if (inFov) xTemp += floVal(X, Y, 0) * basisX[a];
+                else if (basisX[a] * basisY[b] != 0) xTemp += pad * basisX[a];
             }
             intensity += xTemp * basisY[b];
         }
@@ -347,10 +351,10 @@ TEST_CASE("Resample image operation", "[unit]") {
         }
     }
 
-    SECTION("Exact upper edge under NaN padding is NaN (pinned), finite otherwise") {
-        // A sample landing exactly on the last valid voxel (c == D-1) returns flo[D-1] with finite
-        // padding, but NaN under NaN padding, because the zero-weight out-of-FOV tap does 0*NaN.
-        // This is the resampler's current contract; the CUDA/refactor work must preserve it.
+    SECTION("A sample on the last valid voxel ignores the zero-weight NaN padding tap") {
+        // A sample landing exactly on the last valid voxel (c == D-1) has an out-of-FOV tap of weight 0.
+        // NaN padding (the internal default of reg_f3d/reg_aladin/reg_average) must not leak through it as
+        // 0*NaN, or every interpolation order would lose the last slices of the FOV.
         for (bool is3D : { false, true }) {
             NiftiImage floating = is3D ? makeImage({ D, D, D }) : makeImage({ D, D });
             auto fp = floating.data();
@@ -360,7 +364,8 @@ TEST_CASE("Resample image operation", "[unit]") {
             for (int order : allOrders) {
                 INFO((is3D ? "3D " : "2D ") << orderName(order));
                 requireResampleEq(probeResample(floating, order, edge, 0.f, is3D), onVoxel, order);
-                REQUIRE(std::isnan(probeResample(floating, order, edge, std::numeric_limits<float>::quiet_NaN(), is3D)));
+                if (order == kSinc) continue; // sinc weights are ~1e-16, not 0, at integer offsets
+                REQUIRE(probeResample(floating, order, edge, std::numeric_limits<float>::quiet_NaN(), is3D) == onVoxel);
             }
         }
     }

@@ -363,9 +363,9 @@ TEST_CASE("Image gradient under NaN padding is zeroed outside the field of view"
                     for (int i = 0; i < nx; ++i) {
                         const size_t index = (static_cast<size_t>(k) * ny + j) * nx + i;
                         const double x = i + 4.5;   // sampled x position
-                        // A voxel is poisoned when ANY tap leaves the image - including the
-                        // zero-weight tap of a position exactly on the last row/slice (0 * NaN is
-                        // NaN, the same contract the resampler pins at the exact upper edge)
+                        // A voxel is poisoned when ANY tap leaves the image - including a position
+                        // exactly on the last row/slice, whose out-of-FOV tap carries a non-zero
+                        // derivative weight (unlike the resampler's zero-weight intensity tap)
                         const bool outOfFov = x > 6.5 || j == ny - 1 || (is3D && k == nz - 1);
                         if (outOfFov) {
                             for (int c = 0; c < components; ++c) {

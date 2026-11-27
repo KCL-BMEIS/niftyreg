@@ -446,8 +446,10 @@ void ResampleImage3D(const nifti_image *floatingImage,
                                     -1 < Z && Z < floatingImage->nz &&
                                     -1 < Y && Y < floatingImage->ny) {
                                     xTempNewValue += *xyzPointer * xBasis[a];
-                                } else {
-                                    // paddingValue
+                                } else if (xBasis[a] * yBasis[b] * zBasis[c] != 0) {
+                                    // A zero-weight tap is skipped: with NaN padding (the internal default of
+                                    // reg_f3d/reg_aladin/reg_average) 0*NaN would turn a sample lying exactly on
+                                    // the last valid voxel into NaN, losing the FOV's last slices for every kernel
                                     xTempNewValue += paddingValue * xBasis[a];
                                 }
                                 xyzPointer++;
@@ -567,8 +569,8 @@ void ResampleImage2D(const nifti_image *floatingImage,
                         if (-1 < (previous[0] + a) && (previous[0] + a) < floatingImage->nx &&
                             -1 < Y && Y < floatingImage->ny) {
                             xTempNewValue += *xyzPointer * xBasis[a];
-                        } else {
-                            // paddingValue
+                        } else if (xBasis[a] * yBasis[b] != 0) {
+                            // Zero-weight padding taps are skipped so that NaN padding cannot leak as 0*NaN
                             xTempNewValue += paddingValue * xBasis[a];
                         }
                         xyzPointer++;

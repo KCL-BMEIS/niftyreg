@@ -14,9 +14,9 @@
     resamplers accumulate the linear blend in double, so finite voxels must be equal.
 
     Two comparison subtleties this test handles:
-      - NaN padding: an out-of-FOV tap contributes paddingValue * weight, and a zero-weight tap
-        still yields 0*NaN = NaN, so voxels with any out-of-FOV tap are legitimately NaN. Since
-        NaN == NaN is false, NaN is compared explicitly (a voxel must be NaN on both platforms or
+      - NaN padding: an out-of-FOV tap of non-zero weight contributes paddingValue * weight, so
+        voxels whose stencil contributes from outside the FOV are legitimately NaN (zero-weight padding
+        taps are skipped on both platforms). Since NaN == NaN is false, NaN is compared explicitly (a voxel must be NaN on both platforms or
         finite-and-equal on both).
       - Masked-out voxels: neither kernel writes them (CPU gates on mask; CUDA iterates a compacted
         active-voxel list), and the CUDA warped buffer is uninitialised cudaMalloc while the CPU

@@ -1976,6 +1976,7 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
     double sum = 0;
     double rms;
     double diff;
+    size_t validNumber = 0;
     for (size_t i = 0; i < voxelNumber; i++) {
         diff = (double)*imageAPtrX++ - (double)*imageBPtrX++;
         rms = diff * diff;
@@ -1987,10 +1988,14 @@ double reg_tools_getMeanRMS(const nifti_image *imageA, const nifti_image *imageB
             diff = (double)*imageAPtrZ++ - (double)*imageBPtrZ++;
             rms += diff * diff;
         }
-        if (rms == rms)
+        // NaN marks voxels outside either image: they are left out of the mean entirely, as counting
+        // them in the divisor would bias the error towards 0 with the size of the NaN region
+        if (rms == rms) {
             sum += sqrt(rms);
+            validNumber++;
+        }
     }
-    return sum / static_cast<double>(voxelNumber);
+    return validNumber > 0 ? sum / static_cast<double>(validNumber) : std::numeric_limits<double>::quiet_NaN();
 }
 /* *************************************************************** */
 template <class AType>

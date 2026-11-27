@@ -5004,7 +5004,10 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
     nifti_swap_Nbytes( (int)(ntot / nim->swapsize), nim->swapsize , dataptr ) ;
   }
 
-#if defined(isfinite) && !defined(USING_R)
+/* NiftyReg: NaN marks voxels outside the image (masked/cropped inputs); the measures and resampling skip
+   them. Zeroing them here would turn that region into real 0-intensity tissue, so USE_NII_NAN (CMake
+   option, ON by default) keeps non-finite values as read. Re-apply this guard when updating niftilib. */
+#if defined(isfinite) && !defined(USING_R) && !defined(USE_NII_NAN)
 {
   /* check input float arrays for goodness, and fix bad floats */
   int fix_count = 0 ;

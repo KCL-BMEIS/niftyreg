@@ -3,6 +3,9 @@
 
 #include "reg_test_common.h"
 #include "_reg_tools.h"
+#include "_reg_ReadWriteImage.h"
+#include <chrono>
+#include <filesystem>
 #include <set>
 
 /*
@@ -139,6 +142,37 @@ TEST_CASE("Tools: NaN masking", "[unit]") {
         REQUIRE(mask[2] == -1);   // already background, stays
         REQUIRE(mask[3] == -1);
     }
+    SECTION("NaN and infinities survive a write/read round trip") {
+        // NaN is how inputs mark voxels outside the image (reg_tools -nan, SPM): the measures and the
+        // resampler skip them. Stock niftilib zeroes non-finite values on read, which turns that region
+        // into real 0-intensity tissue; the USE_NII_NAN guard in nifti1_io.c must survive library updates.
+        const float nan = std::numeric_limits<float>::quiet_NaN(), inf = std::numeric_limits<float>::infinity();
+        const std::vector<float> values{ 1.f, nan, -inf, 4.f, inf, nan };
+        const auto stamp = std::chrono::steady_clock::now().time_since_epoch().count();
+        const std::filesystem::path dir = std::filesystem::temp_directory_path() /
+            ("niftyreg_nan_io_" + std::to_string(stamp) + "_" + std::to_string(std::random_device{}()));
+        std::filesystem::create_directories(dir);
+        for (const int datatype : { NIFTI_TYPE_FLOAT32, NIFTI_TYPE_FLOAT64 }) {
+            for (const std::string ext : { ".nii", ".nii.gz" }) {
+                INFO("datatype " << datatype << ", " << ext);
+                NiftiImage img = MakeValueImage({ 6 }, values);
+                if (datatype == NIFTI_TYPE_FLOAT64) img.changeDatatype(NIFTI_TYPE_FLOAT64);
+                const std::string file = (dir / ("nan" + std::to_string(datatype) + ext)).string();
+                reg_io_WriteImageFile(img, file.c_str());
+                const NiftiImage read = reg_io_ReadImageFile(file.c_str());
+                REQUIRE(read->datatype == datatype);
+                const auto ptr = read.data();
+                for (size_t i = 0; i < values.size(); ++i) {
+                    INFO("voxel " << i);
+                    const double v = ptr[i];
+                    if (std::isnan(values[i])) REQUIRE(std::isnan(v));
+                    else REQUIRE(v == double(values[i]));
+                }
+            }
+        }
+        std::error_code ignored;
+        std::filesystem::remove_all(dir, ignored);
+    }
 }
 
 TEST_CASE("Tools: image statistics", "[unit]") {
@@ -173,6 +207,15 @@ TEST_CASE("Tools: image statistics", "[unit]") {
             }
         }
         REQUIRE(std::abs(reg_tools_getMeanRMS(vecA, vecB) - 5.0) < 1e-6);
+    }
+    SECTION("mean RMS ignores NaN voxels, in the sum and in the count") {
+        const float nan = std::numeric_limits<float>::quiet_NaN();
+        const NiftiImage a = MakeValueImage({ 4 }, { 1.f, nan, 3.f, nan });
+        const NiftiImage b = MakeValueImage({ 4 }, { 4.f, 2.f, nan, 7.f });
+        // only voxel 0 is defined in both: |1 - 4| = 3
+        REQUIRE(reg_tools_getMeanRMS(a, b) == 3.0);
+        const NiftiImage c = MakeValueImage({ 4 }, { nan, 2.f, nan, 5.f });
+        REQUIRE(std::isnan(reg_tools_getMeanRMS(a, c)));   // no voxel defined in both
     }
 }
 
