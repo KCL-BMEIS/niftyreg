@@ -12,6 +12,7 @@
  */
 
 #include "_reg_tools.h"
+#include <type_traits>
 
 /* *************************************************************** */
 void reg_checkAndCorrectDimension(nifti_image *image) {
@@ -234,6 +235,13 @@ void reg_tools_removeSCLInfo(nifti_image *image) {
     }
     image->scl_slope = 1.f;
     image->scl_inter = 0.f;
+}
+/* *************************************************************** */
+void reg_tools_copyIntensityScaling(nifti_image *target, const nifti_image *source) {
+    target->scl_slope = source->scl_slope;
+    target->scl_inter = source->scl_inter;
+    target->cal_min = source->cal_min;
+    target->cal_max = source->cal_max;
 }
 /* *************************************************************** */
 void reg_tools_removeSCLInfo(nifti_image *image) {
@@ -480,6 +488,24 @@ struct Operation {
     }
 };
 /* *************************************************************** */
+/* An arithmetic result written back into an integer image is rounded and clamped to the type's range:
+ * a plain cast truncates toward zero (reg_tools -div 3 on int16 was off by up to 0.67 instead of 0.5) and
+ * wraps around on overflow (int16 -mul 10). NaN cannot be stored and becomes 0. */
+template <class Type>
+static inline Type ToStoredValue(const double value) {
+    if constexpr (std::is_floating_point_v<Type>) {
+        return static_cast<Type>(value);
+    } else {
+        if (value != value) return 0;
+        const double rounded = std::round(value);
+        if (rounded <= static_cast<double>(std::numeric_limits<Type>::lowest()))
+            return std::numeric_limits<Type>::lowest();
+        if (rounded >= static_cast<double>(std::numeric_limits<Type>::max()))
+            return std::numeric_limits<Type>::max();
+        return static_cast<Type>(rounded);
+    }
+}
+/* *************************************************************** */
 template <class Type>
 void reg_tools_operationImageToImage(const nifti_image *img1,
                                      const nifti_image *img2,
@@ -508,8 +534,8 @@ void reg_tools_operationImageToImage(const nifti_image *img1,
    shared(voxelNumber,resPtr,img1Ptr,img2Ptr,img1,img2,sclSlope1,sclSlope2,operation)
 #endif
     for (i = 0; i < voxelNumber; i++)
-        resPtr[i] = static_cast<Type>((operation(img1Ptr[i] * sclSlope1 + img1->scl_inter,
-                                                 img2Ptr[i] * sclSlope2 + img2->scl_inter) - img1->scl_inter) / sclSlope1);
+        resPtr[i] = ToStoredValue<Type>((operation(img1Ptr[i] * sclSlope1 + img1->scl_inter,
+                                                   img2Ptr[i] * sclSlope2 + img2->scl_inter) - img1->scl_inter) / sclSlope1);
 }
 /* *************************************************************** */
 void reg_tools_addImageToImage(const nifti_image *img1,
@@ -690,7 +716,7 @@ void reg_tools_operationValueToImage(const nifti_image *img,
    shared(voxelNumber,resPtr,imgPtr,img,val,sclSlope,operation)
 #endif
     for (i = 0; i < voxelNumber; i++)
-        resPtr[i] = static_cast<Type>((operation(imgPtr[i] * sclSlope + img->scl_inter, val) - img->scl_inter) / sclSlope);
+        resPtr[i] = ToStoredValue<Type>((operation(imgPtr[i] * sclSlope + img->scl_inter, val) - img->scl_inter) / sclSlope);
 }
 /* *************************************************************** */
 void reg_tools_addValueToImage(const nifti_image *img,

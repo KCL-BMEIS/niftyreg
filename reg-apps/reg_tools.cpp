@@ -605,9 +605,15 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
         }
-        // Images are converted to the higher datatype
+        // Images of different datatypes are both converted to floating point. NIfTI datatype codes are not
+        // ordered by range or precision (UINT16 = 512 > FLOAT32 = 16), so taking the larger code would store
+        // a float operand, and the result, as integers
         if(image2!=nullptr){
-            switch(image->datatype>image2->datatype?image->datatype:image2->datatype)
+            int commonDatatype = image->datatype;
+            if(image->datatype != image2->datatype)
+                commonDatatype = image->datatype == NIFTI_TYPE_FLOAT64 || image2->datatype == NIFTI_TYPE_FLOAT64 ?
+                                 NIFTI_TYPE_FLOAT64 : NIFTI_TYPE_FLOAT32;
+            switch(commonDatatype)
             {
             case NIFTI_TYPE_UINT8:
                 reg_tools_changeDatatype<unsigned char>(image,NIFTI_TYPE_UINT8);
@@ -685,6 +691,12 @@ int main(int argc, char **argv)
                 break;
             }
         }
+        // The result keeps the input's datatype: in an integer image fractional results are rounded
+        const bool integerOutput = outputImage->datatype != NIFTI_TYPE_FLOAT32 && outputImage->datatype != NIFTI_TYPE_FLOAT64;
+        const bool fractionalResult = flag->operationTypeFlag == 3 ||
+                                      (image2 == nullptr && param->operationValue != std::round(param->operationValue));
+        if(integerOutput && fractionalResult)
+            NR_WARN("The input image has an integer datatype: the result is rounded to the nearest integer. Use -float to keep fractional values");
         if(flag->outputImageFlag)
             reg_io_WriteImageFile(outputImage,param->outputImageName);
         else reg_io_WriteImageFile(outputImage,"output.nii");

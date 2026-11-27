@@ -633,6 +633,9 @@ vector<NiftiImage> reg_f3d2<T>::GetWarpedImage() {
     vector<NiftiImage> warpedImages{ std::move(con.GetWarped()), std::move(conBw->GetWarped()) };
 
     DeinitCurrentLevel(-1);
+    // Each warped image holds the stored values of the image it resamples (see reg_f3d::GetWarpedImage)
+    reg_tools_copyIntensityScaling(warpedImages[0], this->inputFloating);
+    reg_tools_copyIntensityScaling(warpedImages[1], this->inputReference);
 
     NR_FUNC_CALLED();
     return warpedImages;

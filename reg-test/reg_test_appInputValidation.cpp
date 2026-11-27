@@ -1,5 +1,6 @@
 #include "reg_test_common.h"
 #include "_reg_ReadWriteImage.h"
+#include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <chrono>
 #include <cstdlib>
@@ -19,6 +20,9 @@
  *  function and is only observable from outside: the tools are run here as processes on tiny
  *  images in a temporary directory and must end with a failure status - not a signal - after
  *  naming the offending pair. A matched run per tool checks that valid inputs are accepted.
+ *
+ *  The last case checks intensity handling that is only visible at the tool level: reg_average
+ *  averaging real values of scaled inputs, and reg_tools arithmetic on integer and mixed datatypes.
  *
  *  reg_resample is also run on the CUDA platform, when the build has it: the tool reads only the
  *  reference header, so the CUDA content must cope with a reference without data, and the GPU
@@ -307,5 +311,61 @@ TEST_CASE("reg_resample runs on the CUDA platform", "[apps][validation][cuda]") 
         RequireRejected(Run(in.scratch, "reg_resample", { "-ref", in.ref3d, "-flo", in.flo3d, "-platf", "1", "-res", out, "-voff" }), diagnosis);
         RequireRejected(Run(in.scratch, "reg_resample", { "-ref", in.ref3d, "-flo", in.flo3d, "-inter", "0", "-platf", "1", "-res", out, "-voff" }), diagnosis);
         REQUIRE_FALSE(std::filesystem::exists(out));
+    }
+}
+
+namespace {
+
+// A constant image of the given datatype, written with raw stored values and a scaling
+// (NiftiImage::data() would apply the scaling to the values written through it)
+template<class DataType>
+std::string WriteConstant(const ScratchDir& scratch, const std::string& name, const int datatype,
+                          const DataType stored, const float slope = 1, const float inter = 0) {
+    NiftiImage image({ 8, 8, 8 }, datatype);
+    image->sform_code = 1;
+    Mat44Eye(&image->sto_xyz);
+    image->sto_ijk = image->sto_xyz;
+    image->scl_slope = slope;
+    image->scl_inter = inter;
+    DataType *data = static_cast<DataType*>(image->data);
+    for (size_t i = 0; i < image.nVoxels(); ++i) data[i] = stored;
+    const std::string file = scratch.File(name);
+    reg_io_WriteImageFile(image, file.c_str());
+    return file;
+}
+
+// The real value of the first voxel of an image file (NiftiImage::data() applies the scaling)
+double FirstRealValue(const std::string& file) {
+    const NiftiImage image = reg_io_ReadImageFile(file.c_str());
+    return static_cast<double>(image.data()[0]);
+}
+
+} // namespace
+
+TEST_CASE("reg_average and reg_tools work in real intensity units", "[apps][intensity]") {
+    const ScratchDir scratch;
+    const std::string out = scratch.File("out.nii");
+
+    SECTION("reg_average applies each input's slope and intercept") {
+        // stored 100 with slope 0.5 and intercept 3 is 53; averaged with 20 gives 36.5 (and not 60)
+        const std::string scaled = WriteConstant<short>(scratch, "scaled.nii", NIFTI_TYPE_INT16, 100, 0.5f, 3.f);
+        const std::string plain = WriteConstant<float>(scratch, "plain.nii", NIFTI_TYPE_FLOAT32, 20.f);
+        RequireCompleted(Run(scratch, "reg_average", { out, "-avg", scaled, plain }), out);
+        REQUIRE(FirstRealValue(out) == Catch::Approx(36.5));
+    }
+    SECTION("reg_tools computes mixed datatypes in floating point") {
+        // NIfTI codes rank UINT16 (512) above FLOAT32 (16): 7 + 0.5 used to be stored as uint16 7
+        const std::string integer = WriteConstant<unsigned short>(scratch, "u16.nii", NIFTI_TYPE_UINT16, 7);
+        const std::string fraction = WriteConstant<float>(scratch, "half.nii", NIFTI_TYPE_FLOAT32, 0.5f);
+        RequireCompleted(Run(scratch, "reg_tools", { "-in", integer, "-add", fraction, "-out", out }), out);
+        REQUIRE(reg_io_ReadImageFile(out.c_str())->datatype == NIFTI_TYPE_FLOAT32);
+        REQUIRE(FirstRealValue(out) == 7.5);
+    }
+    SECTION("reg_tools rounds integer results and says so") {
+        const std::string integer = WriteConstant<short>(scratch, "i16.nii", NIFTI_TYPE_INT16, 2);
+        const RunResult result = Run(scratch, "reg_tools", { "-in", integer, "-div", "3", "-out", out });
+        RequireCompleted(result, out);
+        REQUIRE(FirstRealValue(out) == 1);   // 2/3 rounded, not truncated to 0
+        REQUIRE_THAT(result.output, ContainsSubstring("rounded to the nearest integer"));
     }
 }

@@ -509,6 +509,9 @@ vector<NiftiImage> reg_f3d<T>::GetWarpedImage() {
     this->WarpFloatingImage(3); // cubic spline interpolation
     NiftiImage warpedImage = std::move(this->con->GetWarped());
     DeinitCurrentLevel(-1);
+    // The warped image is allocated from the reference header but holds the floating image's stored values:
+    // without the floating's scaling, a CT floating (int16, intercept -1024) comes out shifted by 1024 HU
+    reg_tools_copyIntensityScaling(warpedImage, this->inputFloating);
 
     NR_FUNC_CALLED();
     return { std::move(warpedImage) };
