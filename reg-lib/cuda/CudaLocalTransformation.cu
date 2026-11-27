@@ -48,12 +48,12 @@ vector<thrust::device_vector<float4>>& ExponentiationWorkspace::GetIntermediates
 }
 /* *************************************************************** */
 template<bool composition, bool bspline>
-void GetDeformationField(const nifti_image *controlPointImage,
-                         const nifti_image *referenceImage,
-                         const float4 *controlPointImageCuda,
-                         float4 *deformationFieldCuda,
-                         const int *maskCuda,
-                         const size_t activeVoxelNumber) {
+void GetSplineDeformationField(const nifti_image *controlPointImage,
+                               const nifti_image *referenceImage,
+                               const float4 *controlPointImageCuda,
+                               float4 *deformationFieldCuda,
+                               const int *maskCuda,
+                               const size_t activeVoxelNumber) {
     const size_t controlPointNumber = NiftiImage::calcVoxelNumber(controlPointImage, 3);
     const int3 referenceImageDims = make_int3(referenceImage->nx, referenceImage->ny, referenceImage->nz);
     const int3 controlPointImageDims = make_int3(controlPointImage->nx, controlPointImage->ny, controlPointImage->nz);
@@ -89,8 +89,35 @@ void GetDeformationField(const nifti_image *controlPointImage,
         });
     }
 }
+/* *************************************************************** */
+template<bool composition, bool bspline>
+void GetDeformationField(const nifti_image *controlPointImage,
+                         const nifti_image *referenceImage,
+                         const float4 *controlPointImageCuda,
+                         float4 *deformationFieldCuda,
+                         const int *maskCuda,
+                         const size_t activeVoxelNumber) {
+    // A grid can carry up to two affines as extensions (reg_createSymmetricControlPointGrids stores
+    // each half of the initial affine this way): the first is applied before the spline, which is
+    // then composed with it, and the second is composed after. The affines are applied to every
+    // voxel, whereas the spline only writes the voxels listed in the mask.
+    const mat44 *affineBefore = controlPointImage->num_ext > 0 ? reinterpret_cast<const mat44*>(controlPointImage->ext_list[0].edata) : nullptr;
+    const mat44 *affineAfter = controlPointImage->num_ext > 1 ? reinterpret_cast<const mat44*>(controlPointImage->ext_list[1].edata) : nullptr;
+    if (affineBefore) {
+        Cuda::GetAffineDeformationField<composition>(affineBefore, referenceImage, deformationFieldCuda);
+        GetSplineDeformationField<true, bspline>(controlPointImage, referenceImage, controlPointImageCuda,
+                                                 deformationFieldCuda, maskCuda, activeVoxelNumber);
+    } else {
+        GetSplineDeformationField<composition, bspline>(controlPointImage, referenceImage, controlPointImageCuda,
+                                                        deformationFieldCuda, maskCuda, activeVoxelNumber);
+    }
+    if (affineAfter)
+        Cuda::GetAffineDeformationField<true>(affineAfter, referenceImage, deformationFieldCuda);
+}
 template void GetDeformationField<false, false>(const nifti_image*, const nifti_image*, const float4*, float4*, const int*, const size_t);
 template void GetDeformationField<true, false>(const nifti_image*, const nifti_image*, const float4*, float4*, const int*, const size_t);
+template void GetDeformationField<false, true>(const nifti_image*, const nifti_image*, const float4*, float4*, const int*, const size_t);
+template void GetDeformationField<true, true>(const nifti_image*, const nifti_image*, const float4*, float4*, const int*, const size_t);
 /* *************************************************************** */
 template<bool is3d>
 struct Basis2nd {

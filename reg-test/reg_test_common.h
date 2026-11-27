@@ -110,6 +110,22 @@ void setAnisotropicSform(NiftiImage& img) {
     img->dz = img->pixdim[3] = img->nz > 1 ? m.m[2][2] : 1.f;
 }
 
+// A general affine for tests that need one: rotation about z, anisotropic scaling and a translation,
+// plus a z scaling and shear in 3D. No axis is left untouched, so a component that is dropped or
+// applied twice shows in every voxel.
+mat44 makeRotationScalingAffine(const bool is3d, const float angle, const std::array<float, 3>& translation) {
+    mat44 affine;
+    Mat44Eye(&affine);
+    affine.m[0][0] = 1.1f * cos(angle); affine.m[0][1] = -sin(angle);
+    affine.m[1][0] = sin(angle); affine.m[1][1] = 0.95f * cos(angle);
+    affine.m[0][3] = translation[0]; affine.m[1][3] = translation[1];
+    if (is3d) {
+        affine.m[2][2] = 1.05f; affine.m[1][2] = 0.06f;
+        affine.m[2][3] = translation[2];
+    }
+    return affine;
+}
+
 // Vacuity guards. A comparison only means something if the operation being compared actually ran -
 // an output left at its initial value compares equal to anything else left at its initial value, and
 // the test passes without exercising the code it names. Assert that the output was computed first.
